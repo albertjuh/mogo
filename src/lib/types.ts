@@ -4,6 +4,13 @@ export interface Rider {
   phone: string;
   contractEnd: string; // ISO date string
   bikeId: string;
+  active: boolean;
+  contractStart: string; // ISO date string
+  dailyFee: number;
+  plateNumber: string;
+  shahidiNumber: string;
+  notes?: string;
+  createdAt: string; // ISO date string
 }
 
 export interface Bike {

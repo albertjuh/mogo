@@ -4,40 +4,73 @@ import { subDays, addDays, formatISO } from 'date-fns';
 const today = new Date();
 
 export const initialBikes: Bike[] = [
-  { id: "bike-1", model: "Boxer 150", plateNumber: "KMF A123B" },
-  { id: "bike-2", model: "Pulsar 200NS", plateNumber: "KMF C456D" },
-  { id: "bike-3", model: "TVS Star", plateNumber: "KMF E789F" },
+  { id: "bike-1", model: "Boxer 150", plateNumber: "T 001 BBD" },
+  { id: "bike-2", model: "Pulsar 200NS", plateNumber: "T 042 GFK" },
+  { id: "bike-3", model: "TVS Star", plateNumber: "T 119 HJL" },
 ];
 
 export const initialRiders: Rider[] = [
   {
     id: "rider-1",
-    name: "John Kamau",
+    name: "Juma Hassan",
     phone: "0712345678",
-    contractEnd: formatISO(addDays(today, 85)),
+    contractStart: formatISO(subDays(today, 90)),
+    contractEnd: formatISO(addDays(subDays(today, 90), 510)),
     bikeId: "bike-1",
+    active: true,
+    dailyFee: 10000,
+    plateNumber: "T 001 BBD",
+    shahidiNumber: "SH-20230011",
+    createdAt: formatISO(subDays(today, 90)),
   },
   {
     id: "rider-2",
-    name: "Peter Otieno",
+    name: "Amina Saleh",
     phone: "0723456789",
-    contractEnd: formatISO(addDays(today, 25)),
+    contractStart: formatISO(subDays(today, 25)),
+    contractEnd: formatISO(addDays(subDays(today, 25), 510)),
     bikeId: "bike-2",
+    active: true,
+    dailyFee: 10000,
+    plateNumber: "T 042 GFK",
+    shahidiNumber: "SH-20183422",
+    createdAt: formatISO(subDays(today, 25)),
   },
   {
     id: "rider-3",
-    name: "David Kimani",
+    name: "Baraka Mwangi",
     phone: "0734567890",
-    contractEnd: formatISO(addDays(today, 150)),
+    contractStart: formatISO(subDays(today, 150)),
+    contractEnd: formatISO(addDays(subDays(today, 150), 510)),
     bikeId: "bike-3",
+    active: true,
+    dailyFee: 10000,
+    plateNumber: "T 119 HJL",
+    shahidiNumber: "SH-20190998",
+    createdAt: formatISO(subDays(today, 150)),
   },
 ];
 
 export const initialPayments: Payment[] = [
-  { id: "payment-1", riderId: "rider-1", amount: 500, date: formatISO(subDays(today, 1)) },
-  { id: "payment-2", riderId: "rider-2", amount: 600, date: formatISO(subDays(today, 1)) },
-  { id: "payment-3", riderId: "rider-3", amount: 500, date: formatISO(subDays(today, 1)) },
-  { id: "payment-4", riderId: "rider-1", amount: 500, date: formatISO(subDays(today, 2)) },
-  // Rider 2 missed a payment 2 days ago
-  { id: "payment-5", riderId: "rider-3", amount: 500, date: formatISO(subDays(today, 2)) },
+  // Payments for Juma
+  ...Array.from({ length: 88 }, (_, i) => ({
+    id: `payment-juma-${i}`,
+    riderId: "rider-1",
+    amount: 10000,
+    date: formatISO(subDays(today, i + 2)), // Paid up to 2 days ago
+  })),
+  // Payments for Amina
+  ...Array.from({ length: 23 }, (_, i) => ({
+    id: `payment-amina-${i}`,
+    riderId: "rider-2",
+    amount: 10000,
+    date: formatISO(subDays(today, i + 2)), // Paid up to 2 days ago
+  })),
+    // Payments for Baraka
+  ...Array.from({ length: 149 }, (_, i) => ({
+    id: `payment-baraka-${i}`,
+    riderId: "rider-3",
+    amount: 10000,
+    date: formatISO(subDays(today, i + 1)), // Paid up to yesterday
+  })),
 ];

@@ -1,206 +1,178 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, MoreVertical, Edit, Trash2 } from "lucide-react";
-import { format, formatDistanceToNow, parseISO } from "date-fns";
-import { formatISO as dateToISO } from "date-fns/formatISO";
-
-import type { Rider, Bike } from "@/lib/types";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { initialRiders, initialBikes } from "@/lib/data";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { RiderForm, type RiderFormValues } from "@/components/rider-form";
-import { useToast } from "@/hooks/use-toast";
-import { BodaEmpireIcon } from "@/components/icons";
+import { initialRiders, initialPayments } from "@/lib/data";
+import type { Rider, Payment, Alert as AlertType } from "@/lib/types";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle, BadgeCheck, Bell, CalendarClock, ChevronRight, Ban } from "lucide-react";
+import { differenceInDays, isBefore, parseISO, format, differenceInCalendarMonths, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { useMemo } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 
-export default function FleetPage() {
-  const [riders, setRiders] = useLocalStorage<Rider[]>("riders", initialRiders);
-  const [bikes] = useLocalStorage<Bike[]>("bikes", initialBikes);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
-  const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
+const StatCard = ({ title, value, subtext, colorClass }: { title: string, value: string, subtext: string, colorClass: string }) => (
+  <Card className="text-center">
+    <CardHeader className="p-4">
+      <p className="text-xs uppercase text-muted-foreground font-semibold tracking-wider">{title}</p>
+      <p className={`text-3xl font-extrabold ${colorClass}`}>{value}</p>
+      <p className="text-xs text-muted-foreground">{subtext}</p>
+    </CardHeader>
+  </Card>
+);
 
-  const { toast } = useToast();
+export default function DashboardPage() {
+  const [riders] = useLocalStorage<Rider[]>("riders", initialRiders);
+  const [payments] = useLocalStorage<Payment[]>("payments", initialPayments);
 
-  const getBikeInfo = (bikeId: string) => {
-    return bikes.find((bike) => bike.id === bikeId);
+  const {
+    activeBodas,
+    paidTodayCount,
+    missingCount,
+    tzsToday,
+    monthEarnings,
+    totalCollected,
+    totalOwed,
+    expiringSoonCount
+  } = useMemo(() => {
+    const today = new Date();
+    const todayStr = format(today, 'yyyy-MM-dd');
+    const activeRiders = riders.filter(r => r.active);
+    
+    const paidToday = new Set(payments.filter(p => format(parseISO(p.date), 'yyyy-MM-dd') === todayStr).map(p => p.riderId));
+    
+    const tzsToday = payments.filter(p => format(parseISO(p.date), 'yyyy-MM-dd') === todayStr).reduce((sum, p) => sum + p.amount, 0);
+
+    const currentMonthInterval = { start: startOfMonth(today), end: endOfMonth(today) };
+    const monthEarnings = payments
+      .filter(p => isWithinInterval(parseISO(p.date), currentMonthInterval))
+      .reduce((sum, p) => sum + p.amount, 0);
+      
+    const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0);
+
+    const totalOwed = activeRiders.reduce((total, rider) => {
+        const daysElapsed = differenceInDays(today, parseISO(rider.contractStart));
+        const expected = daysElapsed > 0 ? daysElapsed * rider.dailyFee : 0;
+        const paid = payments.filter(p => p.riderId === rider.id).reduce((sum, p) => sum + p.amount, 0);
+        const owed = expected - paid;
+        return total + (owed > 0 ? owed : 0);
+    }, 0);
+    
+    const expiringSoonCount = activeRiders.filter(r => {
+        const daysUntilExpiry = differenceInDays(parseISO(r.contractEnd), today);
+        return daysUntilExpiry >= 0 && daysUntilExpiry <= 30;
+    }).length;
+
+    return {
+      activeBodas: activeRiders.length,
+      paidTodayCount: paidToday.size,
+      missingCount: activeRiders.length - paidToday.size,
+      tzsToday,
+      monthEarnings,
+      totalCollected,
+      totalOwed,
+      expiringSoonCount,
+    };
+  }, [riders, payments]);
+
+  const alerts = useMemo((): AlertType[] => {
+    const generatedAlerts: AlertType[] = [];
+    const today = new Date();
+    const todayStr = format(today, 'yyyy-MM-dd');
+    
+    const paidTodayRiderIds = new Set(payments.filter(p => format(parseISO(p.date), 'yyyy-MM-dd') === todayStr).map(p => p.riderId));
+
+    riders.forEach(rider => {
+      // Unpaid today alert
+      if (rider.active && !paidTodayRiderIds.has(rider.id)) {
+        generatedAlerts.push({
+          id: `payment-${rider.id}`,
+          type: 'payment',
+          message: `${rider.name} - not paid today`,
+          date: new Date().toISOString(),
+          riderId: rider.id,
+        });
+      }
+
+      // Contract expiration alerts
+      const contractEndDate = parseISO(rider.contractEnd);
+      const daysUntilExpiry = differenceInDays(contractEndDate, today);
+      if (rider.active && daysUntilExpiry <= 30 && isBefore(today, contractEndDate)) {
+        generatedAlerts.push({
+          id: `contract-${rider.id}`,
+          type: 'contract',
+          message: `${rider.name}'s contract is expiring in ${daysUntilExpiry} days.`,
+          date: new Date().toISOString(),
+          riderId: rider.id,
+        });
+      }
+    });
+
+    return generatedAlerts.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
+  }, [riders, payments]);
+
+  const formatCurrency = (amount: number) => {
+    if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
+    if (amount >= 1000) return `${Math.round(amount / 1000)}K`;
+    return amount.toString();
   };
-
-  const handleEdit = (rider: Rider) => {
-    setSelectedRider(rider);
-    setIsFormOpen(true);
-  };
-
-  const handleDelete = (rider: Rider) => {
-    setSelectedRider(rider);
-    setIsDeleteAlertOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (selectedRider) {
-      setRiders((prev) => prev.filter((r) => r.id !== selectedRider.id));
-      toast({
-        title: "Rider Deleted",
-        description: `${selectedRider.name} has been removed from your fleet.`,
-      });
-    }
-    setIsDeleteAlertOpen(false);
-    setSelectedRider(null);
-  };
-
-  const handleFormSubmit = (data: RiderFormValues) => {
-    if (selectedRider) {
-      const updatedRider = { ...selectedRider, ...data, contractEnd: dateToISO(data.contractEnd) };
-      setRiders(riders.map(r => r.id === selectedRider.id ? updatedRider : r));
-      toast({ title: "Rider Updated", description: `${data.name}'s details have been saved.` });
-    } else {
-      const newRider: Rider = {
-        id: `rider-${Date.now()}`,
-        ...data,
-        contractEnd: dateToISO(data.contractEnd),
-      };
-      setRiders([...riders, newRider]);
-      toast({ title: "Rider Added", description: `${data.name} is now part of your fleet.` });
-    }
-    setIsFormOpen(false);
-    setSelectedRider(null);
-  };
-
-  const closeForm = () => {
-    setIsFormOpen(false);
-    setSelectedRider(null);
-  }
 
   return (
     <div className="space-y-6">
-      <header className="flex items-center gap-4">
-        <BodaEmpireIcon className="h-10 w-10 text-primary" />
-        <div>
-            <h1 className="text-3xl font-bold font-headline">My Fleet</h1>
-            <p className="text-muted-foreground">Your riders and their bodas.</p>
-        </div>
-      </header>
-
-      {riders.length === 0 ? (
-        <Card className="text-center py-12 border-dashed">
-            <CardHeader>
-                <CardTitle className="font-headline">Your fleet is empty!</CardTitle>
-                <CardDescription>Add your first rider to get started.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Button onClick={() => { setSelectedRider(null); setIsFormOpen(true); }}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Rider
-                </Button>
-            </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {riders.map((rider) => {
-            const bike = getBikeInfo(rider.bikeId);
-            const contractEndDate = parseISO(rider.contractEnd);
-            return (
-              <Card key={rider.id}>
-                <CardHeader className="flex flex-row items-start justify-between p-4">
-                  <div>
-                    <CardTitle className="font-headline">{rider.name}</CardTitle>
-                    <CardDescription>{rider.phone}</CardDescription>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="-my-2 -mr-2 h-8 w-8">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEdit(rider)}>
-                        <Edit className="mr-2 h-4 w-4" /> Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDelete(rider)} className="text-destructive focus:text-destructive">
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm px-4 pb-4">
-                  <p><strong>Boda:</strong> {bike?.model || "N/A"} ({bike?.plateNumber || "N/A"})</p>
-                  <p><strong>Contract Ends:</strong> {format(contractEndDate, "PPP")} ({formatDistanceToNow(contractEndDate, { addSuffix: true })})</p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-
-      {/* FAB and Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={open => { if (!open) closeForm(); else setIsFormOpen(open);}}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{selectedRider ? "Edit Rider" : "Add a New Rider"}</DialogTitle>
-          </DialogHeader>
-          <RiderForm
-            rider={selectedRider}
-            bikes={bikes}
-            onSubmit={handleFormSubmit}
-            onCancel={closeForm}
-          />
-        </DialogContent>
-      </Dialog>
+      <div className="bg-[#0d1117] text-white -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 p-6 rounded-b-3xl" style={{background: 'radial-gradient(ellipse 80% 80% at 80% 100%, #1a3015 0%, transparent 60%), #0d1117'}}>
+          <p className="text-sm uppercase text-[#a09080] font-bold tracking-widest">Fleet Status</p>
+          <p className="font-black text-6xl text-[#f5c842] my-1">{activeBodas}</p>
+          <p className="text-sm text-[#a09080] font-semibold -mt-2">active bodas</p>
+          <div className="grid grid-cols-3 gap-2 mt-4 text-center">
+              <div className="bg-white/10 rounded-lg p-2">
+                  <p className="text-xl font-bold">{paidTodayCount}</p>
+                  <p className="text-[0.6rem] uppercase font-semibold text-[#a09080]">Paid Today</p>
+              </div>
+              <div className="bg-white/10 rounded-lg p-2">
+                  <p className="text-xl font-bold">{missingCount}</p>
+                  <p className="text-[0.6rem] uppercase font-semibold text-[#a09080]">Missing</p>
+              </div>
+              <div className="bg-white/10 rounded-lg p-2">
+                  <p className="text-xl font-bold">{formatCurrency(tzsToday)}</p>
+                  <p className="text-[0.6rem] uppercase font-semibold text-[#a09080]">TZS Today</p>
+              </div>
+          </div>
+      </div>
       
-      <Button
-        aria-label="Add Rider"
-        className="absolute bottom-20 right-6 h-16 w-16 rounded-full shadow-lg"
-        onClick={() => {
-            setSelectedRider(null);
-            setIsFormOpen(true);
-        }}
-        >
-        <Plus className="h-8 w-8" />
-      </Button>
+      <div className="grid grid-cols-2 gap-4">
+        <StatCard title="Month Earnings" value={formatCurrency(monthEarnings)} subtext="TZS this month" colorClass="text-primary" />
+        <StatCard title="Total Collected" value={formatCurrency(totalCollected)} subtext="TZS all time" colorClass="text-accent" />
+        <StatCard title="Total Owed" value={formatCurrency(totalOwed)} subtext="TZS outstanding" colorClass="text-destructive" />
+        <StatCard title="Expiring Soon" value={expiringSoonCount.toString()} subtext="contracts (30 days)" colorClass="text-foreground" />
+      </div>
 
-      {/* Delete Confirmation */}
-      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete {selectedRider?.name} and all their associated data.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={confirmDelete}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <div>
+        <h2 className="text-xs uppercase text-muted-foreground font-bold tracking-widest mb-2 flex items-center gap-2"><AlertTriangle size={14}/> Alerts</h2>
+        {alerts.length > 0 ? (
+          <div className="space-y-2">
+            {alerts.map(alert => (
+              <Link href="/fleet" key={alert.id}>
+                <div className={`p-3 rounded-lg flex items-center justify-between ${alert.type === 'payment' ? 'bg-[#fdecea] text-[#c0392b]' : 'bg-[#fff8e8] text-[#c8860a]'}`}>
+                  <div className="flex items-center gap-3">
+                    {alert.type === 'payment' ? <Ban size={20} /> : <CalendarClock size={20} />}
+                    <div>
+                      <p className="font-bold text-sm">{alert.message}</p>
+                    </div>
+                  </div>
+                  <ChevronRight size={16} />
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <Card className="text-center py-10 border-dashed">
+            <CardHeader>
+                <div className="text-4xl mx-auto">✅</div>
+                <CardTitle className="font-headline text-lg">All Clear!</CardTitle>
+                <p className="text-muted-foreground text-sm">No alerts right now. Everything looks good.</p>
+            </CardHeader>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
