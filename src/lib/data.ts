@@ -1,7 +1,8 @@
 import type { Rider, Bike, Payment } from "./types";
 import { subDays, addDays, formatISO } from 'date-fns';
 
-const today = new Date();
+// Use a fixed date to ensure consistency between server and client renders
+const today = new Date('2024-02-20T00:00:00.000Z');
 
 export const initialBikes: Bike[] = [
   { id: "bike-1", model: "Boxer 150", plateNumber: "T 001 BBD" },

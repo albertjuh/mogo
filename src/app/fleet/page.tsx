@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, MoreVertical, Edit, Trash2 } from "lucide-react";
 import { format, formatDistanceToNow, parseISO } from "date-fns";
 import { formatISO as dateToISO } from "date-fns/formatISO";
@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { RiderForm, type RiderFormValues } from "@/components/rider-form";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function FleetPage() {
   const [riders, setRiders] = useLocalStorage<Rider[]>("riders", initialRiders);
@@ -47,6 +48,11 @@ export default function FleetPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const { toast } = useToast();
 
@@ -152,7 +158,7 @@ export default function FleetPage() {
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm px-4 pb-4">
                   <p><strong>Boda:</strong> {bike?.model || "N/A"} ({bike?.plateNumber || "N/A"})</p>
-                  <p><strong>Contract Ends:</strong> {format(contractEndDate, "PPP")} ({formatDistanceToNow(contractEndDate, { addSuffix: true })})</p>
+                  <p><strong>Contract Ends:</strong> {format(contractEndDate, "PPP")} {isClient ? <span>({formatDistanceToNow(contractEndDate, { addSuffix: true })})</span> : <Skeleton className="inline-block h-4 w-24" />}</p>
                 </CardContent>
               </Card>
             );
