@@ -116,7 +116,7 @@ export default function GrowthPage() {
                 name="availableSavings"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Available Savings (KES)</FormLabel>
+                    <FormLabel>Available Savings (TZS)</FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="e.g., 5000" {...field} />
                     </FormControl>
@@ -172,7 +172,7 @@ export default function GrowthPage() {
                     </div>
                      <div className="p-4 bg-secondary rounded-lg">
                         <p className="text-sm text-secondary-foreground font-medium">Total Investment</p>
-                        <p className="text-2xl font-bold text-accent">KES {plan.totalInvestmentNeeded.toLocaleString()}</p>
+                        <p className="text-2xl font-bold text-accent">TZS {plan.totalInvestmentNeeded.toLocaleString()}</p>
                     </div>
                 </div>
 

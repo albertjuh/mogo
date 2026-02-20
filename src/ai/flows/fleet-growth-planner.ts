@@ -24,7 +24,7 @@ const FleetGrowthPlannerInputSchema = z.object({
   availableSavings: z
     .number()
     .positive()
-    .describe('The amount of money currently available for investment in growing the fleet.'),
+    .describe('The amount of money currently available for investment in growing the fleet (in TZS).'),
 });
 export type FleetGrowthPlannerInput = z.infer<typeof FleetGrowthPlannerInputSchema>;
 
@@ -37,7 +37,7 @@ const FleetGrowthPlannerOutputSchema = z.object({
   totalInvestmentNeeded: z
     .number()
     .positive()
-    .describe('Total estimated investment (in local currency units) required to reach the desired fleet size.'),
+    .describe('Total estimated investment (in TZS) required to reach the desired fleet size.'),
   optimalSuggestions: z
     .array(z.string())
     .describe('Optimal suggestions and strategies for adding bodas over time.'),
@@ -61,15 +61,15 @@ Your goal is to help a BodaEmpire owner plan for fleet growth by analyzing their
 Here are the current metrics for the BodaEmpire owner:
 - Current Fleet Size: {{{currentFleetSize}}} bodas
 - Desired Fleet Size: {{{desiredFleetSize}}} bodas
-- Available Savings for Investment: {{{availableSavings}}} local currency units
+- Available Savings for Investment: {{{availableSavings}}} TZS
 
 Based on these inputs, generate a strategic plan that includes:
 1.  An estimated time in months to achieve the desired fleet size.
-2.  The total estimated investment needed (in local currency units) to reach the desired fleet size.
+2.  The total estimated investment needed (in TZS) to reach the desired fleet size.
 3.  Optimal suggestions for adding bodas over time, considering the available savings and the goal.
 4.  Personalized tips for improving overall fleet growth, efficiency, and sustainability.
 
-Assume that each additional boda requires an average investment of approximately 2000 local currency units (including purchase and initial setup costs) and generates a net profit that can contribute to further growth. Be realistic in your estimations and suggestions.
+Assume that each additional boda requires an average investment of approximately 2000 TZS (including purchase and initial setup costs) and generates a net profit that can contribute to further growth. Be realistic in your estimations and suggestions.
 
 Provide the output in a structured JSON format matching the defined output schema.`,
 });

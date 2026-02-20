@@ -49,7 +49,7 @@ export default function PaymentsPage() {
                   <TableRow key={payment.id}>
                     <TableCell className="font-medium">{getRiderName(payment.riderId)}</TableCell>
                     <TableCell>{format(parseISO(payment.date), "PPP")}</TableCell>
-                    <TableCell className="text-right">KES {payment.amount.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">TZS {payment.amount.toLocaleString()}</TableCell>
                   </TableRow>
                 ))
               ) : (

@@ -23,7 +23,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
               {label}
             </span>
             <span className="font-bold text-muted-foreground">
-              KES {payload[0].value.toLocaleString()}
+              TZS {payload[0].value.toLocaleString()}
             </span>
           </div>
         </div>
@@ -68,7 +68,7 @@ export default function ReportsPage() {
     setIsLoading(true);
     setInsights(null);
     try {
-      const financialReport = `Total weekly revenue: KES ${totalRevenue.toLocaleString()}. Daily collections: ${weeklyData.map(d => `${d.name}: ${d.total}`).join(', ')}.`;
+      const financialReport = `Total weekly revenue: TZS ${totalRevenue.toLocaleString()}. Daily collections: ${weeklyData.map(d => `${d.name}: ${d.total}`).join(', ')}.`;
       const operationalReport = `Fleet consists of multiple riders. Payments are being tracked daily.`;
       
       const result = await reportInsightsGenerator({ financialReport, operationalReport });
@@ -96,13 +96,13 @@ export default function ReportsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="font-headline">Weekly Revenue</CardTitle>
-          <CardDescription>Total for this week: KES {totalRevenue.toLocaleString()}</CardDescription>
+          <CardDescription>Total for this week: TZS {totalRevenue.toLocaleString()}</CardDescription>
         </CardHeader>
         <CardContent className="pl-2">
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={weeklyData}>
               <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `KES ${value / 1000}k`} />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `TZS ${value / 1000}k`} />
                <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(var(--secondary))" }} />
               <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
             </BarChart>
