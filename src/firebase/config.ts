@@ -1,9 +1,8 @@
 // Replace with your actual Firebase project configuration
 export const firebaseConfig = {
-  apiKey: "REPLACE_WITH_YOUR_API_KEY",
-  authDomain: "REPLACE_WITH_YOUR_AUTH_DOMAIN",
-  projectId: "REPLACE_WITH_YOUR_PROJECT_ID",
-  storageBucket: "REPLACE_WITH_YOUR_STORAGE_BUCKET",
-  messagingSenderId: "REPLACE_WITH_YOUR_MESSAGING_SENDER_ID",
-  appId: "REPLACE_WITH_YOUR_APP_ID",
+  projectId: "studio-1862145107-b405d",
+  appId: "1:757855378687:web:a91971e217a3c8085c80ca",
+  apiKey: "AIzaSyCRFe1ASTr_Hej4cKu-3gD-VTJ-lZt3ZRQ",
+  authDomain: "studio-1862145107-b405d.firebaseapp.com",
+  messagingSenderId: "757855378687",
 };
