@@ -25,7 +25,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Boda Empire" />
       </head>
       <body className="font-body antialiased bg-muted">
-        <div className="relative mx-auto flex w-full max-w-[480px] flex-col bg-background shadow-lg sm:my-4 sm:rounded-lg min-h-screen">
+        <div className="relative mx-auto flex w-full max-w-[480px] flex-col bg-background shadow-lg sm:my-4 sm:rounded-lg h-screen">
             <AppHeader />
             <main className="flex-1 overflow-y-auto p-4 pb-24 sm:p-6 sm:pb-24">
               {children}
