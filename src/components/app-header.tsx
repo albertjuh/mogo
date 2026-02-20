@@ -5,23 +5,27 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import { initialRiders, initialPayments } from "@/lib/data";
 import type { Rider, Payment } from "@/lib/types";
 import { useState, useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function AppHeader() {
   const [riders] = useLocalStorage<Rider[]>("riders", initialRiders);
   const [payments] = useLocalStorage<Payment[]>("payments", initialPayments);
-  const [currentDate, setCurrentDate] = useState("");
+  const [clientNow, setClientNow] = useState<Date | null>(null);
   const [hasMissedPayments, setHasMissedPayments] = useState(false);
 
   useEffect(() => {
-    const today = new Date();
-    setCurrentDate(format(today, 'dd MMM'));
-    
-    const todayStr = format(today, 'yyyy-MM-dd');
+    setClientNow(new Date());
+  }, []);
+
+  useEffect(() => {
+    if (!clientNow) return;
+
+    const todayStr = format(clientNow, 'yyyy-MM-dd');
     const ridersWhoPaidToday = new Set(
         payments.filter(p => format(parseISO(p.date), 'yyyy-MM-dd') === todayStr).map(p => p.riderId)
     );
     setHasMissedPayments(riders.some(r => r.active && !ridersWhoPaidToday.has(r.id)));
-  }, [riders, payments]);
+  }, [riders, payments, clientNow]);
 
 
   const handleBellClick = () => {
@@ -32,7 +36,9 @@ export function AppHeader() {
             }
         })
     }
-  }
+  };
+
+  const currentDateString = clientNow ? format(clientNow, 'dd MMM') : null;
 
   return (
     <header className="bg-[#0d1117] text-white flex-shrink-0">
@@ -42,12 +48,16 @@ export function AppHeader() {
           <span className="text-[#f5c842]">Empire</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold uppercase text-[#a09080]">
-            {currentDate}
-          </span>
+          {currentDateString === null ? (
+            <Skeleton className="h-4 w-12 bg-white/20" />
+          ) : (
+            <span className="text-xs font-semibold uppercase text-[#a09080]">
+              {currentDateString}
+            </span>
+          )}
           <button onClick={handleBellClick} className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
             <Bell className="h-5 w-5" />
-            {hasMissedPayments && (
+            {clientNow && hasMissedPayments && (
               <span className="absolute right-1.5 top-1.5 block h-2 w-2 rounded-full border-[1.5px] border-[#0d1117] bg-[#e74c3c]" />
             )}
           </button>
