@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useUser } from "@/firebase/auth/use-user";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: "🏠" },
@@ -14,6 +15,11 @@ const navItems = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { user } = useUser();
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <nav className="absolute bottom-0 z-10 w-full border-t border-t-white/10 bg-[#0d1117]">

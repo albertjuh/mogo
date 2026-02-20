@@ -1,0 +1,173 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores public-facing information about a user.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The user's unique ID, matching their Firebase Auth UID."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["rider", "supervisor", "admin"],
+          "description": "The user's role in the system."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the user profile was created."
+        }
+      },
+      "required": ["id", "email", "name", "role", "createdAt"]
+    },
+    "Rider": {
+        "title": "Rider",
+        "description": "Stores detailed information about a boda boda rider.",
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "The unique ID for the rider, corresponding to their UserProfile ID."
+            },
+            "phone": {
+                "type": "string",
+                "description": "The rider's phone number."
+            },
+            "contractStart": {
+                "type": "string",
+                "format": "date-time",
+                "description": "The start date of the rider's contract."
+            },
+            "contractEnd": {
+                "type": "string",
+                "format": "date-time",
+                "description": "The end date of the rider's contract."
+            },
+            "bikeId": {
+                "type": "string",
+                "description": "The ID of the bike assigned to the rider."
+            },
+            "active": {
+                "type": "boolean",
+                "description": "Whether the rider is currently active."
+            },
+            "dailyFee": {
+                "type": "number",
+                "description": "The daily fee the rider is required to pay."
+            },
+            "plateNumber": {
+                "type": "string",
+                "description": "The license plate number of the assigned boda."
+            },
+            "shahidiNumber": {
+                "type": "string",
+                "description": "The rider's Shahidi (witness/guarantor) number."
+            },
+            "notes": {
+                "type": "string",
+                "description": "Optional notes about the rider."
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "description": "The timestamp when the rider was added."
+            }
+        },
+        "required": ["id", "phone", "contractStart", "contractEnd", "bikeId", "active", "dailyFee", "plateNumber", "shahidiNumber", "createdAt"]
+    },
+    "Bike": {
+        "title": "Bike",
+        "description": "Represents a motorcycle (boda boda) in the fleet.",
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "The unique ID for the bike."
+            },
+            "model": {
+                "type": "string",
+                "description": "The model of the bike (e.g., 'Boxer 150')."
+            },
+            "plateNumber": {
+                "type": "string",
+                "description": "The license plate number of the bike."
+            },
+            "currentRiderId": {
+              "type": "string",
+              "description": "The ID of the rider currently assigned to this bike."
+            }
+        },
+        "required": ["id", "model", "plateNumber"]
+    },
+    "Payment": {
+        "title": "Payment",
+        "description": "Represents a single payment made by a rider.",
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "The unique ID for the payment."
+            },
+            "riderId": {
+                "type": "string",
+                "description": "The ID of the rider who made the payment."
+            },
+            "amount": {
+                "type": "number",
+                "description": "The amount of the payment in TZS."
+            },
+            "date": {
+                "type": "string",
+                "format": "date-time",
+                "description": "The date the payment was recorded for."
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "description": "The timestamp when the payment record was created."
+            }
+        },
+        "required": ["id", "riderId", "amount", "date", "createdAt"]
+    }
+  },
+  "auth": {
+    "providers": ["email-password"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Stores public profiles for all users."
+    },
+    "/riders/{riderId}": {
+      "schema": { "$ref": "#/entities/Rider" },
+      "description": "Stores detailed profiles for users with the 'rider' role."
+    },
+    "/bodas/{bodaId}": {
+        "schema": { "$ref": "#/entities/Bike" },
+        "description": "Collection of all motorcycles in the fleet."
+    },
+    "/payments/{paymentId}": {
+        "schema": { "$ref": "#/entities/Payment" },
+        "description": "Collection of all payment records from riders."
+    },
+    "/roles_admin/{userId}": {
+        "schema": { "type": "object" },
+        "description": "Documents here indicate the user ID is an admin. Document can be empty."
+    },
+    "/roles_supervisor/{userId}": {
+        "schema": { "type": "object" },
+        "description": "Documents here indicate the user ID is a supervisor. Document can be empty."
+    }
+  }
+}
