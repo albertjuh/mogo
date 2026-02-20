@@ -1,22 +1,28 @@
 "use client";
 import { Bell } from 'lucide-react';
-import { format, isToday, parseISO } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { initialRiders, initialPayments } from "@/lib/data";
 import type { Rider, Payment } from "@/lib/types";
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 
 export function AppHeader() {
   const [riders] = useLocalStorage<Rider[]>("riders", initialRiders);
   const [payments] = useLocalStorage<Payment[]>("payments", initialPayments);
+  const [currentDate, setCurrentDate] = useState("");
+  const [hasMissedPayments, setHasMissedPayments] = useState(false);
 
-  const hasMissedPayments = useMemo(() => {
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
+  useEffect(() => {
+    const today = new Date();
+    setCurrentDate(format(today, 'dd MMM'));
+    
+    const todayStr = format(today, 'yyyy-MM-dd');
     const ridersWhoPaidToday = new Set(
         payments.filter(p => format(parseISO(p.date), 'yyyy-MM-dd') === todayStr).map(p => p.riderId)
     );
-    return riders.some(r => !ridersWhoPaidToday.has(r.id));
+    setHasMissedPayments(riders.some(r => r.active && !ridersWhoPaidToday.has(r.id)));
   }, [riders, payments]);
+
 
   const handleBellClick = () => {
     if ('Notification' in window && Notification.permission !== 'denied') {
@@ -37,7 +43,7 @@ export function AppHeader() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs font-semibold uppercase text-[#a09080]">
-            {format(new Date(), 'dd MMM')}
+            {currentDate}
           </span>
           <button onClick={handleBellClick} className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
             <Bell className="h-5 w-5" />

@@ -6,7 +6,7 @@ import type { Rider, Payment } from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { format, parseISO, differenceInDays } from "date-fns";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function CollectPage() {
@@ -14,23 +14,32 @@ export default function CollectPage() {
   const [payments, setPayments] = useLocalStorage<Payment[]>("payments", initialPayments);
   const { toast } = useToast();
 
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const [clientNow, setClientNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setClientNow(new Date());
+  }, []);
+
+  const todayStr = useMemo(() => clientNow ? format(clientNow, 'yyyy-MM-dd') : '', [clientNow]);
+  const headerDate = useMemo(() => clientNow ? format(clientNow, 'eeee, dd MMMM') : 'Loading...', [clientNow]);
   
   const ridersWithStatus = useMemo(() => {
+    if (!clientNow || !todayStr) return [];
     return riders.filter(r => r.active).map(rider => {
       const riderPayments = payments.filter(p => p.riderId === rider.id);
       const paidToday = riderPayments.some(p => format(parseISO(p.date), 'yyyy-MM-dd') === todayStr);
       
-      const daysElapsed = differenceInDays(new Date(), parseISO(rider.contractStart));
+      const daysElapsed = differenceInDays(clientNow, parseISO(rider.contractStart));
       const totalOwed = daysElapsed > 0 ? daysElapsed * rider.dailyFee : 0;
       const totalPaid = riderPayments.reduce((sum, p) => sum + p.amount, 0);
       const balance = totalPaid - totalOwed;
 
       return { ...rider, paidToday, balance };
     });
-  }, [riders, payments, todayStr]);
+  }, [riders, payments, clientNow, todayStr]);
   
   const [paidTodayCount, tzsToday] = useMemo(() => {
+    if (!todayStr) return [0, 0];
     const todaysPayments = payments.filter(p => format(parseISO(p.date), 'yyyy-MM-dd') === todayStr);
     const count = new Set(todaysPayments.map(p => p.riderId)).size;
     const total = todaysPayments.reduce((sum, p) => sum + p.amount, 0);
@@ -38,6 +47,7 @@ export default function CollectPage() {
   }, [payments, todayStr]);
 
   const handlePaymentToggle = (riderId: string, dailyFee: number, isPaid: boolean) => {
+    if (!todayStr) return;
     if (isPaid) {
       // Remove payment for today
       setPayments(prev => prev.filter(p => !(p.riderId === riderId && format(parseISO(p.date), 'yyyy-MM-dd') === todayStr)));
@@ -58,7 +68,7 @@ export default function CollectPage() {
   return (
     <div className="space-y-6">
       <div className="bg-[#0d1117] text-white -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 p-6 rounded-b-3xl">
-        <p className="text-sm uppercase text-[#a09080] font-bold tracking-widest">{format(new Date(), 'eeee, dd MMMM')}</p>
+        <p className="text-sm uppercase text-[#a09080] font-bold tracking-widest">{headerDate}</p>
         <h1 className="font-black text-3xl my-1">Daily Collection</h1>
         <div className="grid grid-cols-3 gap-2 mt-4 text-center">
             <div className="bg-white/10 rounded-lg p-2">

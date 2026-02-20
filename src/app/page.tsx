@@ -5,16 +5,18 @@ import { initialRiders, initialPayments } from "@/lib/data";
 import type { Rider, Payment, Alert as AlertType } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, BadgeCheck, Bell, CalendarClock, ChevronRight, Ban } from "lucide-react";
-import { differenceInDays, isBefore, parseISO, format, differenceInCalendarMonths, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
-import { useMemo } from "react";
+import { differenceInDays, isBefore, parseISO, format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const StatCard = ({ title, value, subtext, colorClass }: { title: string, value: string, subtext: string, colorClass: string }) => (
+
+const StatCard = ({ title, value, subtext, colorClass, isLoading }: { title: string, value: string, subtext: string, colorClass: string, isLoading?: boolean }) => (
   <Card className="text-center">
     <CardHeader className="p-4">
       <p className="text-xs uppercase text-muted-foreground font-semibold tracking-wider">{title}</p>
-      <p className={`text-3xl font-extrabold ${colorClass}`}>{value}</p>
+      {isLoading ? <Skeleton className="h-9 w-20 mx-auto mt-1" /> : <p className={`text-3xl font-extrabold ${colorClass}`}>{value}</p>}
       <p className="text-xs text-muted-foreground">{subtext}</p>
     </CardHeader>
   </Card>
@@ -23,18 +25,21 @@ const StatCard = ({ title, value, subtext, colorClass }: { title: string, value:
 export default function DashboardPage() {
   const [riders] = useLocalStorage<Rider[]>("riders", initialRiders);
   const [payments] = useLocalStorage<Payment[]>("payments", initialPayments);
+  const [clientNow, setClientNow] = useState<Date | null>(null);
 
-  const {
-    activeBodas,
-    paidTodayCount,
-    missingCount,
-    tzsToday,
-    monthEarnings,
-    totalCollected,
-    totalOwed,
-    expiringSoonCount
-  } = useMemo(() => {
-    const today = new Date();
+  useEffect(() => {
+    setClientNow(new Date());
+  }, []);
+
+  const dashboardStats = useMemo(() => {
+    if (!clientNow) {
+        return {
+            activeBodas: null, paidTodayCount: null, missingCount: null,
+            tzsToday: null, monthEarnings: null, totalCollected: null,
+            totalOwed: null, expiringSoonCount: null, alerts: []
+        };
+    }
+    const today = clientNow;
     const todayStr = format(today, 'yyyy-MM-dd');
     const activeRiders = riders.filter(r => r.active);
     
@@ -62,28 +67,10 @@ export default function DashboardPage() {
         return daysUntilExpiry >= 0 && daysUntilExpiry <= 30;
     }).length;
 
-    return {
-      activeBodas: activeRiders.length,
-      paidTodayCount: paidToday.size,
-      missingCount: activeRiders.length - paidToday.size,
-      tzsToday,
-      monthEarnings,
-      totalCollected,
-      totalOwed,
-      expiringSoonCount,
-    };
-  }, [riders, payments]);
-
-  const alerts = useMemo((): AlertType[] => {
     const generatedAlerts: AlertType[] = [];
-    const today = new Date();
-    const todayStr = format(today, 'yyyy-MM-dd');
-    
-    const paidTodayRiderIds = new Set(payments.filter(p => format(parseISO(p.date), 'yyyy-MM-dd') === todayStr).map(p => p.riderId));
-
-    riders.forEach(rider => {
+    activeRiders.forEach(rider => {
       // Unpaid today alert
-      if (rider.active && !paidTodayRiderIds.has(rider.id)) {
+      if (!paidToday.has(rider.id)) {
         generatedAlerts.push({
           id: `payment-${rider.id}`,
           type: 'payment',
@@ -107,10 +94,24 @@ export default function DashboardPage() {
       }
     });
 
-    return generatedAlerts.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
-  }, [riders, payments]);
+    return {
+      activeBodas: activeRiders.length,
+      paidTodayCount: paidToday.size,
+      missingCount: activeRiders.length - paidToday.size,
+      tzsToday,
+      monthEarnings,
+      totalCollected,
+      totalOwed,
+      expiringSoonCount,
+      alerts: generatedAlerts.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime())
+    };
+  }, [riders, payments, clientNow]);
+  
+  const { activeBodas, paidTodayCount, missingCount, tzsToday, monthEarnings, totalCollected, totalOwed, expiringSoonCount, alerts } = dashboardStats;
+  const isLoading = activeBodas === null;
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | null) => {
+    if (amount === null) return '';
     if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
     if (amount >= 1000) return `${Math.round(amount / 1000)}K`;
     return amount.toString();
@@ -120,34 +121,39 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="bg-[#0d1117] text-white -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 p-6 rounded-b-3xl" style={{background: 'radial-gradient(ellipse 80% 80% at 80% 100%, #1a3015 0%, transparent 60%), #0d1117'}}>
           <p className="text-sm uppercase text-[#a09080] font-bold tracking-widest">Fleet Status</p>
-          <p className="font-black text-6xl text-[#f5c842] my-1">{activeBodas}</p>
+          {isLoading ? <Skeleton className="h-16 w-24 my-1" /> : <p className="font-black text-6xl text-[#f5c842] my-1">{activeBodas}</p> }
           <p className="text-sm text-[#a09080] font-semibold -mt-2">active bodas</p>
           <div className="grid grid-cols-3 gap-2 mt-4 text-center">
               <div className="bg-white/10 rounded-lg p-2">
-                  <p className="text-xl font-bold">{paidTodayCount}</p>
+                  {isLoading ? <Skeleton className="h-7 w-8 mx-auto"/> : <p className="text-xl font-bold">{paidTodayCount}</p> }
                   <p className="text-[0.6rem] uppercase font-semibold text-[#a09080]">Paid Today</p>
               </div>
               <div className="bg-white/10 rounded-lg p-2">
-                  <p className="text-xl font-bold">{missingCount}</p>
+                  {isLoading ? <Skeleton className="h-7 w-8 mx-auto"/> : <p className="text-xl font-bold">{missingCount}</p> }
                   <p className="text-[0.6rem] uppercase font-semibold text-[#a09080]">Missing</p>
               </div>
               <div className="bg-white/10 rounded-lg p-2">
-                  <p className="text-xl font-bold">{formatCurrency(tzsToday)}</p>
+                  {isLoading ? <Skeleton className="h-7 w-12 mx-auto"/> : <p className="text-xl font-bold">{formatCurrency(tzsToday)}</p> }
                   <p className="text-[0.6rem] uppercase font-semibold text-[#a09080]">TZS Today</p>
               </div>
           </div>
       </div>
       
       <div className="grid grid-cols-2 gap-4">
-        <StatCard title="Month Earnings" value={formatCurrency(monthEarnings)} subtext="TZS this month" colorClass="text-primary" />
-        <StatCard title="Total Collected" value={formatCurrency(totalCollected)} subtext="TZS all time" colorClass="text-accent" />
-        <StatCard title="Total Owed" value={formatCurrency(totalOwed)} subtext="TZS outstanding" colorClass="text-destructive" />
-        <StatCard title="Expiring Soon" value={expiringSoonCount.toString()} subtext="contracts (30 days)" colorClass="text-foreground" />
+        <StatCard isLoading={isLoading} title="Month Earnings" value={formatCurrency(monthEarnings)} subtext="TZS this month" colorClass="text-primary" />
+        <StatCard isLoading={isLoading} title="Total Collected" value={formatCurrency(totalCollected)} subtext="TZS all time" colorClass="text-accent" />
+        <StatCard isLoading={isLoading} title="Total Owed" value={formatCurrency(totalOwed)} subtext="TZS outstanding" colorClass="text-destructive" />
+        <StatCard isLoading={isLoading} title="Expiring Soon" value={expiringSoonCount?.toString() ?? ''} subtext="contracts (30 days)" colorClass="text-foreground" />
       </div>
 
       <div>
         <h2 className="text-xs uppercase text-muted-foreground font-bold tracking-widest mb-2 flex items-center gap-2"><AlertTriangle size={14}/> Alerts</h2>
-        {alerts.length > 0 ? (
+        {isLoading ? (
+            <div className="space-y-2">
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+            </div>
+        ) : alerts.length > 0 ? (
           <div className="space-y-2">
             {alerts.map(alert => (
               <Link href="/fleet" key={alert.id}>

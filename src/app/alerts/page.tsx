@@ -6,19 +6,21 @@ import type { Rider, Payment, Alert as AlertType } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, CalendarClock } from "lucide-react";
 import { differenceInDays, isBefore, parseISO, format } from "date-fns";
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function AlertsPage() {
   const [riders] = useLocalStorage<Rider[]>("riders", initialRiders);
   const [payments] = useLocalStorage<Payment[]>("payments", initialPayments);
+  const [alerts, setAlerts] = useState<AlertType[]>([]);
 
-  const alerts = useMemo((): AlertType[] => {
-    const generatedAlerts: AlertType[] = [];
+  useEffect(() => {
     const today = new Date();
+    const generatedAlerts: AlertType[] = [];
 
     // Contract expiration alerts
     riders.forEach(rider => {
+      if (!rider.active) return;
       const contractEndDate = parseISO(rider.contractEnd);
       const daysUntilExpiry = differenceInDays(contractEndDate, today);
 
@@ -39,6 +41,7 @@ export default function AlertsPage() {
     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
 
     riders.forEach(rider => {
+        if (!rider.active) return;
         const lastPayment = payments
             .filter(p => p.riderId === rider.id)
             .sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime())[0];
@@ -53,9 +56,10 @@ export default function AlertsPage() {
             });
         }
     });
-
-    return generatedAlerts.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
+    
+    setAlerts(generatedAlerts.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()));
   }, [riders, payments]);
+
 
   return (
     <div className="space-y-6">

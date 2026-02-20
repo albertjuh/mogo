@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,9 +39,19 @@ export default function ReportsPage() {
   const [insights, setInsights] = useState<ReportInsightsGeneratorOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [payments] = useLocalStorage<Payment[]>("payments", initialPayments);
+  const [clientNow, setClientNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setClientNow(new Date());
+  }, []);
 
   const weeklyData = useMemo(() => {
-    const today = new Date();
+    if (!clientNow) {
+        const start = startOfWeek(new Date(), { weekStartsOn: 1 });
+        const end = endOfWeek(new Date(), { weekStartsOn: 1 });
+        return eachDayOfInterval({ start, end }).map(day => ({ name: format(day, 'E'), total: 0 }));
+    };
+    const today = clientNow;
     const start = startOfWeek(today, { weekStartsOn: 1 });
     const end = endOfWeek(today, { weekStartsOn: 1 });
     const weekDays = eachDayOfInterval({ start, end });
@@ -59,7 +69,7 @@ export default function ReportsPage() {
     });
 
     return data;
-  }, [payments]);
+  }, [payments, clientNow]);
   
 
   const totalRevenue = weeklyData.reduce((acc, curr) => acc + curr.total, 0);
@@ -86,6 +96,8 @@ export default function ReportsPage() {
     }
   };
 
+  const isChartLoading = !clientNow;
+
   return (
     <div className="space-y-6">
       <header>
@@ -99,6 +111,7 @@ export default function ReportsPage() {
           <CardDescription>Total for this week: TZS {totalRevenue.toLocaleString()}</CardDescription>
         </CardHeader>
         <CardContent className="pl-2">
+            {isChartLoading ? <Skeleton className="w-full h-[300px]" /> :
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={weeklyData}>
               <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
@@ -107,6 +120,7 @@ export default function ReportsPage() {
               <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+          }
         </CardContent>
       </Card>
 
