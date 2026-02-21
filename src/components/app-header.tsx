@@ -7,7 +7,6 @@ import type { Rider, Payment } from "@/lib/types";
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUser } from '@/firebase/auth/use-user';
-import { getAuth, signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 
 
@@ -16,7 +15,7 @@ export function AppHeader() {
   const [payments] = useLocalStorage<Payment[]>("payments", initialPayments);
   const [clientNow, setClientNow] = useState<Date | null>(null);
   const [hasMissedPayments, setHasMissedPayments] = useState(false);
-  const { user } = useUser();
+  const { user, logout } = useUser();
   const router = useRouter();
 
 
@@ -46,9 +45,7 @@ export function AppHeader() {
   };
 
   const handleSignOut = async () => {
-    const auth = getAuth();
-    await signOut(auth);
-    router.push('/login');
+    logout();
   }
 
   const currentDateString = clientNow ? format(clientNow, 'dd MMM') : null;

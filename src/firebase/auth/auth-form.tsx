@@ -14,16 +14,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-} from "firebase/auth";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
-import { useFirebase } from "../provider";
+import { useUser } from "./use-user";
 
 interface AuthFormProps {
   mode: "login" | "signup";
@@ -31,13 +25,11 @@ interface AuthFormProps {
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
-  password: z.string().min(6, "Password must be at least 6 characters."),
+  password: z.string().min(1, "Password is required."),
 });
 
 export function AuthForm({ mode }: AuthFormProps) {
-  const { app } = useFirebase();
-  const auth = getAuth(app);
-  const router = useRouter();
+  const { login } = useUser();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -51,25 +43,30 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    try {
-      if (mode === "signup") {
-        await createUserWithEmailAndPassword(auth, values.email, values.password);
-        toast({ title: "Account Created!", description: "You are now logged in." });
-      } else {
-        await signInWithEmailAndPassword(auth, values.email, values.password);
-        toast({ title: "Logged In Successfully!" });
-      }
-      router.push("/");
-    } catch (error: any) {
-      console.error("Authentication error:", error);
+    const success = login(values.email, values.password);
+    if (success) {
+      toast({ title: "Logged In Successfully!" });
+    } else {
       toast({
         variant: "destructive",
         title: "Authentication Failed",
-        description: error.message || "An unexpected error occurred.",
+        description: "Invalid email or password.",
       });
-    } finally {
       setIsLoading(false);
     }
+  }
+
+  if (mode === 'signup') {
+      return (
+          <div className="text-center text-muted-foreground space-y-4">
+              <p>User registration is handled by administrators.</p>
+              <Button asChild variant="outline">
+                <Link href='/login'>
+                    Go to Log In
+                </Link>
+              </Button>
+          </div>
+      )
   }
 
   return (
@@ -83,7 +80,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 <FormItem>
                 <FormLabel>Email Address</FormLabel>
                 <FormControl>
-                    <Input placeholder="rider@bodaempire.com" {...field} />
+                    <Input placeholder="admin@bodaempire.com" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -103,16 +100,10 @@ export function AuthForm({ mode }: AuthFormProps) {
             )}
             />
             <Button type="submit" disabled={isLoading} className="w-full bg-[#0d1117] text-[#f5c842] hover:bg-[#0d1117]/90">
-            {isLoading ? <Loader2 className="animate-spin" /> : (mode === 'login' ? "Log In" : "Create Account")}
+            {isLoading ? <Loader2 className="animate-spin" /> : "Log In"}
             </Button>
         </form>
         </Form>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-            {mode === 'login' ? "Don't have an account?" : "Already have an account?"}
-            <Link href={mode === 'login' ? '/signup' : '/login'} className="ml-1 font-semibold text-primary hover:underline">
-                {mode === 'login' ? "Sign Up" : "Log In"}
-            </Link>
-        </p>
     </div>
   );
 }
