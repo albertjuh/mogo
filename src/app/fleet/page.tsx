@@ -158,7 +158,7 @@ export default function FleetPage() {
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm px-4 pb-4">
                   <p><strong>Boda:</strong> {bike?.model || "N/A"} ({bike?.plateNumber || "N/A"})</p>
-                  <p><strong>Contract Ends:</strong> {format(contractEndDate, "PPP")} {isClient ? <span>({formatDistanceToNow(contractEndDate, { addSuffix: true })})</span> : <Skeleton className="inline-block h-4 w-24" />}</p>
+                  <div><strong>Contract Ends:</strong> {format(contractEndDate, "PPP")} {isClient ? <span>({formatDistanceToNow(contractEndDate, { addSuffix: true })})</span> : <Skeleton className="inline-block h-4 w-24" />}</div>
                 </CardContent>
               </Card>
             );
