@@ -10,6 +10,7 @@ import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrency } from "@/lib/formatters";
 
 
 const StatCard = ({ title, value, subtext, colorClass, isLoading }: { title: string, value: string, subtext: string, colorClass: string, isLoading?: boolean }) => (
@@ -34,8 +35,7 @@ export default function DashboardPage() {
   const dashboardStats = useMemo(() => {
     if (!clientNow) {
         return {
-            activeBodas: null, paidTodayCount: null, missingCount: null,
-            tzsToday: null, monthEarnings: null, totalCollected: null,
+            monthEarnings: null, totalCollected: null,
             totalOwed: null, expiringSoonCount: null, alerts: []
         };
     }
@@ -45,8 +45,6 @@ export default function DashboardPage() {
     
     const paidToday = new Set(payments.filter(p => format(parseISO(p.date), 'yyyy-MM-dd') === todayStr).map(p => p.riderId));
     
-    const tzsToday = payments.filter(p => format(parseISO(p.date), 'yyyy-MM-dd') === todayStr).reduce((sum, p) => sum + p.amount, 0);
-
     const currentMonthInterval = { start: startOfMonth(today), end: endOfMonth(today) };
     const monthEarnings = payments
       .filter(p => isWithinInterval(parseISO(p.date), currentMonthInterval))
@@ -95,10 +93,6 @@ export default function DashboardPage() {
     });
 
     return {
-      activeBodas: activeRiders.length,
-      paidTodayCount: paidToday.size,
-      missingCount: activeRiders.length - paidToday.size,
-      tzsToday,
       monthEarnings,
       totalCollected,
       totalOwed,
@@ -107,38 +101,11 @@ export default function DashboardPage() {
     };
   }, [riders, payments, clientNow]);
   
-  const { activeBodas, paidTodayCount, missingCount, tzsToday, monthEarnings, totalCollected, totalOwed, expiringSoonCount, alerts } = dashboardStats;
-  const isLoading = activeBodas === null;
-
-  const formatCurrency = (amount: number | null) => {
-    if (amount === null) return '';
-    if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
-    if (amount >= 1000) return `${Math.round(amount / 1000)}K`;
-    return amount.toString();
-  };
+  const { monthEarnings, totalCollected, totalOwed, expiringSoonCount, alerts } = dashboardStats;
+  const isLoading = monthEarnings === null;
 
   return (
     <div className="space-y-6">
-      <div className="bg-[#0d1117] text-white -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 p-6 rounded-b-3xl" style={{background: 'radial-gradient(ellipse 80% 80% at 80% 100%, #1a3015 0%, transparent 60%), #0d1117'}}>
-          <p className="text-sm uppercase text-[#a09080] font-bold tracking-widest">Fleet Status</p>
-          {isLoading ? <Skeleton className="h-16 w-24 my-1" /> : <p className="font-black text-6xl text-[#f5c842] my-1">{activeBodas}</p> }
-          <p className="text-sm text-[#a09080] font-semibold -mt-2">active bodas</p>
-          <div className="grid grid-cols-3 gap-2 mt-4 text-center">
-              <div className="bg-white/10 rounded-lg p-2">
-                  {isLoading ? <Skeleton className="h-7 w-8 mx-auto"/> : <p className="text-xl font-bold">{paidTodayCount}</p> }
-                  <p className="text-[0.6rem] uppercase font-semibold text-[#a09080]">Paid Today</p>
-              </div>
-              <div className="bg-white/10 rounded-lg p-2">
-                  {isLoading ? <Skeleton className="h-7 w-8 mx-auto"/> : <p className="text-xl font-bold">{missingCount}</p> }
-                  <p className="text-[0.6rem] uppercase font-semibold text-[#a09080]">Missing</p>
-              </div>
-              <div className="bg-white/10 rounded-lg p-2">
-                  {isLoading ? <Skeleton className="h-7 w-12 mx-auto"/> : <p className="text-xl font-bold">{formatCurrency(tzsToday)}</p> }
-                  <p className="text-[0.6rem] uppercase font-semibold text-[#a09080]">TZS Today</p>
-              </div>
-          </div>
-      </div>
-      
       <div className="grid grid-cols-2 gap-4">
         <StatCard isLoading={isLoading} title="Month Earnings" value={formatCurrency(monthEarnings)} subtext="TZS this month" colorClass="text-primary" />
         <StatCard isLoading={isLoading} title="Total Collected" value={formatCurrency(totalCollected)} subtext="TZS all time" colorClass="text-accent" />
