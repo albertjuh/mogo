@@ -1,18 +1,17 @@
 'use client';
 
-import { useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function MapPage() {
-    const Map = useMemo(() => dynamic(
-        () => import('@/components/map'),
-        { 
-            loading: () => <Skeleton className="h-full w-full rounded-lg" />,
-            ssr: false
-        }
-    ), [])
+const Map = dynamic(
+    () => import('@/components/map'),
+    { 
+        loading: () => <Skeleton className="h-full w-full rounded-lg" />,
+        ssr: false
+    }
+);
 
+export default function MapPage() {
     return (
         <div className="space-y-6 h-full flex flex-col">
              <header>
