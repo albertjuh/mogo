@@ -10,6 +10,7 @@ const adminNavItems = [
   { href: "/fleet", label: "Fleet", icon: "🏍️" },
   { href: "/collect", label: "Collect", icon: "💰" },
   { href: "/reports", label: "Reports", icon: "📊" },
+  { href: "/map", label: "Map", icon: "🗺️" },
   { href: "/plan", label: "Plan", icon: "📈" },
 ];
 

@@ -1,25 +1,30 @@
-import { Timestamp } from "firebase/firestore";
-
 export interface UserProfile {
   id: string; // Firebase Auth UID
   email: string;
   name: string;
   role: 'rider' | 'supervisor' | 'admin';
-  createdAt: Timestamp;
+  createdAt: string;
+}
+
+export interface Location {
+    lat: number;
+    lng: number;
 }
 
 export interface Rider {
   id: string; // Corresponds to UserProfile ID
+  name: string;
   phone: string;
-  contractEnd: Timestamp;
+  contractEnd: string;
   bikeId: string;
   active: boolean;
-  contractStart: Timestamp;
+  contractStart: string;
   dailyFee: number;
   plateNumber: string;
   shahidiNumber: string;
   notes?: string;
-  createdAt: Timestamp;
+  createdAt: string;
+  location?: Location;
 }
 
 export interface Bike {
@@ -33,14 +38,14 @@ export interface Payment {
   id:string;
   riderId: string;
   amount: number;
-  date: Timestamp;
-  createdAt: Timestamp;
+  date: string;
+  createdAt: string;
 }
 
 export interface Alert {
     id: string;
     type: 'payment' | 'contract';
     message: string;
-    date: Timestamp;
+    date: string;
     riderId: string;
 }
