@@ -47,6 +47,7 @@
     "next": "15.5.9",
     "patch-package": "^8.0.0",
     "react": "^19.2.1",
+    "react-day-picker": "^8.10.1",
     "react-dom": "^19.2.1",
     "react-hook-form": "^7.54.2",
     "react-leaflet": "^4.2.1",
@@ -67,6 +68,10 @@
   },
   "overrides": {
     "react-leaflet": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    },
+    "react-day-picker": {
       "react": "$react",
       "react-dom": "$react-dom"
     }
