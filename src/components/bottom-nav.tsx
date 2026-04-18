@@ -11,6 +11,7 @@ const adminNavItems = [
   { href: "/collect", label: "Collect", icon: "💰" },
   { href: "/reports", label: "Reports", icon: "📊" },
   { href: "/plan", label: "Plan", icon: "📈" },
+  { href: "/map", label: "Map", icon: "🗺️" },
 ];
 
 const riderNavItems = [

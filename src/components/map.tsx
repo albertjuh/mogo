@@ -52,12 +52,14 @@ export default function Map({ riders }: MapProps) {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             {riders.map(rider => (
-                <Marker key={rider.id} position={[rider.location!.lat, rider.location!.lng]}>
-                    <Popup>
-                        <div className="font-bold">{rider.name}</div>
-                        <div>{rider.plateNumber}</div>
-                    </Popup>
-                </Marker>
+                rider.location && (
+                    <Marker key={rider.id} position={[rider.location.lat, rider.location.lng]}>
+                        <Popup>
+                            <div className="font-bold">{rider.name}</div>
+                            <div>{rider.plateNumber}</div>
+                        </Popup>
+                    </Marker>
+                )
             ))}
         </MapContainer>
     )

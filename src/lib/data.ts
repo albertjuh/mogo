@@ -23,6 +23,7 @@ export const initialRiders: Rider[] = [
     plateNumber: "T 001 BBD",
     shahidiNumber: "SH-20230011",
     createdAt: formatISO(subDays(today, 90)),
+    location: { lat: -6.7924, lng: 39.2083 },
   },
   {
     id: "rider-2",
@@ -36,6 +37,7 @@ export const initialRiders: Rider[] = [
     plateNumber: "T 042 GFK",
     shahidiNumber: "SH-20183422",
     createdAt: formatISO(subDays(today, 25)),
+    location: { lat: -6.8000, lng: 39.2183 },
   },
   {
     id: "rider-3",
@@ -49,6 +51,7 @@ export const initialRiders: Rider[] = [
     plateNumber: "T 119 HJL",
     shahidiNumber: "SH-20190998",
     createdAt: formatISO(subDays(today, 150)),
+    location: { lat: -6.7850, lng: 39.2283 },
   },
 ];
 

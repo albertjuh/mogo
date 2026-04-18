@@ -19,6 +19,7 @@ export interface Rider {
   shahidiNumber: string;
   notes?: string;
   createdAt: string;
+  location?: { lat: number; lng: number };
 }
 
 export interface Bike {
