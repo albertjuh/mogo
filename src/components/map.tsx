@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Rider } from '@/lib/types';
 import L, { type Map as LeafletMap } from 'leaflet';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 
 // This is a common fix for a known issue with Leaflet and webpack.
 // It ensures that the default icon paths are resolved correctly.
@@ -25,6 +25,10 @@ export default function Map({ riders }: MapProps) {
     // Centered on Dar es Salaam, Tanzania
     const mapCenter: L.LatLngExpression = [-6.7924, 39.2083];
 
+    const onMapMount = useCallback((map: LeafletMap) => {
+        mapRef.current = map;
+    }, []);
+
     useEffect(() => {
         // On component unmount, this cleanup function will be called.
         // It ensures that the Leaflet map instance is properly destroyed,
@@ -38,7 +42,7 @@ export default function Map({ riders }: MapProps) {
 
     return (
         <MapContainer
-            ref={mapRef}
+            whenCreated={onMapMount}
             center={mapCenter}
             zoom={12}
             scrollWheelZoom={true}
