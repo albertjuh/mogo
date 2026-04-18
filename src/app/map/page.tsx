@@ -1,22 +1,13 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-import { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { initialRiders } from '@/lib/data';
 import type { Rider } from '@/lib/types';
+import DynamicMap from '@/components/dynamic-map';
 
 
 export default function MapPage() {
-    const Map = useMemo(() => dynamic(
-        () => import('@/components/map'),
-        { 
-            loading: () => <Skeleton className="h-full w-full rounded-lg" />,
-            ssr: false 
-        }
-    ), []);
-    
     const [riders] = useLocalStorage<Rider[]>('riders', initialRiders);
     const activeRidersWithLocation = riders.filter(r => r.active && r.location);
 
@@ -27,7 +18,7 @@ export default function MapPage() {
                 <p className="text-muted-foreground">See your active riders' locations in real-time.</p>
             </header>
             <div className="flex-grow rounded-lg overflow-hidden border">
-                <Map riders={activeRidersWithLocation}/>
+                <DynamicMap riders={activeRidersWithLocation}/>
             </div>
         </div>
     )
