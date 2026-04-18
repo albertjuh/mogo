@@ -5,12 +5,17 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/firebase/auth/use-user";
 
-const navItems = [
+const adminNavItems = [
   { href: "/", label: "Dashboard", icon: "🏠" },
   { href: "/fleet", label: "Fleet", icon: "🏍️" },
   { href: "/collect", label: "Collect", icon: "💰" },
   { href: "/reports", label: "Reports", icon: "📊" },
   { href: "/plan", label: "Plan", icon: "📈" },
+];
+
+const riderNavItems = [
+    { href: "/", label: "Dashboard", icon: "🏠" },
+    { href: "/payments", label: "Payments", icon: "💰" },
 ];
 
 export function BottomNav() {
@@ -20,6 +25,8 @@ export function BottomNav() {
   if (!user) {
     return null;
   }
+
+  const navItems = user.role === 'rider' ? riderNavItems : adminNavItems;
 
   return (
     <nav className="absolute bottom-0 z-10 w-full border-t border-t-white/10 bg-[#0d1117]">

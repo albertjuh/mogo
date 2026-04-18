@@ -10,14 +10,23 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  TableCaption,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { format, parseISO } from "date-fns";
+import { useUser } from "@/firebase/auth/use-user";
+import { useMemo } from "react";
 
 export default function PaymentsPage() {
-  const [payments] = useLocalStorage<Payment[]>("payments", initialPayments);
+  const { user } = useUser();
+  const [allPayments] = useLocalStorage<Payment[]>("payments", initialPayments);
   const [riders] = useLocalStorage<Rider[]>("riders", initialRiders);
+
+  const payments = useMemo(() => {
+    if (user?.role === 'rider') {
+      return allPayments.filter(p => p.riderId === user.id);
+    }
+    return allPayments;
+  }, [allPayments, user]);
 
   const getRiderName = (riderId: string) => {
     return riders.find(r => r.id === riderId)?.name || "Unknown Rider";

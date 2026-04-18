@@ -4,8 +4,9 @@ import React, { createContext, useContext, useState, type ReactNode, useEffect }
 import { useRouter } from "next/navigation";
 
 type User = {
+  id: string;
   email: string;
-  role: 'admin' | 'supervisor';
+  role: 'admin' | 'supervisor' | 'rider';
 };
 
 interface AuthContextType {
@@ -17,9 +18,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const hardcodedUsers: Record<string, { password: string; role: 'admin' | 'supervisor' }> = {
-  'admin@bodaempire.com': { password: 'password123', role: 'admin' },
-  'supervisor@bodaempire.com': { password: 'password123', role: 'supervisor' },
+const hardcodedUsers: Record<string, { password: string; role: 'admin' | 'supervisor' | 'rider', id: string }> = {
+  'admin@bodaempire.com': { password: 'password123', role: 'admin', id: 'user-admin' },
+  'supervisor@bodaempire.com': { password: 'password123', role: 'supervisor', id: 'user-supervisor' },
+  'juma@bodaempire.com': { password: 'password123', role: 'rider', id: 'rider-1' },
 };
 
 
@@ -45,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (email: string, pass: string): boolean => {
     const foundUser = hardcodedUsers[email];
     if (foundUser && foundUser.password === pass) {
-      const userPayload = { email, role: foundUser.role };
+      const userPayload = { email, role: foundUser.role, id: foundUser.id };
       localStorage.setItem('boda-user', JSON.stringify(userPayload));
       setUser(userPayload);
       router.push('/');

@@ -29,6 +29,11 @@ export default function LoginPage() {
               <p>Email: <code className="bg-muted px-1.5 py-0.5 rounded text-foreground">supervisor@bodaempire.com</code></p>
               <p>Password: <code className="bg-muted px-1.5 py-0.5 rounded text-foreground">password123</code></p>
             </div>
+             <div>
+              <p className="font-semibold">Rider:</p>
+              <p>Email: <code className="bg-muted px-1.5 py-0.5 rounded text-foreground">juma@bodaempire.com</code></p>
+              <p>Password: <code className="bg-muted px-1.5 py-0.5 rounded text-foreground">password123</code></p>
+            </div>
           </CardContent>
         </Card>
     </div>

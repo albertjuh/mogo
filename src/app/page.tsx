@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@/firebase/auth/use-user";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { initialRiders, initialPayments } from "@/lib/data";
 import type { Rider, Payment, Alert as AlertType } from "@/lib/types";
@@ -24,16 +25,27 @@ const StatCard = ({ title, value, subtext, colorClass, isLoading }: { title: str
 );
 
 export default function DashboardPage() {
-  const [riders] = useLocalStorage<Rider[]>("riders", initialRiders);
-  const [payments] = useLocalStorage<Payment[]>("payments", initialPayments);
+  const { user } = useUser();
+  const [allRiders] = useLocalStorage<Rider[]>("riders", initialRiders);
+  const [allPayments] = useLocalStorage<Payment[]>("payments", initialPayments);
   const [clientNow, setClientNow] = useState<Date | null>(null);
 
   useEffect(() => {
     setClientNow(new Date());
   }, []);
 
+  const { riders, payments } = useMemo(() => {
+    if (user?.role === 'rider') {
+      return {
+        riders: allRiders.filter(r => r.id === user.id),
+        payments: allPayments.filter(p => p.riderId === user.id),
+      };
+    }
+    return { riders: allRiders, payments: allPayments };
+  }, [allRiders, allPayments, user]);
+
   const dashboardStats = useMemo(() => {
-    if (!clientNow) {
+    if (!clientNow || !riders || !payments) {
         return {
             monthEarnings: null, totalCollected: null,
             totalOwed: null, expiringSoonCount: null, alerts: []
@@ -55,7 +67,7 @@ export default function DashboardPage() {
     const totalOwed = activeRiders.reduce((total, rider) => {
         const daysElapsed = differenceInDays(today, parseISO(rider.contractStart));
         const expected = daysElapsed > 0 ? daysElapsed * rider.dailyFee : 0;
-        const paid = payments.filter(p => p.riderId === rider.id).reduce((sum, p) => sum + p.amount, 0);
+        const paid = allPayments.filter(p => p.riderId === rider.id).reduce((sum, p) => sum + p.amount, 0);
         const owed = expected - paid;
         return total + (owed > 0 ? owed : 0);
     }, 0);
@@ -99,18 +111,19 @@ export default function DashboardPage() {
       expiringSoonCount,
       alerts: generatedAlerts.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime())
     };
-  }, [riders, payments, clientNow]);
+  }, [riders, payments, clientNow, allPayments]);
   
   const { monthEarnings, totalCollected, totalOwed, expiringSoonCount, alerts } = dashboardStats;
   const isLoading = monthEarnings === null;
+  const isRider = user?.role === 'rider';
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
-        <StatCard isLoading={isLoading} title="Month Earnings" value={formatCurrency(monthEarnings)} subtext="TZS this month" colorClass="text-primary" />
-        <StatCard isLoading={isLoading} title="Total Collected" value={formatCurrency(totalCollected)} subtext="TZS all time" colorClass="text-accent" />
-        <StatCard isLoading={isLoading} title="Total Owed" value={formatCurrency(totalOwed)} subtext="TZS outstanding" colorClass="text-destructive" />
-        <StatCard isLoading={isLoading} title="Expiring Soon" value={expiringSoonCount?.toString() ?? ''} subtext="contracts (30 days)" colorClass="text-foreground" />
+        <StatCard isLoading={isLoading} title={isRider ? "My Earnings" : "Month Earnings"} value={formatCurrency(monthEarnings)} subtext="TZS this month" colorClass="text-primary" />
+        <StatCard isLoading={isLoading} title={isRider ? "My Payments" : "Total Collected"} value={formatCurrency(totalCollected)} subtext="TZS all time" colorClass="text-accent" />
+        {!isRider && <StatCard isLoading={isLoading} title="Total Owed" value={formatCurrency(totalOwed)} subtext="TZS outstanding" colorClass="text-destructive" />}
+        {!isRider && <StatCard isLoading={isLoading} title="Expiring Soon" value={expiringSoonCount?.toString() ?? ''} subtext="contracts (30 days)" colorClass="text-foreground" />}
       </div>
 
       <div>
