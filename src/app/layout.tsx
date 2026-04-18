@@ -26,7 +26,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Boda Empire" />
       </head>
-      <body className="font-body antialiased bg-muted">
+      <body className="font-body antialiased">
         <AuthProvider>
             <AppClientLayout>
                 {children}

@@ -52,7 +52,7 @@ export function AppHeader() {
 
   if (!user) {
     return (
-      <header className="bg-[#0d1117] text-white flex-shrink-0">
+      <header className="md:hidden bg-[#0d1117] text-white flex-shrink-0">
         <div className="mx-auto flex h-14 w-full items-center justify-between px-4">
           <div className="text-lg" style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 900}}>
             <span>🏍 Boda </span>
@@ -64,7 +64,7 @@ export function AppHeader() {
   }
 
   return (
-    <header className="bg-[#0d1117] text-white flex-shrink-0">
+    <header className="md:hidden bg-[#0d1117] text-white flex-shrink-0">
       <div className="mx-auto flex h-14 w-full items-center justify-between px-4">
         <button onClick={handleSignOut} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
             <LogOut className="h-5 w-5" />

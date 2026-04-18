@@ -29,7 +29,7 @@ export function BottomNav() {
   const navItems = user.role === 'rider' ? riderNavItems : adminNavItems;
 
   return (
-    <nav className="absolute bottom-0 z-10 w-full border-t border-t-white/10 bg-[#0d1117]">
+    <nav className="md:hidden absolute bottom-0 z-10 w-full border-t border-t-white/10 bg-[#0d1117]">
       <div className="flex h-16 items-center justify-around">
         {navItems.map((item) => {
           const isActive = (pathname === '/' && item.href === '/') || (item.href !== '/' && pathname.startsWith(item.href));
