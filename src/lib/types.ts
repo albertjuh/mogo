@@ -6,11 +6,6 @@ export interface UserProfile {
   createdAt: string;
 }
 
-export interface Location {
-    lat: number;
-    lng: number;
-}
-
 export interface Rider {
   id: string; // Corresponds to UserProfile ID
   name: string;
@@ -24,7 +19,6 @@ export interface Rider {
   shahidiNumber: string;
   notes?: string;
   createdAt: string;
-  location?: Location;
 }
 
 export interface Bike {
