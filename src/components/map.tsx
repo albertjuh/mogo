@@ -2,8 +2,6 @@
 
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useLocalStorage } from '@/hooks/use-local-storage';
-import { initialRiders } from '@/lib/data';
 import type { Rider } from '@/lib/types';
 import L from 'leaflet';
 
@@ -17,11 +15,11 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
 });
 
+interface MapProps {
+    riders: Rider[];
+}
 
-export default function Map() {
-    const [riders] = useLocalStorage<Rider[]>('riders', initialRiders);
-    const activeRidersWithLocation = riders.filter(r => r.active && r.location);
-
+export default function Map({ riders }: MapProps) {
     // Centered on Dar es Salaam, Tanzania
     const mapCenter: L.LatLngExpression = [-6.7924, 39.2083];
 
@@ -31,7 +29,7 @@ export default function Map() {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {activeRidersWithLocation.map(rider => (
+            {riders.map(rider => (
                 <Marker key={rider.id} position={[rider.location!.lat, rider.location!.lng]}>
                     <Popup>
                         <div className="font-bold">{rider.name}</div>
