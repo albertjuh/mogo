@@ -7,10 +7,23 @@ import { BottomNav } from "@/components/bottom-nav";
 import { DashboardHeader } from "./dashboard-header";
 import { Sidebar } from "./sidebar";
 
+const publicPaths = ['/login', '/signup'];
+
 export function AppClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isDashboard = pathname === "/";
+  const isPublicPath = publicPaths.includes(pathname);
 
+  // For public pages like login/signup, we use a simpler, full-screen layout
+  if (isPublicPath) {
+    return (
+      <AuthGuard>
+        {children}
+      </AuthGuard>
+    );
+  }
+  
+  // The main app layout for authenticated users
   return (
     <div className="w-full bg-muted">
         <AuthGuard>
