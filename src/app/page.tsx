@@ -1,28 +1,35 @@
+
 "use client";
 
 import { useUser } from "@/firebase/auth/use-user";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { initialRiders, initialPayments } from "@/lib/data";
 import type { Rider, Payment, Alert as AlertType } from "@/lib/types";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, BadgeCheck, Bell, CalendarClock, ChevronRight, Ban } from "lucide-react";
+import { AlertTriangle, CalendarClock, Ban, ChevronRight, BarChart3, Users, DollarSign, AlertCircle } from "lucide-react";
 import { differenceInDays, isBefore, parseISO, format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { useMemo, useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/formatters";
 
+const StatCard = ({ title, value, subtext, icon, href, isLoading }: { title: string, value: string, subtext: string, icon: React.ReactNode, href?: string, isLoading?: boolean }) => {
+  const content = (
+    <Card className="hover:bg-muted/50 transition-colors">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent>
+        {isLoading ? <Skeleton className="h-9 w-20 mt-1" /> : <div className="text-2xl font-bold">{value}</div>}
+        <p className="text-xs text-muted-foreground">{subtext}</p>
+      </CardContent>
+    </Card>
+  );
 
-const StatCard = ({ title, value, subtext, colorClass, isLoading }: { title: string, value: string, subtext: string, colorClass: string, isLoading?: boolean }) => (
-  <Card className="text-center">
-    <CardHeader className="p-4">
-      <p className="text-xs uppercase text-muted-foreground font-semibold tracking-wider">{title}</p>
-      {isLoading ? <Skeleton className="h-9 w-20 mx-auto mt-1" /> : <p className={`text-3xl font-extrabold ${colorClass}`}>{value}</p>}
-      <p className="text-xs text-muted-foreground">{subtext}</p>
-    </CardHeader>
-  </Card>
-);
+  return href ? <Link href={href}>{content}</Link> : content;
+};
+
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -48,7 +55,7 @@ export default function DashboardPage() {
     if (!clientNow || !riders || !payments) {
         return {
             monthEarnings: null, totalCollected: null,
-            totalOwed: null, expiringSoonCount: null, alerts: []
+            totalOwed: null, expiringSoonCount: null, alerts: [], activeRidersCount: null,
         };
     }
     const today = clientNow;
@@ -84,7 +91,7 @@ export default function DashboardPage() {
         generatedAlerts.push({
           id: `payment-${rider.id}`,
           type: 'payment',
-          message: `${rider.name} - not paid today`,
+          message: `${rider.name} has a pending payment.`,
           date: new Date().toISOString(),
           riderId: rider.id,
         });
@@ -97,7 +104,7 @@ export default function DashboardPage() {
         generatedAlerts.push({
           id: `contract-${rider.id}`,
           type: 'contract',
-          message: `${rider.name}'s contract is expiring in ${daysUntilExpiry} days.`,
+          message: `${rider.name}'s contract expires in ${daysUntilExpiry} days.`,
           date: new Date().toISOString(),
           riderId: rider.id,
         });
@@ -109,56 +116,113 @@ export default function DashboardPage() {
       totalCollected,
       totalOwed,
       expiringSoonCount,
-      alerts: generatedAlerts.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime())
+      alerts: generatedAlerts.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()),
+      activeRidersCount: activeRiders.length,
     };
   }, [riders, payments, clientNow, allPayments]);
   
-  const { monthEarnings, totalCollected, totalOwed, expiringSoonCount, alerts } = dashboardStats;
+  const { monthEarnings, totalCollected, totalOwed, expiringSoonCount, alerts, activeRidersCount } = dashboardStats;
   const isLoading = monthEarnings === null;
   const isRider = user?.role === 'rider';
 
+  if (isRider) {
+    return (
+        <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+                <StatCard isLoading={isLoading} title="My Earnings (Month)" value={formatCurrency(monthEarnings)} subtext="TZS this month" icon={<DollarSign className="h-4 w-4 text-muted-foreground" />} href="/payments" />
+                <StatCard isLoading={isLoading} title="My Payments (All Time)" value={formatCurrency(totalCollected)} subtext="TZS all time" icon={<BarChart3 className="h-4 w-4 text-muted-foreground" />} href="/payments" />
+            </div>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle>My Alerts</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? (
+                        <div className="space-y-2">
+                            <Skeleton className="h-12 w-full" />
+                            <Skeleton className="h-12 w-full" />
+                        </div>
+                    ) : alerts.length > 0 ? (
+                        <div className="space-y-2">
+                            {alerts.map(alert => (
+                            <Link href="/payments" key={alert.id}>
+                                <div className="p-3 rounded-lg flex items-center justify-between bg-muted hover:bg-muted/80">
+                                <div className="flex items-center gap-3">
+                                    {alert.type === 'payment' ? <Ban size={20} className="text-destructive" /> : <CalendarClock size={20} className="text-primary"/>}
+                                    <div>
+                                        <p className="font-medium text-sm">{alert.message}</p>
+                                    </div>
+                                </div>
+                                <ChevronRight size={16} />
+                                </div>
+                            </Link>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center text-muted-foreground py-10">
+                            <div className="text-4xl mx-auto mb-2">✅</div>
+                            <p className="font-semibold">All Clear!</p>
+                            <p className="text-sm">No alerts right now.</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <StatCard isLoading={isLoading} title={isRider ? "My Earnings" : "Month Earnings"} value={formatCurrency(monthEarnings)} subtext="TZS this month" colorClass="text-primary" />
-        <StatCard isLoading={isLoading} title={isRider ? "My Payments" : "Total Collected"} value={formatCurrency(totalCollected)} subtext="TZS all time" colorClass="text-accent" />
-        {!isRider && <StatCard isLoading={isLoading} title="Total Owed" value={formatCurrency(totalOwed)} subtext="TZS outstanding" colorClass="text-destructive" />}
-        {!isRider && <StatCard isLoading={isLoading} title="Expiring Soon" value={expiringSoonCount?.toString() ?? ''} subtext="contracts (30 days)" colorClass="text-foreground" />}
-      </div>
-
-      <div>
-        <h2 className="text-xs uppercase text-muted-foreground font-bold tracking-widest mb-2 flex items-center gap-2"><AlertTriangle size={14}/> Alerts</h2>
-        {isLoading ? (
-            <div className="space-y-2">
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-            </div>
-        ) : alerts.length > 0 ? (
-          <div className="space-y-2">
-            {alerts.map(alert => (
-              <Link href="/fleet" key={alert.id}>
-                <div className={`p-3 rounded-lg flex items-center justify-between ${alert.type === 'payment' ? 'bg-[#fdecea] text-[#c0392b]' : 'bg-[#fff8e8] text-[#c8860a]'}`}>
-                  <div className="flex items-center gap-3">
-                    {alert.type === 'payment' ? <Ban size={20} /> : <CalendarClock size={20} />}
-                    <div>
-                      <p className="font-bold text-sm">{alert.message}</p>
-                    </div>
-                  </div>
-                  <ChevronRight size={16} />
-                </div>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <Card className="text-center py-10 border-dashed">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <StatCard isLoading={isLoading} title="Revenue (Month)" value={formatCurrency(monthEarnings)} subtext="TZS this month" icon={<DollarSign className="h-4 w-4 text-muted-foreground" />} href="/reports"/>
+            <StatCard isLoading={isLoading} title="Active Riders" value={activeRidersCount?.toString() ?? ''} subtext="riders in the fleet" icon={<Users className="h-4 w-4 text-muted-foreground" />} href="/fleet"/>
+            <StatCard isLoading={isLoading} title="Owed by Riders" value={formatCurrency(totalOwed)} subtext="TZS outstanding" icon={<AlertCircle className="h-4 w-4 text-muted-foreground" />}/>
+            <StatCard isLoading={isLoading} title="Contracts Expiring" value={expiringSoonCount?.toString() ?? ''} subtext="in next 30 days" icon={<CalendarClock className="h-4 w-4 text-muted-foreground" />} href="/alerts"/>
+        </div>
+      
+        <Card>
             <CardHeader>
-                <div className="text-4xl mx-auto">✅</div>
-                <CardTitle className="font-headline text-lg">All Clear!</CardTitle>
-                <p className="text-muted-foreground text-sm">No alerts right now. Everything looks good.</p>
+                <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="text-primary"/>
+                    <span>High-Priority Alerts</span>
+                </CardTitle>
+                <CardDescription>Actionable insights to keep your fleet running smoothly.</CardDescription>
             </CardHeader>
-          </Card>
-        )}
-      </div>
+            <CardContent>
+                {isLoading ? (
+                    <div className="space-y-2">
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                    </div>
+                ) : alerts.length > 0 ? (
+                <div className="space-y-2">
+                    {alerts.map(alert => (
+                    <Link href={alert.type === 'payment' ? '/collect' : '/fleet'} key={alert.id}>
+                        <div className="p-3 rounded-lg flex items-center justify-between bg-secondary hover:bg-secondary/80">
+                        <div className="flex items-center gap-3">
+                            {alert.type === 'payment' ? <Ban size={20} className="text-destructive" /> : <CalendarClock size={20} className="text-primary"/>}
+                            <div>
+                                <p className="font-medium text-sm">{alert.message}</p>
+                            </div>
+                        </div>
+                        <ChevronRight size={16} />
+                        </div>
+                    </Link>
+                    ))}
+                </div>
+                ) : (
+                <div className="text-center text-muted-foreground py-10">
+                    <div className="text-4xl mx-auto mb-2">✅</div>
+                    <p className="font-semibold">All Clear!</p>
+                    <p className="text-sm">No alerts right now.</p>
+                </div>
+                )}
+            </CardContent>
+        </Card>
+
     </div>
   );
 }
+
+    
