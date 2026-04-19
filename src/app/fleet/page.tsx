@@ -251,13 +251,13 @@ export default function FleetPage() {
                         
                         <p><strong>MASHARTI YA MKATABA:</strong></p>
                         <ol className="list-decimal pl-5 space-y-2">
-                            <li>Ni lazima kuleta {selectedRider?.vehicleType.toLowerCase()} kila mwisho wa mwezi kwa mwenye mali ili aione kuhakikisha usalama.</li>
-                            <li>Ni lazima kuhakikisha {selectedRider?.vehicleType.toLowerCase()} inafanyiwa matengenezo (service) kila wakati.</li>
+                            <li>Ni lazima kuleta {selectedRider?.vehicleType?.toLowerCase() || 'chombo'} kila mwisho wa mwezi kwa mwenye mali ili aione kuhakikisha usalama.</li>
+                            <li>Ni lazima kuhakikisha {selectedRider?.vehicleType?.toLowerCase() || 'chombo'} inafanyiwa matengenezo (service) kila wakati.</li>
                             <li>Ni marufuku kumwazima/kumpa mtu yoyote chombo hiki ndani ya kipindi cha mkataba.</li>
                             <li>Ni lazima kurejesha kiasi cha shilingi {(selectedRider?.dailyFee || 10000) * 10} kila siku ya 10.</li>
                         </ol>
 
-                        <p><strong>MDHAMINI:</strong> Mimi {selectedRider?.guarantorName || '…………………………'} nikiwa na akili zangu timamu nakubali kumdhamini {selectedRider?.name} na nakubali kuwajibika na kulipa fidia endapo atapoteza/ataaribu/atakimbia na {selectedRider?.vehicleType.toLowerCase()} hii.</p>
+                        <p><strong>MDHAMINI:</strong> Mimi {selectedRider?.guarantorName || '…………………………'} nikiwa na akili zangu timamu nakubali kumdhamini {selectedRider?.name} na nakubali kuwajibika na kulipa fidia endapo atapoteza/ataaribu/atakimbia na {selectedRider?.vehicleType?.toLowerCase() || 'chombo'} hii.</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-8 pt-8 text-xs border-t">
