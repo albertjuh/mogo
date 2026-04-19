@@ -59,13 +59,14 @@ export function DashboardHeader() {
     if (!clientNow || user?.role === 'rider') return null;
     
     const activeFleet = riders.filter(r => r.active).length;
-    const paidToday = new Set(
+    // Count unique riders who have a payment record for today
+    const paidTodayCount = new Set(
       payments
         .filter(p => isSameDay(parseISO(p.date), clientNow))
         .map(p => p.riderId)
     ).size;
     
-    return { activeFleet, paidToday };
+    return { activeFleet, paidTodayCount };
   }, [riders, payments, clientNow, user]);
 
   const isLoading = !clientNow;
@@ -98,7 +99,7 @@ export function DashboardHeader() {
                         {mngtStats?.activeFleet} <span className="text-primary">Riders</span>
                     </p>
                     <p className="text-sm text-white/80 font-semibold relative z-10 uppercase tracking-tighter">
-                        {mngtStats?.paidToday} Payments Received Today
+                        {mngtStats?.paidTodayCount} {mngtStats?.paidTodayCount === 1 ? 'Payment' : 'Payments'} Received Today
                     </p>
                 </div>
             ) : (
