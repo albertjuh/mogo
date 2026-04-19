@@ -1,14 +1,15 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus, MoreVertical, Edit, Trash2, FileText, Download, Printer } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Plus, MoreVertical, Edit, Trash2, FileText, Download, Printer, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { formatISO as dateToISO } from "date-fns/formatISO";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, orderBy, deleteDoc, doc, setDoc } from "firebase/firestore";
+import { updateDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 import type { Rider, Bike } from "@/lib/types";
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import { initialRiders, initialBikes } from "@/lib/data";
+import { initialBikes } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -42,25 +43,25 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RiderForm, type RiderFormValues } from "@/components/rider-form";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/firebase/auth/use-user";
 
 export default function FleetPage() {
-  const [riders, setRiders] = useLocalStorage<Rider[]>("riders", initialRiders);
-  const [bikes] = useLocalStorage<Bike[]>("bikes", initialBikes);
+  const { user } = useUser();
+  const db = useFirestore();
+  const { toast } = useToast();
+
+  const isManager = user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'recruiter';
+  
+  const ridersQuery = useMemoFirebase(() => {
+    if (!user || !isManager) return null;
+    return collection(db, "riders");
+  }, [db, user, isManager]);
+  const { data: riders, isLoading } = useCollection(ridersQuery);
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isContractOpen, setIsContractOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  const { toast } = useToast();
-
-  const getBikeInfo = (bikeId: string) => {
-    return bikes.find((bike) => bike.id === bikeId);
-  };
 
   const handleEdit = (rider: Rider) => {
     setSelectedRider(rider);
@@ -79,7 +80,7 @@ export default function FleetPage() {
 
   const confirmDelete = () => {
     if (selectedRider) {
-      setRiders((prev) => prev.filter((r) => r.id !== selectedRider.id));
+      deleteDocumentNonBlocking(doc(db, "riders", selectedRider.id));
       toast({
         title: "Rider Deleted",
         description: `${selectedRider.name} has been removed from your fleet.`,
@@ -91,17 +92,14 @@ export default function FleetPage() {
 
   const handleFormSubmit = (data: RiderFormValues) => {
     if (selectedRider) {
-      const updatedRider = { ...selectedRider, ...data };
-      setRiders(riders.map(r => r.id === selectedRider.id ? updatedRider : r));
+      updateDocumentNonBlocking(doc(db, "riders", selectedRider.id), data);
       toast({ title: "Rider Updated", description: `${data.name}'s details have been saved.` });
     } else {
-      const newRider: Rider = {
-        id: `rider-${Date.now()}`,
+      addDocumentNonBlocking(collection(db, "riders"), {
         ...data,
         active: true,
         createdAt: new Date().toISOString(),
-      };
-      setRiders([...riders, newRider]);
+      });
       toast({ title: "Rider Added", description: `${data.name} is now part of your fleet.` });
     }
     setIsFormOpen(false);
@@ -113,16 +111,25 @@ export default function FleetPage() {
     setSelectedRider(null);
   }
 
+  if (!isManager) {
+    return <div className="p-12 text-center text-muted-foreground font-bold">Unauthorized Access</div>;
+  }
+
   return (
     <div className="space-y-6">
-      <header className="flex items-center gap-4">
+      <header className="flex items-center justify-between">
         <div>
-            <h1 className="text-3xl font-black font-headline italic uppercase tracking-tighter">Boda Fleet</h1>
+            <h1 className="text-3xl font-black font-headline italic uppercase tracking-tighter text-accent">Boda Fleet</h1>
             <p className="text-muted-foreground font-medium">Manage riders and hire-purchase contracts.</p>
         </div>
+        <Button size="icon" className="rounded-full shadow-lg h-12 w-12" onClick={() => { setSelectedRider(null); setIsFormOpen(true); }}>
+            <Plus />
+        </Button>
       </header>
 
-      {riders.length === 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div>
+      ) : riders?.length === 0 ? (
         <Card className="text-center py-12 border-dashed">
             <CardHeader>
                 <CardTitle className="font-headline">Your fleet is empty!</CardTitle>
@@ -136,7 +143,7 @@ export default function FleetPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {riders.map((rider) => {
+          {riders?.map((rider) => {
             return (
               <Card key={rider.id} className="border-none shadow-md hover:shadow-lg transition-all bg-white overflow-hidden">
                 <CardHeader className="flex flex-row items-start justify-between p-4 pb-2">
@@ -176,7 +183,7 @@ export default function FleetPage() {
                     </div>
                     <div className="bg-secondary/30 p-2 rounded-lg">
                         <p className="text-[0.6rem] uppercase font-black text-muted-foreground">Daily Fee</p>
-                        <p className="text-xs font-bold">TZS {rider.dailyFee.toLocaleString()}</p>
+                        <p className="text-xs font-bold">TZS {rider.dailyFee?.toLocaleString()}</p>
                     </div>
                   </div>
                   
@@ -205,7 +212,7 @@ export default function FleetPage() {
           <div className="p-6">
             <RiderForm
                 rider={selectedRider}
-                bikes={bikes}
+                bikes={[]}
                 onSubmit={handleFormSubmit}
                 onCancel={closeForm}
             />
@@ -213,7 +220,7 @@ export default function FleetPage() {
         </DialogContent>
       </Dialog>
       
-      {/* Contract Preview Modal */}
+      {/* Contract Preview Modal - Detailed Legal Content */}
       <Dialog open={isContractOpen} onOpenChange={setIsContractOpen}>
         <DialogContent className="sm:max-w-[650px] h-[90vh] flex flex-col p-0 overflow-hidden">
              <div className="bg-accent p-4 text-white flex justify-between items-center">
@@ -281,6 +288,21 @@ export default function FleetPage() {
             </ScrollArea>
         </DialogContent>
       </Dialog>
+      
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently remove {selectedRider?.name} from the fleet.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

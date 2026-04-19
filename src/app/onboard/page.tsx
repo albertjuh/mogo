@@ -2,28 +2,26 @@
 "use client";
 
 import { RiderForm, type RiderFormValues } from "@/components/rider-form";
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import { initialRiders, initialBikes } from "@/lib/data";
-import type { Rider, Bike } from "@/lib/types";
+import { useFirestore } from "@/firebase";
+import { collection } from "firebase/firestore";
+import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserPlus } from "lucide-react";
 
 export default function OnboardPage() {
-  const [riders, setRiders] = useLocalStorage<Rider[]>("riders", initialRiders);
-  const [bikes] = useLocalStorage<Bike[]>("bikes", initialBikes);
+  const db = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
 
   const handleFormSubmit = (data: RiderFormValues) => {
-    const newRider: Rider = {
-      id: `rider-${Date.now()}`,
+    addDocumentNonBlocking(collection(db, "riders"), {
       ...data,
       active: true,
       createdAt: new Date().toISOString(),
-    };
-    setRiders([...riders, newRider]);
+    });
+    
     toast({ 
         title: "Rider Onboarded Successfully", 
         description: `${data.name} has been added to the fleet. You can now view their contract in the Fleet list.` 
@@ -46,7 +44,7 @@ export default function OnboardPage() {
       <Card className="border-none shadow-xl bg-white overflow-hidden">
         <CardContent className="p-6">
             <RiderForm
-                bikes={bikes}
+                bikes={[]}
                 onSubmit={handleFormSubmit}
                 onCancel={() => router.back()}
             />

@@ -16,39 +16,53 @@ export default function DashboardPage() {
   const { user } = useUser();
   const db = useFirestore();
 
-  // --- Data Fetching ---
-  const ridersQuery = useMemoFirebase(() => collection(db, "riders"), [db]);
+  // --- Role-Aware Data Fetching ---
+  const isManager = user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'recruiter';
+
+  const ridersQuery = useMemoFirebase(() => {
+    if (!user || !isManager) return null;
+    return collection(db, "riders");
+  }, [db, user, isManager]);
   const { data: riders } = useCollection(ridersQuery);
 
-  const paymentsQuery = useMemoFirebase(() => collection(db, "payments"), [db]);
+  const paymentsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    if (user.role === 'rider') {
+      return query(collection(db, "payments"), where("riderId", "==", user.id));
+    }
+    return collection(db, "payments");
+  }, [db, user]);
   const { data: allPayments } = useCollection(paymentsQuery);
 
-  // --- Rider (Client) View Logic ---
-  const myPayments = useMemo(() => {
-    if (user?.role !== 'rider' || !allPayments) return [];
-    return allPayments.filter(p => p.riderId === user.id);
-  }, [allPayments, user]);
-
+  // --- Statistics Logic ---
   const stats = useMemo(() => {
-    if (!riders || !allPayments || user?.role === 'rider') return null;
+    if (!allPayments) return null;
+    
+    // Rider specific stats
+    if (user?.role === 'rider') {
+      const totalPaid = allPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      return { totalPaid };
+    }
+
+    // Manager specific stats
+    if (!riders) return null;
     
     const activeRidersList = riders.filter(r => r.active);
     const activeRidersCount = activeRidersList.length;
     const today = new Date();
     
     // Daily Stats
-    const todayPayments = allPayments.filter(p => isSameDay(parseISO(p.recordedAt), today));
+    const todayPayments = allPayments.filter(p => isSameDay(parseISO(p.recordedAt || p.date), today));
     const collectedToday = todayPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
     const dailyTarget = activeRidersCount * 10000;
     
     // Weekly Stats
     const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 });
-    const weekPayments = allPayments.filter(p => isAfter(parseISO(p.recordedAt), startOfCurrentWeek));
+    const weekPayments = allPayments.filter(p => isAfter(parseISO(p.recordedAt || p.date), startOfCurrentWeek));
     const collectedThisWeek = weekPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
     const weeklyTarget = dailyTarget * 7;
     const weeklyProgress = weeklyTarget > 0 ? (collectedThisWeek / weeklyTarget) * 100 : 0;
 
-    // Arrears Calculation (Riders who haven't paid today)
     const paidTodayUids = new Set(todayPayments.map(p => p.riderId));
     const arrearsCount = activeRidersList.filter(r => !paidTodayUids.has(r.id)).length;
 
@@ -124,7 +138,7 @@ export default function DashboardPage() {
           </div>
           <CardHeader>
             <CardTitle className="text-sm font-bold uppercase tracking-wider opacity-80">Jumla ya Malipo</CardTitle>
-            <div className="text-4xl font-black italic">TZS {myPayments.reduce((sum, p) => sum + p.amount, 0).toLocaleString()}</div>
+            <div className="text-4xl font-black italic">TZS {(stats?.totalPaid || 0).toLocaleString()}</div>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm font-medium opacity-90">Asante kwa kulipa kwa wakati. Endelea kukuza historia yako ya mkopo.</p>

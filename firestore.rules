@@ -24,17 +24,25 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/recruiters/$(request.auth.uid));
     }
 
+    function isManager() {
+      return isAdmin() || isSupervisor() || isRecruiter();
+    }
+
     // --- Collection Rules ---
 
     match /riders/{riderId} {
-      // Riders see their own profile. Admins/Supervisors/Recruiters manage or view all.
-      allow read: if isOwner(riderId) || isAdmin() || isSupervisor() || isRecruiter();
-      allow write: if isAdmin() || isRecruiter();
+      // Riders see their own profile. Managers manage or view all.
+      allow read: if isOwner(riderId) || isManager();
+      // Allow creation during onboarding by authorized staff or self-registration if needed
+      allow create: if isOwner(riderId) || isAdmin() || isRecruiter();
+      allow update: if isAdmin() || isRecruiter() || isOwner(riderId);
+      allow delete: if isAdmin();
     }
 
     match /payments/{paymentId} {
-      // Riders see THEIR OWN. Admins/Supervisors see all.
-      allow read: if isAdmin() || isSupervisor() || (isSignedIn() && resource.data.riderId == request.auth.uid);
+      // Riders see THEIR OWN. Managers see all.
+      // Note: Collection-level 'list' requires a query filter for riders.
+      allow read: if isManager() || (isSignedIn() && resource.data.riderId == request.auth.uid);
       
       // Riders can create a payment record (e.g., initiating an STK push).
       allow create: if isSignedIn() && request.resource.data.riderId == request.auth.uid;
@@ -45,17 +53,20 @@ service cloud.firestore {
 
     match /admins/{adminId} {
       allow read: if isSignedIn();
-      allow write: if false; // Only manageable via Admin SDK or manually in console
+      allow create: if isOwner(adminId); // Allow initial self-registration for the prototype
+      allow update, delete: if isAdmin();
     }
 
     match /supervisors/{supervisorId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow create: if isOwner(supervisorId) || isAdmin();
+      allow update, delete: if isAdmin();
     }
 
     match /recruiters/{recruiterId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow create: if isOwner(recruiterId) || isAdmin();
+      allow update, delete: if isAdmin();
     }
   }
 }

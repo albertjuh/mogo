@@ -19,7 +19,12 @@ export default function CollectPage() {
   const db = useFirestore();
   const { toast } = useToast();
   
-  const ridersQuery = useMemoFirebase(() => collection(db, "riders"), [db]);
+  const isManager = user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'recruiter';
+
+  const ridersQuery = useMemoFirebase(() => {
+    if (!user || !isManager) return null;
+    return collection(db, "riders");
+  }, [db, user, isManager]);
   const { data: riders } = useCollection(ridersQuery);
 
   const [clientNow, setClientNow] = useState<Date | null>(null);
@@ -32,9 +37,8 @@ export default function CollectPage() {
   const headerDate = useMemo(() => clientNow ? format(clientNow, 'eeee, dd MMMM') : 'Loading...', [clientNow]);
 
   const handlePaymentToggle = (riderId: string, dailyFee: number) => {
-    if (!todayStr) return;
+    if (!todayStr || !user) return;
 
-    // In a production fintech app, we create a record with a status and a Selcom reference
     const selcomRef = `SEL-${Math.random().toString(36).substring(7).toUpperCase()}`;
     
     addDocumentNonBlocking(collection(db, "payments"), {
@@ -43,6 +47,7 @@ export default function CollectPage() {
       selcomRef,
       status: 'verified',
       recordedAt: new Date().toISOString(),
+      verifiedBy: user.id
     });
 
     toast({ 
@@ -50,6 +55,10 @@ export default function CollectPage() {
       description: `Ref: ${selcomRef}`
     });
   };
+
+  if (!isManager) {
+    return <div className="p-12 text-center text-muted-foreground font-bold">Unauthorized Access</div>;
+  }
 
   if (!riders) return null;
 
