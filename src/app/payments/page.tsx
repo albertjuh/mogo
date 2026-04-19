@@ -4,12 +4,12 @@
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { initialPayments, initialRiders } from "@/lib/data";
 import type { Payment, Rider } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { format, parseISO, eachDayOfInterval, eachWeekOfInterval, isSameDay, isBefore, startOfDay } from "date-fns";
 import { useUser } from "@/firebase/auth/use-user";
 import { useMemo, useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, FileText, Download, Ghost, Flame, ReceiptText, CheckCircle2 } from "lucide-react";
+import { AlertCircle, Download, Ghost, Flame, ReceiptText, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -112,15 +112,15 @@ export default function PaymentsPage() {
         <p className="text-muted-foreground font-medium">Official financial records and digital receipts.</p>
       </header>
 
-      {riderStats.map(({ rider, slots, totalPaidRemaining, isOverpaid, hasDebt }) => (
+      {riderStats.map(({ rider, slots, isOverpaid, hasDebt }) => (
         <div key={rider.id} className="space-y-4">
           {/* Rider Header Summary */}
           <div className="flex justify-between items-end px-1">
             <div>
               <h2 className="font-black text-xl italic uppercase text-accent flex items-center gap-2">
                 {rider.name}
-                {hasDebt && <Ghost className="text-red-400 h-5 w-5 animate-bounce" />}
-                {isOverpaid && <Flame className="text-primary h-5 w-5 animate-pulse" />}
+                {hasDebt && <Ghost className="text-red-400 h-5 w-5 animate-pulse" />}
+                {isOverpaid && <Flame className="text-primary h-5 w-5 animate-bounce" />}
               </h2>
               <p className="text-[0.65rem] font-bold text-muted-foreground uppercase tracking-widest">
                 {rider.plateNumber} • {rider.paymentFrequency} Plan
@@ -133,7 +133,7 @@ export default function PaymentsPage() {
             ) : null}
           </div>
 
-          {/* Payment Slots using Vault Card Design */}
+          {/* Payment Slots */}
           <div className="space-y-3">
             {slots.map((slot, idx) => (
               <Card key={idx} className={cn(
@@ -142,7 +142,7 @@ export default function PaymentsPage() {
               )}>
                 <CardContent className="p-0">
                   <div className="flex items-center p-4 gap-4">
-                    {/* Status Icon in background box */}
+                    {/* Status Icon Area */}
                     <div className={cn(
                       "p-3 rounded-xl shrink-0",
                       slot.status === 'unpaid' ? "bg-red-100 text-red-600" : "bg-primary/10 text-primary"
@@ -150,7 +150,7 @@ export default function PaymentsPage() {
                       {slot.status === 'unpaid' ? <AlertCircle size={24} /> : <ReceiptText size={24} />}
                     </div>
 
-                    {/* Title and Metadata */}
+                    {/* Metadata Area */}
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-sm truncate uppercase tracking-tight">
                         {slot.status === 'unpaid' ? "Missing Payment" : 
@@ -159,14 +159,18 @@ export default function PaymentsPage() {
                       <p className="text-[0.65rem] text-muted-foreground font-black tracking-widest uppercase">
                         {format(slot.dueDate, "EEEE, dd MMM yyyy")}
                       </p>
-                      {slot.actualPaymentDate && (
+                      {slot.status === 'unpaid' ? (
+                        <p className="text-[0.6rem] text-red-600 font-bold uppercase mt-0.5">
+                           Pending Action
+                        </p>
+                      ) : slot.actualPaymentDate && (
                          <p className="text-[0.6rem] text-primary font-bold uppercase mt-0.5">
                             Verified on {format(parseISO(slot.actualPaymentDate), "dd MMM")}
                          </p>
                       )}
                     </div>
 
-                    {/* Amount (Only Red if Missing) and Action */}
+                    {/* Amount and Status Badge Area */}
                     <div className="flex items-center gap-3">
                       <div className="text-right">
                         <p className={cn(
@@ -175,22 +179,31 @@ export default function PaymentsPage() {
                         )}>
                           TZS {rider.dailyFee.toLocaleString()}
                         </p>
-                        {slot.status !== 'unpaid' && (
-                           <p className="text-[0.5rem] font-bold text-primary flex items-center justify-end gap-0.5">
-                             <CheckCircle2 size={8} /> PAID
-                           </p>
-                        )}
+                        <p className={cn(
+                           "text-[0.5rem] font-bold flex items-center justify-end gap-0.5",
+                           slot.status === 'unpaid' ? "text-red-600" : "text-primary"
+                        )}>
+                           {slot.status === 'unpaid' ? (
+                             <><AlertCircle size={8} /> OVERDUE</>
+                           ) : (
+                             <><CheckCircle2 size={8} /> PAID</>
+                           )}
+                        </p>
                       </div>
                       
-                      {slot.status !== 'unpaid' && (
-                        <button 
-                          onClick={() => handleDownloadReceipt(format(slot.dueDate, "dd MMM"))}
-                          className="p-2 bg-secondary rounded-lg hover:bg-primary hover:text-white transition-colors text-muted-foreground"
-                          title="Download Receipt"
-                        >
-                          <Download size={18} />
-                        </button>
-                      )}
+                      {/* Action Button Area */}
+                      <button 
+                        onClick={() => slot.status !== 'unpaid' && handleDownloadReceipt(format(slot.dueDate, "dd MMM"))}
+                        className={cn(
+                          "p-2 rounded-lg transition-colors",
+                          slot.status === 'unpaid' 
+                            ? "bg-red-100 text-red-600 cursor-not-allowed opacity-50" 
+                            : "bg-secondary text-muted-foreground hover:bg-primary hover:text-white"
+                        )}
+                        title={slot.status === 'unpaid' ? "Action Required" : "Download Receipt"}
+                      >
+                        {slot.status === 'unpaid' ? <AlertCircle size={18} /> : <Download size={18} />}
+                      </button>
                     </div>
                   </div>
                 </CardContent>
