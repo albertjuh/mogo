@@ -2,15 +2,18 @@
 "use client";
 
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { initialLoans } from "@/lib/data";
-import type { Loan } from "@/lib/types";
+import { initialLoans, initialRiders, initialPayments } from "@/lib/data";
+import type { Loan, Rider, Payment } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useMemo } from "react";
 import { useUser } from "@/firebase/auth/use-user";
+import { format, isSameDay, parseISO } from "date-fns";
 
 export function DashboardHeader() {
   const { user } = useUser();
   const [loans] = useLocalStorage<Loan[]>("loans", initialLoans);
+  const [riders] = useLocalStorage<Rider[]>("riders", initialRiders);
+  const [payments] = useLocalStorage<Payment[]>("payments", initialPayments);
   const [clientNow, setClientNow] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -18,6 +21,20 @@ export function DashboardHeader() {
   }, []);
 
   const activeLoan = useMemo(() => loans.find(l => l.clientId === user?.id && l.loanStatus === "Active"), [loans, user]);
+  
+  const mngtStats = useMemo(() => {
+    if (!clientNow || user?.role === 'rider') return null;
+    
+    const activeFleet = riders.filter(r => r.active).length;
+    const paidToday = new Set(
+      payments
+        .filter(p => isSameDay(parseISO(p.date), clientNow))
+        .map(p => p.riderId)
+    ).size;
+    
+    return { activeFleet, paidToday };
+  }, [riders, payments, clientNow, user]);
+
   const isLoading = !clientNow;
 
   if (isLoading) {
@@ -36,10 +53,10 @@ export function DashboardHeader() {
             
             <p className="text-xs uppercase text-white/60 font-bold tracking-widest relative z-10">Mogo Connect</p>
             <p className="font-black text-4xl text-white italic my-1 relative z-10 uppercase">
-                System Status
+                {mngtStats?.activeFleet} Riders
             </p>
             <p className="text-sm text-white/80 font-semibold relative z-10 uppercase tracking-tighter">
-                Operational & Secure
+                {mngtStats?.paidToday} Payments Received Today
             </p>
         </div>
     );
