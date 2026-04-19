@@ -9,7 +9,7 @@ import { format, parseISO, eachDayOfInterval, eachWeekOfInterval, isSameDay, isB
 import { useUser } from "@/firebase/auth/use-user";
 import { useMemo, useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, CheckCircle2, TrendingUp, Calendar } from "lucide-react";
+import { AlertCircle, CheckCircle2, TrendingUp, Calendar, Ghost, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type PaymentSlot = {
@@ -105,16 +105,19 @@ export default function PaymentsPage() {
 
       {riderStats.map(({ rider, slots, totalPaidRemaining, isOverpaid, hasDebt }) => (
         <Card key={rider.id} className={cn(
-          "border-none shadow-xl transition-all duration-500",
-          hasDebt ? "bg-red-50 ring-1 ring-red-200" : isOverpaid ? "bg-green-50 ring-1 ring-primary/20" : ""
+          "border-none shadow-xl transition-all duration-500 overflow-hidden",
+          hasDebt ? "ring-1 ring-red-100" : isOverpaid ? "ring-1 ring-primary/20" : ""
         )}>
-          <CardHeader className="pb-2">
+          <CardHeader className={cn(
+              "pb-4 border-b",
+              hasDebt ? "bg-red-50/30" : isOverpaid ? "bg-green-50/30" : "bg-muted/10"
+          )}>
             <div className="flex justify-between items-start">
               <div>
                 <CardTitle className="font-black text-2xl italic uppercase flex items-center gap-2">
                   {rider.name}
-                  {hasDebt && <AlertCircle className="text-red-600 h-5 w-5" />}
-                  {isOverpaid && <TrendingUp className="text-primary h-5 w-5" />}
+                  {hasDebt && <Ghost className="text-red-300 h-5 w-5 animate-bounce" />}
+                  {isOverpaid && <Flame className="text-primary h-5 w-5 animate-pulse" />}
                 </CardTitle>
                 <CardDescription className="font-bold text-xs">
                   {rider.plateNumber} • {rider.paymentFrequency} Plan (TZS {rider.dailyFee.toLocaleString()})
@@ -122,60 +125,69 @@ export default function PaymentsPage() {
               </div>
               <div className="text-right">
                 {hasDebt ? (
-                   <Badge variant="destructive" className="font-black px-4 py-1 text-sm">
-                     ARREARS DETECTED
+                   <Badge variant="destructive" className="font-black px-4 py-1 text-[0.6rem] tracking-widest">
+                     DEBT DETECTED
                    </Badge>
                 ) : isOverpaid ? (
-                   <Badge className="bg-primary font-black px-4 py-1 text-sm text-white">
-                     ADVANCE PAYMENT
+                   <Badge className="bg-primary font-black px-4 py-1 text-[0.6rem] tracking-widest text-white">
+                     BOSSI! MOTO SANA!
                    </Badge>
                 ) : (
-                   <Badge className="bg-primary/10 text-primary border-primary/20 font-black px-4 py-1 text-sm">
-                     IN GOOD STANDING
+                   <Badge className="bg-primary/10 text-primary border-primary/20 font-black px-4 py-1 text-[0.6rem] tracking-widest">
+                     STABLE
                    </Badge>
                 )}
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {isOverpaid && (
-              <div className="mb-4 p-3 bg-primary/10 rounded-xl border-2 border-primary border-dashed text-center">
-                <p className="font-black text-primary italic text-sm uppercase tracking-wider">
-                  + TZS {totalPaidRemaining.toLocaleString()} ACCOUNT CREDIT
+              <div className="p-3 bg-primary/10 border-b border-primary/10 text-center">
+                <p className="font-black text-primary italic text-[0.7rem] uppercase tracking-widest">
+                  OVERACHIEVER: + TZS {totalPaidRemaining.toLocaleString()} ACCOUNT CREDIT
                 </p>
               </div>
             )}
             
-            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="divide-y max-h-[500px] overflow-y-auto pr-0 custom-scrollbar">
               {slots.map((slot, idx) => (
                 <div 
                   key={idx} 
                   className={cn(
-                    "flex items-center justify-between p-3 rounded-lg border transition-all",
-                    slot.status === 'unpaid' && "bg-red-100 border-red-200 text-red-900 shadow-sm",
-                    slot.status === 'paid-on-time' && "bg-white border-primary/10",
-                    slot.status === 'paid-late' && "bg-amber-50 border-amber-200 text-amber-900"
+                    "flex items-center justify-between p-4 transition-colors hover:bg-muted/5",
+                    slot.status === 'unpaid' ? "bg-white" : "bg-white"
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-4">
                     <div className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center font-black",
-                      slot.status === 'unpaid' ? "bg-red-200 text-red-700" : "bg-secondary text-muted-foreground"
+                      "w-12 h-12 rounded-xl flex flex-col items-center justify-center font-black border",
+                      slot.status === 'unpaid' ? "bg-muted/50 border-muted-foreground/10 text-muted-foreground/60" : "bg-primary/5 border-primary/10 text-primary"
                     )}>
-                      {format(slot.dueDate, "dd")}
+                      <span className="text-lg leading-none">{format(slot.dueDate, "dd")}</span>
+                      <span className="text-[0.5rem] uppercase opacity-60">{format(slot.dueDate, "MMM")}</span>
                     </div>
                     <div>
-                      <p className="font-black uppercase italic leading-none text-sm">{format(slot.dueDate, "MMMM yyyy")}</p>
-                      <p className="text-[0.6rem] font-bold opacity-70 uppercase tracking-widest mt-1">
-                        {slot.status === 'unpaid' ? "PAYMENT MISSING" : 
+                      <p className="font-bold uppercase italic text-sm text-foreground/80">{format(slot.dueDate, "EEEE, yyyy")}</p>
+                      <p className="text-[0.6rem] font-bold opacity-50 uppercase tracking-widest mt-0.5">
+                        {slot.status === 'unpaid' ? "MISSING PAYMENT" : 
                          slot.status === 'paid-late' ? `RECONCILED ON ${format(parseISO(slot.actualPaymentDate!), "dd MMM")}` :
-                         "ON-TIME PAYMENT"}
+                         "SUCCESSFUL"}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-black text-base leading-none">TZS {rider.dailyFee.toLocaleString()}</p>
-                    {slot.status === 'unpaid' && <p className="text-[0.5rem] font-bold uppercase mt-1 text-red-600">Pending Action</p>}
+                    <p className={cn(
+                        "font-black text-base leading-none tracking-tight",
+                        slot.status === 'unpaid' ? "text-red-600" : "text-foreground"
+                    )}>
+                        TZS {rider.dailyFee.toLocaleString()}
+                    </p>
+                    {slot.status === 'unpaid' && (
+                        <p className="text-[0.55rem] font-black uppercase mt-1 text-red-400 tracking-tighter">Required Now</p>
+                    )}
+                    {slot.status === 'paid-on-time' && (
+                        <p className="text-[0.55rem] font-black uppercase mt-1 text-primary/60 tracking-tighter">Verified</p>
+                    )}
                   </div>
                 </div>
               ))}
