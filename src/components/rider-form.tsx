@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -432,7 +431,7 @@ export function RiderForm({ rider, initialEmail, bikes, onSubmit, onCancel, clas
                     name="witnessPhone"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Witness Phone</TableHead>
+                        <FormLabel>Witness Phone</FormLabel>
                         <FormControl>
                         <Input placeholder="07..." {...field} />
                         </FormControl>
