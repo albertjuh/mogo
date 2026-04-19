@@ -1,15 +1,19 @@
-
 "use client";
 
 import { AuthForm } from "@/firebase/auth/auth-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Image from "next/image";
 
 export default function LoginPage() {
   const Logo = () => (
-    <div className="text-5xl flex items-baseline gap-1" style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 900}}>
-      <span className="text-primary italic">mogo</span>
-      <span className="text-white font-light text-sm opacity-80 ml-2">Connect</span>
-    </div>
+    <Image 
+      src="/mogo-logo.png" 
+      alt="Mogo Logo" 
+      width={220} 
+      height={60} 
+      priority 
+      className="object-contain"
+    />
   );
 
   return (
@@ -26,7 +30,7 @@ export default function LoginPage() {
       <div className="flex items-center justify-center py-12 px-4 sm:px-8 bg-background">
         <div className="mx-auto grid w-full max-w-sm gap-6">
           <div className="grid gap-2 text-center">
-            <div className="lg:hidden mb-4">
+            <div className="lg:hidden mb-4 flex justify-center">
                 <Logo />
             </div>
             <h1 className="text-3xl font-bold font-headline">Karibu Tena</h1>

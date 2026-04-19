@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUser } from '@/firebase/auth/use-user';
+import Image from 'next/image';
 
 export function AppHeader() {
   const [clientNow, setClientNow] = useState<Date | null>(null);
@@ -30,10 +31,14 @@ export function AppHeader() {
   const currentDateString = clientNow ? format(clientNow, 'dd MMM') : null;
 
   const Logo = () => (
-    <div className="text-xl flex items-baseline gap-0.5" style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 900}}>
-      <span className="text-primary italic">mogo</span>
-      <span className="text-white font-light text-xs opacity-80 ml-1">Connect</span>
-    </div>
+    <Image 
+      src="/mogo-logo.png" 
+      alt="Mogo Logo" 
+      width={90} 
+      height={24} 
+      priority 
+      className="object-contain brightness-0 invert" // Keeps it white for the navy header
+    />
   );
 
   if (!user) {
