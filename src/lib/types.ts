@@ -1,9 +1,39 @@
+
 export interface UserProfile {
   id: string;
   email: string;
   fullName: string;
-  role: 'client' | 'admin';
+  role: 'admin' | 'supervisor' | 'rider';
   phoneNumber: string;
+}
+
+export interface Rider {
+  id: string;
+  name: string;
+  phone: string;
+  plateNumber: string;
+  shahidiNumber: string;
+  dailyFee: number;
+  contractStart: string;
+  contractEnd: string;
+  active: boolean;
+  bikeId: string;
+  createdAt: string;
+  location?: { lat: number; lng: number };
+}
+
+export interface Bike {
+  id: string;
+  plateNumber: string;
+  model: string;
+  ownerId: string;
+}
+
+export interface Payment {
+  id: string;
+  riderId: string;
+  amount: number;
+  date: string;
 }
 
 export interface Loan {
@@ -48,4 +78,12 @@ export interface SavingInsight {
   competitorInterestRate: number;
   monthlySavings: number;
   totalSavingsToDate: number;
+}
+
+export interface Alert {
+    id: string;
+    type: 'payment' | 'contract';
+    message: string;
+    date: string;
+    riderId: string;
 }
