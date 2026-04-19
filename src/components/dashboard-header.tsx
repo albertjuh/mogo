@@ -5,9 +5,10 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import { initialLoans, initialRiders, initialPayments } from "@/lib/data";
 import type { Loan, Rider, Payment } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useUser } from "@/firebase/auth/use-user";
-import { format, isSameDay, parseISO } from "date-fns";
+import { isSameDay, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
 
 export function DashboardHeader() {
   const { user } = useUser();
@@ -16,8 +17,40 @@ export function DashboardHeader() {
   const [payments] = useLocalStorage<Payment[]>("payments", initialPayments);
   const [clientNow, setClientNow] = useState<Date | null>(null);
 
+  // Visibility state for the collapsible header logic
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
   useEffect(() => {
     setClientNow(new Date());
+
+    // Find the main scroll container (defined in AppClientLayout)
+    const mainEl = document.querySelector('main');
+    if (!mainEl) return;
+
+    const handleScroll = () => {
+      const currentScrollY = mainEl.scrollTop;
+      
+      // Only apply this dynamic behavior on mobile/small screens
+      if (window.innerWidth < 768) {
+        // Scrolling down - hide the header
+        if (currentScrollY > lastScrollY.current && currentScrollY > 60) {
+          setIsVisible(false);
+        } 
+        // Scrolling up - show the header
+        else if (currentScrollY < lastScrollY.current) {
+          setIsVisible(true);
+        }
+      } else {
+        // Ensure it stays visible on desktop
+        setIsVisible(true);
+      }
+      
+      lastScrollY.current = currentScrollY;
+    };
+
+    mainEl.addEventListener('scroll', handleScroll, { passive: true });
+    return () => mainEl.removeEventListener('scroll', handleScroll);
   }, []);
 
   const activeLoan = useMemo(() => loans.find(l => l.clientId === user?.id && l.loanStatus === "Active"), [loans, user]);
@@ -45,35 +78,43 @@ export function DashboardHeader() {
     );
   }
 
-  // --- ADMIN/SUPERVISOR/RECRUITER VIEW ---
-  if (user?.role !== 'rider') {
-    return (
-        <div className="bg-accent text-white p-6 rounded-b-3xl flex-shrink-0 relative overflow-hidden">
-            <div className="absolute -top-10 -right-10 w-40 h-40 border-8 border-white/5 rounded-full" />
-            
-            <p className="text-xs uppercase text-white/60 font-bold tracking-widest relative z-10">Mogo Connect</p>
-            <p className="font-black text-4xl text-white italic my-1 relative z-10 uppercase">
-                {mngtStats?.activeFleet} <span className="text-primary">Riders</span>
-            </p>
-            <p className="text-sm text-white/80 font-semibold relative z-10 uppercase tracking-tighter">
-                {mngtStats?.paidToday} Payments Received Today
-            </p>
-        </div>
-    );
-  }
+  // Wrapper with transition classes for sliding and collapsing
+  const containerClasses = cn(
+    "bg-accent text-white flex-shrink-0 transition-all duration-500 ease-in-out relative overflow-hidden",
+    isVisible 
+      ? "max-h-[250px] opacity-100 translate-y-0" 
+      : "max-h-0 opacity-0 -translate-y-12 md:max-h-[250px] md:opacity-100 md:translate-y-0"
+  );
 
-  // --- RIDER VIEW ---
   return (
-    <div className="bg-accent text-white p-6 rounded-b-3xl flex-shrink-0 relative overflow-hidden">
-        <div className="absolute -top-10 -right-10 w-40 h-40 border-8 border-primary/20 rounded-full" />
-        
-        <p className="text-xs uppercase text-white/60 font-bold tracking-widest relative z-10">Mkopo Wako</p>
-        <p className="font-black text-4xl text-primary italic my-1 relative z-10">
-          {activeLoan ? activeLoan.loanType : "Huna Mkopo"}
-        </p>
-        <p className="text-sm text-white/80 font-semibold relative z-10">
-          {activeLoan ? `Hali: ${activeLoan.loanStatus}` : "Omba mkopo leo"}
-        </p>
+    <div className={containerClasses}>
+        <div className="p-6 rounded-b-3xl">
+            {user?.role !== 'rider' ? (
+                <div className="relative overflow-hidden">
+                    <div className="absolute -top-10 -right-10 w-40 h-40 border-8 border-white/5 rounded-full" />
+                    
+                    <p className="text-xs uppercase text-white/60 font-bold tracking-widest relative z-10">Mogo Connect</p>
+                    <p className="font-black text-4xl text-white italic my-1 relative z-10 uppercase">
+                        {mngtStats?.activeFleet} <span className="text-primary">Riders</span>
+                    </p>
+                    <p className="text-sm text-white/80 font-semibold relative z-10 uppercase tracking-tighter">
+                        {mngtStats?.paidToday} Payments Received Today
+                    </p>
+                </div>
+            ) : (
+                <div className="relative overflow-hidden">
+                    <div className="absolute -top-10 -right-10 w-40 h-40 border-8 border-primary/20 rounded-full" />
+                    
+                    <p className="text-xs uppercase text-white/60 font-bold tracking-widest relative z-10">Mkopo Wako</p>
+                    <p className="font-black text-4xl text-primary italic my-1 relative z-10">
+                      {activeLoan ? activeLoan.loanType : "Huna Mkopo"}
+                    </p>
+                    <p className="text-sm text-white/80 font-semibold relative z-10">
+                      {activeLoan ? `Hali: ${activeLoan.loanStatus}` : "Omba mkopo leo"}
+                    </p>
+                </div>
+            )}
+        </div>
     </div>
   );
 }
