@@ -7,7 +7,7 @@ import { initialLoans, initialPayments, initialRiders } from "@/lib/data";
 import type { Loan, Payment, Rider } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wallet, Calendar, ArrowUpRight, ShieldCheck, Users, TrendingUp, DollarSign, UserPlus, CheckCircle, AlertCircle, TrendingDown } from "lucide-react";
+import { Wallet, Calendar, ArrowUpRight, ShieldCheck, Users, TrendingUp, DollarSign, UserPlus, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { format, parseISO, isSameDay, subDays, isAfter, startOfDay, differenceInDays, differenceInWeeks } from "date-fns";
 import { useMemo } from "react";
 import Link from "next/link";
@@ -22,7 +22,8 @@ export default function DashboardPage() {
   // --- Rider (Client) View Logic ---
   const myLoan = useMemo(() => {
     if (user?.role !== 'rider') return null;
-    return loans.find(l => l.clientId === user.id && l.loanStatus === "Active");
+    // We assume an active rider ALWAYS has a loan associated with them
+    return loans.find(l => l.clientId === user.id);
   }, [loans, user]);
 
   // --- Admin/Supervisor/Recruiter View Logic ---
@@ -37,7 +38,7 @@ export default function DashboardPage() {
     const sevenDaysAgo = subDays(new Date(), 7);
     const recruitedThisWeek = riders.filter(r => isAfter(parseISO(r.createdAt), sevenDaysAgo)).length;
 
-    // Arrears List (formerly Terror List)
+    // Arrears Summary
     const today = new Date();
     const arrearsList = riders.filter(r => r.active).map(rider => {
         const riderPayments = payments.filter(p => p.riderId === rider.id);
@@ -56,10 +57,9 @@ export default function DashboardPage() {
         const balance = totalPaid - totalOwed;
         return { ...rider, balance };
       })
-      .filter(r => r.balance < 0)
-      .sort((a, b) => a.balance - b.balance);
+      .filter(r => r.balance < 0);
 
-    return { totalCollected, activeRiders, collectedToday, recruitedThisWeek, arrearsList };
+    return { totalCollected, activeRiders, collectedToday, recruitedThisWeek, arrearsCount: arrearsList.length };
   }, [payments, riders, user]);
 
   if (!user) return null;
@@ -93,7 +93,7 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 gap-4">
                     <Button asChild className="h-20 text-lg font-bold shadow-lg bg-accent hover:bg-accent/90">
                         <Link href="/fleet" className="flex items-center gap-3">
-                            <UserPlus className="h-6 w-6" /> Onboard New Driver (Boda/Bajaji)
+                            <UserPlus className="h-6 w-6" /> Onboard New Driver
                         </Link>
                     </Button>
                 </div>
@@ -107,7 +107,7 @@ export default function DashboardPage() {
                     <div>
                     <p className="text-sm font-semibold">Eligibility Check</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                        Ensure every driver has a valid ID, a clean record, and a guarantor (Shahidi) before adding them.
+                        Ensure every driver has a valid ID, a clean record, and a guarantor before adding them.
                     </p>
                     </div>
                 </CardContent>
@@ -119,12 +119,12 @@ export default function DashboardPage() {
 
   // --- RIDER DASHBOARD ---
   if (user.role === 'rider') {
+    // If loan is still loading or truly missing (fallback), show a generic placeholder
     if (!myLoan) {
       return (
-        <div className="flex flex-col items-center justify-center h-full text-center p-6">
-          <ShieldCheck size={64} className="text-muted-foreground mb-4" />
-          <h2 className="text-2xl font-bold">Huna Mkopo Amilifu</h2>
-          <p className="text-muted-foreground">Wasiliana na Mogo ili kuanza safari yako ya umiliki leo.</p>
+        <div className="flex flex-col items-center justify-center h-full text-center p-6 space-y-4">
+          <Loader2 size={48} className="text-primary animate-spin" />
+          <h2 className="text-xl font-bold">Inapakia Maelezo ya Mkopo...</h2>
         </div>
       );
     }
@@ -249,13 +249,13 @@ export default function DashboardPage() {
       </div>
 
       {/* Arrears Summary Section */}
-      {stats && stats.arrearsList.length > 0 && (
+      {stats && stats.arrearsCount > 0 && (
         <Card className="border-none shadow-md bg-red-50 ring-1 ring-red-200">
           <CardContent className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <AlertCircle className="text-red-600 h-6 w-6 shrink-0" />
               <div>
-                <p className="font-bold text-red-900">{stats.arrearsList.length} Riders with Arrears</p>
+                <p className="font-bold text-red-900">{stats.arrearsCount} Riders with Arrears</p>
                 <p className="text-xs text-red-700/80">Action required to reconcile outstanding payments.</p>
               </div>
             </div>
@@ -291,7 +291,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-sm font-semibold">Payment Efficiency</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Today's collections have reached 85% of the daily target. {stats?.arrearsList.length} riders currently have pending balances.
+                Today's collections have reached 85% of the daily target. {stats?.arrearsCount} riders currently have pending balances.
               </p>
               <Button asChild variant="link" className="p-0 h-auto text-xs font-bold text-primary mt-2">
                 <Link href="/reports">View Detailed Reports</Link>
