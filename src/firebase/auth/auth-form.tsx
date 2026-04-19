@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User, Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { Loader2, User, Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { useUser } from "./use-user";
@@ -68,7 +68,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         if (mode === "login") {
           const success = await login(values.email, values.password);
           if (success) {
-            toast({ title: "Logged In Successfully!" });
+            toast({ title: "Logging you in..." });
           } else {
             toast({
               variant: "destructive",
@@ -78,10 +78,12 @@ export function AuthForm({ mode }: AuthFormProps) {
             setIsLoading(false);
           }
         } else {
-          // Everyone signs up as 'rider' by default now. Safer.
           const success = await signup(values.email, values.password, values.name || "", 'rider');
           if (success) {
-            toast({ title: "Account Created Successfully!" });
+            toast({ 
+                title: "Activation Link Sent!",
+                description: "Check your email to activate your account."
+            });
           } else {
             toast({
               variant: "destructive",
@@ -227,6 +229,15 @@ export function AuthForm({ mode }: AuthFormProps) {
               <span>{mode === "login" ? "Log In" : "Create Account"}</span>
             )}
           </Button>
+
+          {mode === "signup" && (
+              <div className="bg-white/5 p-3 rounded-lg border border-white/10 flex gap-2 items-start mt-4">
+                  <ShieldCheck className="text-primary shrink-0 h-4 w-4 mt-0.5" />
+                  <p className="text-[0.6rem] text-white/50 font-medium">
+                      An activation link will be sent to your email. You must click it to enter the platform.
+                  </p>
+              </div>
+          )}
         </form>
       </Form>
 

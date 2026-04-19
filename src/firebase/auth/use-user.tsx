@@ -10,7 +10,9 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  sendEmailVerification,
+  reload
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
@@ -29,6 +31,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   loginWithGoogle: () => Promise<boolean>;
   signup: (email: string, password: string, name: string, role: AppUser['role']) => Promise<boolean>;
+  reloadUser: () => Promise<void>;
   loading: boolean;
 }
 
@@ -41,6 +44,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const db = useFirestore();
   const auth = getAuth();
 
+  const reloadUser = async () => {
+    if (auth.currentUser) {
+      await reload(auth.currentUser);
+      setFirebaseUser({ ...auth.currentUser });
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
@@ -52,7 +62,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const isSystemAdminEmail = fbUser.email?.toLowerCase() === 'berto.admin@bodaempire.com';
         
         try {
-          // Attempt to get role from Firestore registry
           const [adminDoc, supervisorDoc, recruiterDoc, riderDoc] = await Promise.all([
             getDoc(doc(db, "admins", fbUser.uid)).catch(() => null),
             getDoc(doc(db, "supervisors", fbUser.uid)).catch(() => null),
@@ -74,11 +83,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               name = riderDoc.data().name || name;
           }
 
-          // System Admin Override
           if (isSystemAdminEmail) role = 'admin';
 
         } catch (e) {
           console.warn("Profile check failed, using defaults.");
+          if (isSystemAdminEmail) role = 'admin';
         }
         
         setUser({
@@ -101,9 +110,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const provider = new GoogleAuthProvider();
       const res = await signInWithPopup(auth, provider);
       
-      // Check if profile exists, if not create one as 'rider'
       const riderDoc = await getDoc(doc(db, "riders", res.user.uid));
-      if (!riderDoc.exists()) {
+      const adminDoc = await getDoc(doc(db, "admins", res.user.uid));
+      
+      if (!riderDoc.exists() && !adminDoc.exists()) {
           const isSystemAdminEmail = res.user.email?.toLowerCase() === 'berto.admin@bodaempire.com';
           const collectionName = isSystemAdminEmail ? "admins" : "riders";
           
@@ -131,16 +141,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (email: string, password: string, name: string, role: AppUser['role']) => {
+  const signup = async (email: string, password: string, name: string) => {
     try {
       const res = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Send Activation link immediately
+      await sendEmailVerification(res.user);
+
       const isSystemAdminEmail = email.toLowerCase() === 'berto.admin@bodaempire.com';
       const collectionName = isSystemAdminEmail ? "admins" : "riders";
       
       await setDoc(doc(db, collectionName, res.user.uid), {
         email: email.toLowerCase(),
         name: name,
-        role: isSystemAdminEmail ? 'admin' : 'rider', // Ignore external role choice for safety
+        role: isSystemAdminEmail ? 'admin' : 'rider',
         createdAt: new Date().toISOString()
       });
       
@@ -157,7 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, logout, login, signup, loginWithGoogle, loading }}>
+    <AuthContext.Provider value={{ user, firebaseUser, logout, login, signup, loginWithGoogle, reloadUser, loading }}>
       {children}
     </AuthContext.Provider>
   );
