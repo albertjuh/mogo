@@ -7,8 +7,8 @@ import { initialLoans, initialPayments, initialRiders } from "@/lib/data";
 import type { Loan, Payment, Rider } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wallet, Calendar, ArrowUpRight, ShieldCheck, Users, TrendingUp, DollarSign, UserPlus, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
-import { format, parseISO, isSameDay, subDays, isAfter, startOfDay, differenceInDays, differenceInWeeks } from "date-fns";
+import { Wallet, Calendar, ArrowUpRight, ShieldCheck, Users, TrendingUp, DollarSign, UserPlus, CheckCircle, AlertCircle, Loader2, Target, BarChart3 } from "lucide-react";
+import { format, parseISO, isSameDay, subDays, isAfter, startOfDay, differenceInDays, differenceInWeeks, startOfWeek } from "date-fns";
 import { useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -28,15 +28,23 @@ export default function DashboardPage() {
   // --- Management View Logic ---
   const stats = useMemo(() => {
     if (user?.role === 'rider') return null;
-    const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0);
-    const activeRiders = riders.filter(r => r.active).length;
-    const todayPayments = payments.filter(p => isSameDay(parseISO(p.date), new Date()));
-    const collectedToday = todayPayments.reduce((sum, p) => sum + p.amount, 0);
     
-    const sevenDaysAgo = subDays(new Date(), 7);
-    const recruitedThisWeek = riders.filter(r => isAfter(parseISO(r.createdAt), sevenDaysAgo)).length;
-
+    const activeRiders = riders.filter(r => r.active).length;
     const today = new Date();
+    
+    // Daily Stats
+    const todayPayments = payments.filter(p => isSameDay(parseISO(p.date), today));
+    const collectedToday = todayPayments.reduce((sum, p) => sum + p.amount, 0);
+    const dailyTarget = activeRiders * 10000;
+    
+    // Weekly Stats
+    const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 });
+    const weekPayments = payments.filter(p => isAfter(parseISO(p.date), startOfCurrentWeek));
+    const collectedThisWeek = weekPayments.reduce((sum, p) => sum + p.amount, 0);
+    const weeklyTarget = dailyTarget * 7;
+    const weeklyProgress = weeklyTarget > 0 ? (collectedThisWeek / weeklyTarget) * 100 : 0;
+
+    // Arrears Logic
     const arrearsList = riders.filter(r => r.active).map(rider => {
         const riderPayments = payments.filter(p => p.riderId === rider.id);
         const start = startOfDay(parseISO(rider.contractStart));
@@ -56,7 +64,21 @@ export default function DashboardPage() {
       })
       .filter(r => r.balance < 0);
 
-    return { totalCollected, activeRiders, collectedToday, recruitedThisWeek, arrearsCount: arrearsList.length };
+    const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0);
+    const sevenDaysAgo = subDays(today, 7);
+    const recruitedThisWeek = riders.filter(r => isAfter(parseISO(r.createdAt), sevenDaysAgo)).length;
+
+    return { 
+        collectedToday, 
+        dailyTarget, 
+        activeRiders, 
+        collectedThisWeek, 
+        weeklyTarget, 
+        weeklyProgress, 
+        arrearsCount: arrearsList.length,
+        totalCollected,
+        recruitedThisWeek
+    };
   }, [payments, riders, user]);
 
   if (!user) return null;
@@ -206,15 +228,19 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <header className="space-y-1">
         <h1 className="text-3xl font-black tracking-tight font-headline uppercase italic">
-          {user.role === 'admin' ? 'Admin Panel' : 'Supervisor Overview'}
+          {user.role === 'admin' ? 'Admin Panel' : 'Operations Tracker'}
         </h1>
         <p className="text-muted-foreground">
-          {isSupervisor ? 'Monitoring fleet health and daily collections.' : 'Business operations and high-level trends.'}
+          {isSupervisor ? 'Analyzing driver activity and daily collection targets.' : 'Business operations and high-level trends.'}
         </p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-accent text-white border-none shadow-lg">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Daily Collection Focus */}
+        <Card className="bg-accent text-white border-none shadow-lg relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+              <Target size={80} />
+          </div>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-bold uppercase tracking-widest opacity-70 flex items-center gap-2">
               <DollarSign size={14} /> Collected Today
@@ -222,35 +248,66 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black italic">TZS {stats?.collectedToday.toLocaleString()}</div>
+            <p className="text-[0.65rem] font-bold text-white/50 uppercase mt-2 tracking-widest">
+                Target: TZS {stats?.dailyTarget.toLocaleString()}
+            </p>
           </CardContent>
         </Card>
 
+        {/* Weekly Target Focus for Supervisor */}
         <Card className="bg-white border-none shadow-md">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <Users size={14} /> Active Fleet
+              <BarChart3 size={14} /> Weekly Target Progress
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black text-primary italic">{stats?.activeRiders} Riders</div>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between items-end">
+                <div className="text-2xl font-black italic text-primary">{(stats?.weeklyProgress || 0).toFixed(0)}%</div>
+                <div className="text-[0.65rem] font-bold text-muted-foreground">
+                    TZS {stats?.collectedThisWeek.toLocaleString()} / {stats?.weeklyTarget.toLocaleString()}
+                </div>
+            </div>
+            <Progress value={stats?.weeklyProgress} className="h-2" />
           </CardContent>
         </Card>
+      </div>
 
-        {!isSupervisor && (
-          <Card className="bg-white border-none shadow-md">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <TrendingUp size={14} /> Total Collections
-              </CardTitle>
+      <div className="grid grid-cols-2 gap-4">
+        <Card className="bg-white border-none shadow-md">
+            <CardHeader className="p-4 pb-1">
+                <CardTitle className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">Active Fleet</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold">TZS {stats?.totalCollected.toLocaleString()}</div>
+            <CardContent className="px-4 pb-4">
+                <div className="text-xl font-black text-accent">{stats?.activeRiders} Riders</div>
+            </CardContent>
+        </Card>
+        
+        {/* Admin only sees the investment/total stuff */}
+        {!isSupervisor && (
+           <Card className="bg-white border-none shadow-md">
+            <CardHeader className="p-4 pb-1">
+                <CardTitle className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">Total Portfolio</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+                <div className="text-xl font-black text-primary">TZS {stats?.totalCollected.toLocaleString()}</div>
             </CardContent>
           </Card>
         )}
+
+        {isSupervisor && (
+            <Card className="bg-white border-none shadow-md">
+                <CardHeader className="p-4 pb-1">
+                    <CardTitle className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">Recruited Week</CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                    <div className="text-xl font-black text-primary">{stats?.recruitedThisWeek} New</div>
+                </CardContent>
+            </Card>
+        )}
       </div>
 
-      {/* Arrears Summary Section */}
+      {/* Arrears Summary Section - Critical for ground operations */}
       {stats && stats.arrearsCount > 0 && (
         <Card className="border-none shadow-md bg-red-50 ring-1 ring-red-200">
           <CardContent className="p-4 flex items-center justify-between">
@@ -258,12 +315,12 @@ export default function DashboardPage() {
               <AlertCircle className="text-red-600 h-6 w-6 shrink-0" />
               <div>
                 <p className="font-bold text-red-900">{stats.arrearsCount} Riders with Arrears</p>
-                <p className="text-xs text-red-700/80">Action required to reconcile outstanding payments.</p>
+                <p className="text-xs text-red-700/80">Immediate driver follow-up required.</p>
               </div>
             </div>
             <Button asChild variant="ghost" size="sm" className="text-red-600 hover:bg-red-100 hover:text-red-700 font-bold uppercase text-[0.65rem] tracking-widest">
               <Link href="/alerts" className="flex items-center gap-1">
-                View Alerts <ArrowUpRight size={14} />
+                Analyze <ArrowUpRight size={14} />
               </Link>
             </Button>
           </CardContent>
@@ -271,16 +328,16 @@ export default function DashboardPage() {
       )}
 
       <div className="grid grid-cols-2 gap-4">
-        <Button asChild variant="outline" className="h-20 flex flex-col gap-1 border-primary/20 hover:bg-primary/5">
+        <Button asChild variant="outline" className="h-20 flex flex-col gap-1 border-primary/20 hover:bg-primary/5 shadow-sm">
           <Link href="/collect">
             <Wallet className="h-5 w-5 text-primary" />
-            <span className="text-xs font-bold uppercase">Daily Collection</span>
+            <span className="text-xs font-bold uppercase">Collect Today</span>
           </Link>
         </Button>
-        <Button asChild variant="outline" className="h-20 flex flex-col gap-1 border-primary/20 hover:bg-primary/5">
+        <Button asChild variant="outline" className="h-20 flex flex-col gap-1 border-primary/20 hover:bg-primary/5 shadow-sm">
           <Link href="/fleet">
             <Users className="h-5 w-5 text-primary" />
-            <span className="text-xs font-bold uppercase">Manage Fleet</span>
+            <span className="text-xs font-bold uppercase">Fleet List</span>
           </Link>
         </Button>
       </div>
@@ -307,3 +364,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
