@@ -35,25 +35,25 @@ import type { Rider, Bike as BikeType } from "@/lib/types";
 import { parseISO, addMonths } from "date-fns";
 
 const riderFormSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
-  phone: z.string().regex(/^(?:\+255|0)\d{9}$/, "Please enter a valid Tanzanian phone number."),
+  name: z.string().min(2, "Jina kamili linahitajika."),
+  phone: z.string().regex(/^(?:\+255|0)\d{9}$/, "Namba ya simu ya Tanzania inahitajika."),
   vehicleType: z.enum(['Boda Boda', 'Bajaji']),
-  plateNumber: z.string().min(3, "Plate number is required."),
-  chassisNumber: z.string().min(5, "Chassis number required for legal contract."),
-  engineNumber: z.string().min(5, "Engine number required for legal contract."),
-  engineCapacity: z.string().optional(),
-  modelNumber: z.string().optional(),
-  shahidiNumber: z.string().min(3, "Shahidi/ID number is required."),
-  dailyFee: z.coerce.number().min(1000, "Fee seems too low."),
+  plateNumber: z.string().min(3, "Namba ya usajili inahitajika."),
+  chassisNumber: z.string().min(5, "Chassis number inahitajika kwa mkataba."),
+  engineNumber: z.string().min(5, "Engine number inahitajika kwa mkataba."),
+  engineCapacity: z.string().min(2, "Engine capacity inahitajika."),
+  modelNumber: z.string().min(2, "Model number inahitajika."),
+  shahidiNumber: z.string().min(3, "Namba ya NIDA au kitambulisho inahitajika."),
+  dailyFee: z.coerce.number().min(1000, "Kiasi cha malipo ni kidogo sana."),
   paymentFrequency: z.enum(['Daily', 'Weekly', '10-Day']),
   contractStart: z.date({
-    required_error: "A contract start date is required.",
+    required_error: "Tarehe ya kuanza mkataba inahitajika.",
   }),
-  contractTermMonths: z.coerce.number().min(1, "Term required."),
-  guarantorName: z.string().min(2, "Guarantor name is required."),
-  guarantorPhone: z.string().regex(/^(?:\+255|0)\d{9}$/, "Valid phone required."),
-  witnessName: z.string().optional(),
-  witnessPhone: z.string().optional(),
+  contractTermMonths: z.coerce.number().min(1, "Muda wa mkataba unahitajika."),
+  guarantorName: z.string().min(2, "Jina la mdhamini linahitajika."),
+  guarantorPhone: z.string().regex(/^(?:\+255|0)\d{9}$/, "Namba ya mdhamini inahitajika."),
+  witnessName: z.string().min(2, "Jina la shahidi linahitajika."),
+  witnessPhone: z.string().regex(/^(?:\+255|0)\d{9}$/, "Namba ya shahidi inahitajika."),
   notes: z.string().optional(),
 });
 
@@ -70,6 +70,7 @@ interface RiderFormProps {
 export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: RiderFormProps) {
   const form = useForm<z.infer<typeof riderFormSchema>>({
     resolver: zodResolver(riderFormSchema),
+    mode: "onChange", // Enable real-time validation to update button state
     defaultValues: rider
       ? { 
           ...rider, 
@@ -108,6 +109,8 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
         },
   });
   
+  const { formState: { isValid } } = form;
+
   function handleFormSubmit(values: z.infer<typeof riderFormSchema>) {
     const bike = bikes.find(b => b.plateNumber.toLowerCase() === values.plateNumber.toLowerCase()) ?? bikes[0];
     const contractEnd = addMonths(values.contractStart, values.contractTermMonths);
@@ -418,7 +421,14 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
 
         <div className="flex justify-end gap-2 pt-4 border-t">
             <Button type="button" variant="outline" onClick={onCancel} className="uppercase font-bold text-xs tracking-widest">Cancel</Button>
-            <Button type="submit" className="bg-accent text-white hover:bg-accent/90 uppercase font-bold text-xs tracking-widest px-8">
+            <Button 
+                type="submit" 
+                disabled={!isValid}
+                className={cn(
+                    "uppercase font-bold text-xs tracking-widest px-8 transition-all",
+                    isValid ? "bg-accent text-white hover:bg-accent/90" : "bg-muted text-muted-foreground cursor-not-allowed"
+                )}
+            >
                 {rider ? "Save Changes" : "Confirm Onboarding"}
             </Button>
         </div>

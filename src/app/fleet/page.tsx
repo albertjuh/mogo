@@ -91,7 +91,7 @@ export default function FleetPage() {
 
   const handleFormSubmit = (data: RiderFormValues) => {
     if (selectedRider) {
-      const updatedRider = { ...selectedRider, ...data, contractEnd: dateToISO(data.contractStart) }; // Simplified for now
+      const updatedRider = { ...selectedRider, ...data };
       setRiders(riders.map(r => r.id === selectedRider.id ? updatedRider : r));
       toast({ title: "Rider Updated", description: `${data.name}'s details have been saved.` });
     } else {
@@ -99,9 +99,7 @@ export default function FleetPage() {
         id: `rider-${Date.now()}`,
         ...data,
         active: true,
-        contractEnd: dateToISO(addDays(data.contractStart, 540)), // Default 18 months
         createdAt: new Date().toISOString(),
-        bikeId: "bike-custom" // Logic handled in form submit
       };
       setRiders([...riders, newRider]);
       toast({ title: "Rider Added", description: `${data.name} is now part of your fleet.` });
@@ -139,7 +137,6 @@ export default function FleetPage() {
       ) : (
         <div className="space-y-4">
           {riders.map((rider) => {
-            const bike = getBikeInfo(rider.bikeId);
             return (
               <Card key={rider.id} className="border-none shadow-md hover:shadow-lg transition-all bg-white overflow-hidden">
                 <CardHeader className="flex flex-row items-start justify-between p-4 pb-2">
@@ -218,7 +215,7 @@ export default function FleetPage() {
       
       {/* Contract Preview Modal */}
       <Dialog open={isContractOpen} onOpenChange={setIsContractOpen}>
-        <DialogContent className="sm:max-w-[600px] h-[85vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[650px] h-[90vh] flex flex-col p-0 overflow-hidden">
              <div className="bg-accent p-4 text-white flex justify-between items-center">
                 <div>
                     <DialogTitle className="text-lg font-black italic uppercase tracking-tighter">Mkataba wa Makabidhiano</DialogTitle>
@@ -233,41 +230,51 @@ export default function FleetPage() {
                     </Button>
                 </div>
             </div>
-            <ScrollArea className="flex-1 p-8 font-serif text-sm leading-relaxed bg-white">
-                <div className="max-w-2xl mx-auto space-y-6">
-                    <div className="text-center font-bold underline text-lg uppercase">MKATABA WA MAKABIDHIANO YA {selectedRider?.vehicleType === 'Bajaji' ? 'BAJAJI' : 'PIKIPIKI [BODABODA]'}</div>
+            <ScrollArea className="flex-1 p-8 font-serif text-[0.8rem] leading-relaxed bg-white">
+                <div className="max-w-2xl mx-auto space-y-6 text-justify">
+                    <div className="text-center font-black underline text-lg uppercase">MKATABA WA MAKABIDHIANO YA {selectedRider?.vehicleType === 'Bajaji' ? 'BAJAJI' : 'PIKIPIKI [BODABODA]'}</div>
                     
-                    <div className="space-y-1">
+                    <div className="grid grid-cols-1 gap-1 text-xs">
                         <p><strong>JINA LA MMILIKI:</strong> BODA EMPIRE / MOGO CONNECT</p>
                         <p><strong>JINA LA ANAEKABIDHIWA:</strong> {selectedRider?.name}</p>
                         <p><strong>NAMBA YA USAJILI:</strong> {selectedRider?.plateNumber}</p>
-                        <p><strong>AINA YA CHOMBO:</strong> {selectedRider?.vehicleType} • {selectedRider?.modelNumber}</p>
-                        <p><strong>CHASSIS NUMBER:</strong> {selectedRider?.chassisNumber || '…………………………'}</p>
-                        <p><strong>ENGINE NUMBER:</strong> {selectedRider?.engineNumber || '…………………………'}</p>
+                        <p><strong>AINA YA CHOMBO:</strong> {selectedRider?.vehicleType}</p>
+                        <p><strong>MODEL NUMBER:</strong> {selectedRider?.modelNumber}</p>
+                        <p><strong>CHASSIS NUMBER:</strong> {selectedRider?.chassisNumber}</p>
+                        <p><strong>ENGINE NUMBER:</strong> {selectedRider?.engineNumber}</p>
+                        <p><strong>ENGINE CAPACITY:</strong> {selectedRider?.engineCapacity}</p>
                     </div>
 
                     <div className="space-y-4">
-                        <p><strong>MAKAMIDHIANO:</strong> Mimi Boda Empire tarehe {selectedRider ? format(parseISO(selectedRider.contractStart), 'dd/MM/yyyy') : '……'} nimemkabidhi ndugu {selectedRider?.name} mali iliyotajwa hapo juu kwa hiari yangu mwenyewe nikiwa na akili zangu timamu, na tumekubaliana atulipe kiasi cha shilingi {selectedRider?.dailyFee.toLocaleString()} kwa siku kwa muda wa miezi {selectedRider?.contractTermMonths || 18}.</p>
+                        <p><strong>MMILIKI WA PIKIPIKI:</strong> Mimi Boda Empire tarehe {selectedRider ? format(parseISO(selectedRider.contractStart), 'dd/MM/yyyy') : '……'} nimemkabidhi ndugu {selectedRider?.name} Mali iliyotajwa hapo juu kwa hiari yangu mwenyewe nikiwa na akili zangu timamu bila kushauriwa na mtu yeyote, na tumekubaliana atulipe kiasi cha shilingi 10,000 kwa siku [utaratibu wa malipo ni Tsh 100,000 kila siku ya 10] kwa mda wa miezi {selectedRider?.contractTermMonths || 18}. Mkataba huu ni kuanzia tarehe {selectedRider ? format(parseISO(selectedRider.contractStart), 'dd/MM/yyyy') : '……'} hadi tarehe {selectedRider ? format(parseISO(selectedRider.contractEnd), 'dd/MM/yyyy') : '……'} Itakuwa mwisho wa mkataba huu na pikipiki itakuwa ni mali yake na atakabidhiwa kadi ya pikipiki.</p>
                         
+                        <p><strong>ANAEKABIDHIWA PIKIPIKI:</strong> Mimi {selectedRider?.name} nikiwa na akili zangu timamu na kwa hiari yangu mwenyewe bila kulazimishwa na mtu yeyote wala kushawishiwa nimekubali kupokea pikipiki tajwa hapo juu kutoka kwa ndugu Boda Empire leo tarehe {selectedRider ? format(parseISO(selectedRider.contractStart), 'dd/MM/yyyy') : '……'} hadi tarehe {selectedRider ? format(parseISO(selectedRider.contractEnd), 'dd/MM/yyyy') : '……'}. Na ninaambatanisha nakala ya kitambulisho changu cha mpiga kura/kitambulisho cha taifa/picha ya passport.</p>
+
                         <p><strong>MASHARTI YA MKATABA:</strong></p>
                         <ol className="list-decimal pl-5 space-y-2">
-                            <li>Ni lazima kuleta {selectedRider?.vehicleType?.toLowerCase() || 'chombo'} kila mwisho wa mwezi kwa mwenye mali ili aione kuhakikisha usalama.</li>
-                            <li>Ni lazima kuhakikisha {selectedRider?.vehicleType?.toLowerCase() || 'chombo'} inafanyiwa matengenezo (service) kila wakati.</li>
-                            <li>Ni marufuku kumwazima/kumpa mtu yoyote chombo hiki ndani ya kipindi cha mkataba.</li>
-                            <li>Ni lazima kurejesha kiasi cha shilingi {(selectedRider?.dailyFee || 10000) * 10} kila siku ya 10.</li>
+                            <li>Ni lazima kuleta chombo kila mwisho wa mwezi kwa mwenye mali ili aione kuhakikisha usalama wa chombo chake.</li>
+                            <li>Ni lazima kuhakikisha chombo inafanyiwa matengenezo (service) kila wakati ili iendelee kubaki kwenye ubora.</li>
+                            <li>Ni marufuku kumwazima/kumpa mtu yoyote chombo hiki ndani ya kipindi chote cha mkataba.</li>
+                            <li>Ni lazima kurejesha kiasi cha shilingi 100,000/= kila siku ya 10.</li>
+                            <li>Kuvunja/kukiuka sharti lolote la mkataba huu utakuwa umevunja mkataba mwenyewe.</li>
+                            <li>Chombo lazima irudishwe kila siku ya Jumapili kwa ukaguzi wa wiki na kupatiwa kibali cha kuendelea kutumika.</li>
+                            <li>Ni marufuku kutumia chombo hiki nje ya mipaka ya wilaya iliyoruhusiwa bila ruhusa ya maandishi kutoka kwa mmiliki.</li>
+                            <li>Dereva ana wajibu wa kuhakikisha anafuata sheria zote za barabarani na kulipa faini zozote zitakazotokana na ukiukwaji wa sheria.</li>
                         </ol>
 
-                        <p><strong>MDHAMINI:</strong> Mimi {selectedRider?.guarantorName || '…………………………'} nikiwa na akili zangu timamu nakubali kumdhamini {selectedRider?.name} na nakubali kuwajibika na kulipa fidia endapo atapoteza/ataaribu/atakimbia na {selectedRider?.vehicleType?.toLowerCase() || 'chombo'} hii.</p>
+                        <p><strong>KUVUNJA MKATABA (ANAEKABIDHIWA):</strong> Mimi {selectedRider?.name} endapo nitavunja makubaliano haya ikiwa ni pamoja na kushindwa kulipa kiasi cha shilingi 10,000 kwa siku kwa kupitiliza siku 3 (tatu) kwa sababu zisizo za msingi nitakuwa nimevunja mkataba wangu mwenyewe na nitakuwa tayari kuwalipa ela yao yote wanayonidai na kuwakabidhi chombo chao kikiwa katika hali nzuri.</p>
+                        
+                        <p><strong>MDHAMINI:</strong> Mimi {selectedRider?.guarantorName} nikiwa na akili zangu timamu bila kulazimishwa nakubali kumdhamini {selectedRider?.name} mbele ya mwenyekiti, mwenye mali na shahidi wake na nakubali kuwajibika na kulipa fidia endapo atapoteza/ataaribu/atakimbia na chombo hiki au atashindwa kulipa kiasi chochote atakachokuwa anadaiwa ndani ya siku 14 za tukio.</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-8 pt-8 text-xs border-t">
+                    <div className="grid grid-cols-2 gap-8 pt-8 text-[0.6rem] border-t border-black/10">
                         <div className="space-y-4">
-                            <p><strong>Mwenye Mali Sahihi:</strong> <br/><br/> …………………………………</p>
-                            <p><strong>Mdhamini Sahihi:</strong> <br/><br/> …………………………………</p>
+                            <p><strong>Mmiliki wa pikipiki</strong> <br/> Jina: BODA EMPIRE / MOGO <br/> Sahihi: …………………………………</p>
+                            <p><strong>Shahidi wa mmiliki</strong> <br/> Jina: ………………………………… <br/> Sahihi: …………………………………</p>
                         </div>
-                        <div className="space-y-4 text-right">
-                            <p><strong>Dereva Sahihi:</strong> <br/><br/> …………………………………</p>
-                            <p><strong>Mwenyekiti Sahihi:</strong> <br/><br/> …………………………………</p>
+                        <div className="space-y-4">
+                            <p><strong>Aliekabidhiwa pikipiki</strong> <br/> Jina: {selectedRider?.name} <br/> Sahihi: …………………………………</p>
+                            <p><strong>Mdhamini</strong> <br/> Jina: {selectedRider?.guarantorName} <br/> Sahihi: …………………………………</p>
                         </div>
                     </div>
                 </div>
@@ -276,10 +283,4 @@ export default function FleetPage() {
       </Dialog>
     </div>
   );
-}
-
-function addDays(date: Date, days: number): Date {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
 }
