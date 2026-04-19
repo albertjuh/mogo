@@ -1,228 +1,113 @@
-
 "use client";
 
 import { useUser } from "@/firebase/auth/use-user";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { initialRiders, initialPayments } from "@/lib/data";
-import type { Rider, Payment, Alert as AlertType } from "@/lib/types";
-import { AlertTriangle, CalendarClock, Ban, ChevronRight, BarChart3, Users, DollarSign, AlertCircle } from "lucide-react";
-import { differenceInDays, isBefore, parseISO, format, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
-import { useMemo, useState, useEffect } from "react";
+import { initialLoans } from "@/lib/data";
+import type { Loan } from "@/lib/types";
+import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Wallet, Calendar, ArrowUpRight, ShieldCheck } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { useMemo } from "react";
 import Link from "next/link";
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrency } from "@/lib/formatters";
-
-const StatCard = ({ title, value, subtext, icon, href, isLoading }: { title: string, value: string, subtext: string, icon: React.ReactNode, href?: string, isLoading?: boolean }) => {
-  const content = (
-    <Card className="hover:bg-muted/50 transition-colors">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon}
-      </CardHeader>
-      <CardContent>
-        {isLoading ? <Skeleton className="h-9 w-20 mt-1" /> : <div className="text-2xl font-bold">{value}</div>}
-        <p className="text-xs text-muted-foreground">{subtext}</p>
-      </CardContent>
-    </Card>
-  );
-
-  return href ? <Link href={href}>{content}</Link> : content;
-};
-
+import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
   const { user } = useUser();
-  const [allRiders] = useLocalStorage<Rider[]>("riders", initialRiders);
-  const [allPayments] = useLocalStorage<Payment[]>("payments", initialPayments);
-  const [clientNow, setClientNow] = useState<Date | null>(null);
-
-  useEffect(() => {
-    setClientNow(new Date());
-  }, []);
-
-  const { riders, payments } = useMemo(() => {
-    if (user?.role === 'rider') {
-      return {
-        riders: allRiders.filter(r => r.id === user.id),
-        payments: allPayments.filter(p => p.riderId === user.id),
-      };
-    }
-    return { riders: allRiders, payments: allPayments };
-  }, [allRiders, allPayments, user]);
-
-  const dashboardStats = useMemo(() => {
-    if (!clientNow || !riders || !payments) {
-        return {
-            monthEarnings: null, totalCollected: null,
-            totalOwed: null, expiringSoonCount: null, alerts: [], activeRidersCount: null,
-        };
-    }
-    const today = clientNow;
-    const todayStr = format(today, 'yyyy-MM-dd');
-    const activeRiders = riders.filter(r => r.active);
-    
-    const paidToday = new Set(payments.filter(p => format(parseISO(p.date), 'yyyy-MM-dd') === todayStr).map(p => p.riderId));
-    
-    const currentMonthInterval = { start: startOfMonth(today), end: endOfMonth(today) };
-    const monthEarnings = payments
-      .filter(p => isWithinInterval(parseISO(p.date), currentMonthInterval))
-      .reduce((sum, p) => sum + p.amount, 0);
-      
-    const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0);
-
-    const totalOwed = activeRiders.reduce((total, rider) => {
-        const daysElapsed = differenceInDays(today, parseISO(rider.contractStart));
-        const expected = daysElapsed > 0 ? daysElapsed * rider.dailyFee : 0;
-        const paid = allPayments.filter(p => p.riderId === rider.id).reduce((sum, p) => sum + p.amount, 0);
-        const owed = expected - paid;
-        return total + (owed > 0 ? owed : 0);
-    }, 0);
-    
-    const expiringSoonCount = activeRiders.filter(r => {
-        const daysUntilExpiry = differenceInDays(parseISO(r.contractEnd), today);
-        return daysUntilExpiry >= 0 && daysUntilExpiry <= 30;
-    }).length;
-
-    const generatedAlerts: AlertType[] = [];
-    activeRiders.forEach(rider => {
-      // Unpaid today alert
-      if (!paidToday.has(rider.id)) {
-        generatedAlerts.push({
-          id: `payment-${rider.id}`,
-          type: 'payment',
-          message: `${rider.name} has a pending payment.`,
-          date: new Date().toISOString(),
-          riderId: rider.id,
-        });
-      }
-
-      // Contract expiration alerts
-      const contractEndDate = parseISO(rider.contractEnd);
-      const daysUntilExpiry = differenceInDays(contractEndDate, today);
-      if (rider.active && daysUntilExpiry <= 30 && isBefore(today, contractEndDate)) {
-        generatedAlerts.push({
-          id: `contract-${rider.id}`,
-          type: 'contract',
-          message: `${rider.name}'s contract expires in ${daysUntilExpiry} days.`,
-          date: new Date().toISOString(),
-          riderId: rider.id,
-        });
-      }
-    });
-
-    return {
-      monthEarnings,
-      totalCollected,
-      totalOwed,
-      expiringSoonCount,
-      alerts: generatedAlerts.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()),
-      activeRidersCount: activeRiders.length,
-    };
-  }, [riders, payments, clientNow, allPayments]);
+  const [loans] = useLocalStorage<Loan[]>("loans", initialLoans);
   
-  const { monthEarnings, totalCollected, totalOwed, expiringSoonCount, alerts, activeRidersCount } = dashboardStats;
-  const isLoading = monthEarnings === null;
-  const isRider = user?.role === 'rider';
+  const activeLoan = useMemo(() => loans.find(l => l.loanStatus === "Active"), [loans]);
 
-  if (isRider) {
+  if (!activeLoan) {
     return (
-        <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
-                <StatCard isLoading={isLoading} title="My Earnings (Month)" value={formatCurrency(monthEarnings)} subtext="TZS this month" icon={<DollarSign className="h-4 w-4 text-muted-foreground" />} href="/payments" />
-                <StatCard isLoading={isLoading} title="My Payments (All Time)" value={formatCurrency(totalCollected)} subtext="TZS all time" icon={<BarChart3 className="h-4 w-4 text-muted-foreground" />} href="/payments" />
-            </div>
-            
-            <Card>
-                <CardHeader>
-                    <CardTitle>My Alerts</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {isLoading ? (
-                        <div className="space-y-2">
-                            <Skeleton className="h-12 w-full" />
-                            <Skeleton className="h-12 w-full" />
-                        </div>
-                    ) : alerts.length > 0 ? (
-                        <div className="space-y-2">
-                            {alerts.map(alert => (
-                            <Link href="/payments" key={alert.id}>
-                                <div className="p-3 rounded-lg flex items-center justify-between bg-muted hover:bg-muted/80">
-                                <div className="flex items-center gap-3">
-                                    {alert.type === 'payment' ? <Ban size={20} className="text-destructive" /> : <CalendarClock size={20} className="text-primary"/>}
-                                    <div>
-                                        <p className="font-medium text-sm">{alert.message}</p>
-                                    </div>
-                                </div>
-                                <ChevronRight size={16} />
-                                </div>
-                            </Link>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center text-muted-foreground py-10">
-                            <div className="text-4xl mx-auto mb-2">✅</div>
-                            <p className="font-semibold">All Clear!</p>
-                            <p className="text-sm">No alerts right now.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
-    )
+      <div className="flex flex-col items-center justify-center h-full text-center p-6">
+        <ShieldCheck size={64} className="text-muted-foreground mb-4" />
+        <h2 className="text-2xl font-bold">No Active Loans</h2>
+        <p className="text-muted-foreground">Apply for a new loan to see your dashboard.</p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatCard isLoading={isLoading} title="Revenue (Month)" value={formatCurrency(monthEarnings)} subtext="TZS this month" icon={<DollarSign className="h-4 w-4 text-muted-foreground" />} href="/reports"/>
-            <StatCard isLoading={isLoading} title="Active Riders" value={activeRidersCount?.toString() ?? ''} subtext="riders in the fleet" icon={<Users className="h-4 w-4 text-muted-foreground" />} href="/fleet"/>
-            <StatCard isLoading={isLoading} title="Owed by Riders" value={formatCurrency(totalOwed)} subtext="TZS outstanding" icon={<AlertCircle className="h-4 w-4 text-muted-foreground" />}/>
-            <StatCard isLoading={isLoading} title="Contracts Expiring" value={expiringSoonCount?.toString() ?? ''} subtext="in next 30 days" icon={<CalendarClock className="h-4 w-4 text-muted-foreground" />} href="/alerts"/>
+      <header className="space-y-1">
+        <h1 className="text-3xl font-black tracking-tight font-headline">Habari, {user?.email.split('@')[0]}!</h1>
+        <p className="text-muted-foreground">Your Mogo Loan Summary</p>
+      </header>
+
+      <Card className="bg-primary text-primary-foreground border-none shadow-xl overflow-hidden relative">
+        <div className="absolute top-0 right-0 p-4 opacity-10">
+            <Wallet size={120} />
         </div>
-      
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="text-primary"/>
-                    <span>High-Priority Alerts</span>
-                </CardTitle>
-                <CardDescription>Actionable insights to keep your fleet running smoothly.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {isLoading ? (
-                    <div className="space-y-2">
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                    </div>
-                ) : alerts.length > 0 ? (
-                <div className="space-y-2">
-                    {alerts.map(alert => (
-                    <Link href={alert.type === 'payment' ? '/collect' : '/fleet'} key={alert.id}>
-                        <div className="p-3 rounded-lg flex items-center justify-between bg-secondary hover:bg-secondary/80">
-                        <div className="flex items-center gap-3">
-                            {alert.type === 'payment' ? <Ban size={20} className="text-destructive" /> : <CalendarClock size={20} className="text-primary"/>}
-                            <div>
-                                <p className="font-medium text-sm">{alert.message}</p>
-                            </div>
-                        </div>
-                        <ChevronRight size={16} />
-                        </div>
-                    </Link>
-                    ))}
+        <CardHeader>
+          <CardTitle className="text-sm font-bold uppercase tracking-wider opacity-80">Outstanding Balance</CardTitle>
+          <div className="text-4xl font-black">TZS {activeLoan.outstandingBalance.toLocaleString()}</div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs font-bold uppercase tracking-tight">
+              <span>Loan Progress</span>
+              <span>{activeLoan.progressPercentage}%</span>
+            </div>
+            <Progress value={activeLoan.progressPercentage} className="bg-black/20 h-3" />
+          </div>
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <div className="bg-black/5 p-3 rounded-lg">
+                <p className="text-[0.65rem] uppercase font-bold opacity-70">Total Paid</p>
+                <p className="font-bold">TZS {activeLoan.totalAmountPaid.toLocaleString()}</p>
+            </div>
+            <div className="bg-black/5 p-3 rounded-lg">
+                <p className="text-[0.65rem] uppercase font-bold opacity-70">Goal</p>
+                <p className="font-bold">TZS {activeLoan.principalAmount.toLocaleString()}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Card className="border-none shadow-md bg-white">
+            <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
+                <Calendar className="text-primary h-6 w-6" />
+                <div>
+                    <p className="text-[0.65rem] uppercase font-bold text-muted-foreground leading-none mb-1">Next Payment</p>
+                    <p className="text-sm font-bold">{format(parseISO(activeLoan.nextPaymentDueDate), "dd MMM")}</p>
                 </div>
-                ) : (
-                <div className="text-center text-muted-foreground py-10">
-                    <div className="text-4xl mx-auto mb-2">✅</div>
-                    <p className="font-semibold">All Clear!</p>
-                    <p className="text-sm">No alerts right now.</p>
-                </div>
-                )}
             </CardContent>
         </Card>
+        <Card className="border-none shadow-md bg-white">
+            <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
+                <Wallet className="text-primary h-6 w-6" />
+                <div>
+                    <p className="text-[0.65rem] uppercase font-bold text-muted-foreground leading-none mb-1">Min Amount</p>
+                    <p className="text-sm font-bold">TZS {activeLoan.minimumPaymentAmount.toLocaleString()}</p>
+                </div>
+            </CardContent>
+        </Card>
+      </div>
 
+      <Button asChild className="w-full h-14 text-lg font-bold shadow-lg" size="lg">
+        <Link href="/lipa" className="flex items-center justify-center gap-2">
+            Lipa Sasa na M-Pesa <ArrowUpRight />
+        </Link>
+      </Button>
+
+      <div className="space-y-4">
+        <h3 className="font-bold text-lg">Quick Access</h3>
+        <div className="grid grid-cols-3 gap-3">
+             <Link href="/vault" className="flex flex-col items-center p-3 bg-secondary rounded-xl gap-2 hover:bg-primary/10 transition-colors">
+                <ShieldCheck className="text-primary" />
+                <span className="text-[0.65rem] font-bold uppercase">Vault</span>
+            </Link>
+            <Link href="/savings" className="flex flex-col items-center p-3 bg-secondary rounded-xl gap-2 hover:bg-primary/10 transition-colors">
+                <ArrowUpRight className="text-primary" />
+                <span className="text-[0.65rem] font-bold uppercase">Savings</span>
+            </Link>
+             <Link href="/contact" className="flex flex-col items-center p-3 bg-secondary rounded-xl gap-2 hover:bg-primary/10 transition-colors">
+                <Calendar className="text-primary" />
+                <span className="text-[0.65rem] font-bold uppercase">Support</span>
+            </Link>
+        </div>
+      </div>
     </div>
   );
 }
-
-    

@@ -3,48 +3,36 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useUser } from "@/firebase/auth/use-user";
+import { Home, Wallet, ShieldCheck, TrendingUp, Info } from "lucide-react";
 
-const adminNavItems = [
-  { href: "/", label: "Dashboard", icon: "🏠" },
-  { href: "/fleet", label: "Fleet", icon: "🏍️" },
-  { href: "/collect", label: "Collect", icon: "💰" },
-  { href: "/reports", label: "Reports", icon: "📊" },
-  { href: "/plan", label: "Plan", icon: "📈" },
-  { href: "/map", label: "Map", icon: "🗺️" },
-];
-
-const riderNavItems = [
-    { href: "/", label: "Dashboard", icon: "🏠" },
-    { href: "/payments", label: "Payments", icon: "💰" },
+const navItems = [
+  { href: "/", label: "Nyumbani", icon: Home },
+  { href: "/lipa", label: "Lipa", icon: Wallet },
+  { href: "/vault", label: "Nyaraka", icon: ShieldCheck },
+  { href: "/savings", label: "Faida", icon: TrendingUp },
+  { href: "/about", label: "Mogo", icon: Info },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { user } = useUser();
-
-  if (!user) {
-    return null;
-  }
-
-  const navItems = user.role === 'rider' ? riderNavItems : adminNavItems;
 
   return (
-    <nav className="md:hidden absolute bottom-0 z-10 w-full border-t border-t-white/10 bg-[#0d1117]">
+    <nav className="md:hidden absolute bottom-0 z-10 w-full border-t border-t-muted bg-white pb-safe">
       <div className="flex h-16 items-center justify-around">
         {navItems.map((item) => {
+          const Icon = item.icon;
           const isActive = (pathname === '/' && item.href === '/') || (item.href !== '/' && pathname.startsWith(item.href));
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 text-[#6b7280] transition-transform duration-200",
-                isActive && "text-[#f5c842]"
+                "flex flex-col items-center justify-center gap-1 text-muted-foreground transition-colors",
+                isActive && "text-primary"
               )}
             >
-              <div className={cn("text-2xl transition-transform", isActive && "-translate-y-0.5")}>{item.icon}</div>
-              <span className="text-[0.60rem] font-semibold uppercase tracking-wider">{item.label}</span>
+              <Icon size={24} className={cn(isActive && "fill-current/10")} />
+              <span className="text-[0.60rem] font-bold uppercase tracking-wider">{item.label}</span>
             </Link>
           );
         })}

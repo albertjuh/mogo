@@ -1,80 +1,71 @@
-import type { Rider, Bike, Payment } from "./types";
+import type { Loan, Transaction, Document, SavingInsight } from "./types";
 import { subDays, addDays, formatISO } from 'date-fns';
 
-// Use a fixed date to ensure consistency between server and client renders
-const today = new Date('2024-02-20T00:00:00.000Z');
+const today = new Date();
 
-export const initialBikes: Bike[] = [
-  { id: "bike-1", model: "Boxer 150", plateNumber: "T 001 BBD" },
-  { id: "bike-2", model: "Pulsar 200NS", plateNumber: "T 042 GFK" },
-  { id: "bike-3", model: "TVS Star", plateNumber: "T 119 HJL" },
+export const initialLoans: Loan[] = [
+  {
+    id: "loan-1",
+    clientId: "client-1",
+    loanType: "Boda Boda",
+    principalAmount: 2500000,
+    outstandingBalance: 1250000,
+    interestRate: 0.15,
+    loanTermMonths: 18,
+    startDate: formatISO(subDays(today, 270)),
+    endDate: formatISO(addDays(subDays(today, 270), 540)),
+    nextPaymentDueDate: formatISO(addDays(today, 3)),
+    minimumPaymentAmount: 15000,
+    totalAmountPaid: 1250000,
+    loanStatus: "Active",
+    progressPercentage: 50,
+  }
 ];
 
-export const initialRiders: Rider[] = [
+export const initialTransactions: Transaction[] = [
   {
-    id: "rider-1",
-    name: "Juma Hassan",
-    phone: "0712345678",
-    contractStart: formatISO(subDays(today, 90)),
-    contractEnd: formatISO(addDays(subDays(today, 90), 510)),
-    bikeId: "bike-1",
-    active: true,
-    dailyFee: 10000,
-    plateNumber: "T 001 BBD",
-    shahidiNumber: "SH-20230011",
-    createdAt: formatISO(subDays(today, 90)),
-    location: { lat: -6.7924, lng: 39.2083 },
+    id: "tx-1",
+    loanId: "loan-1",
+    amount: 15000,
+    transactionDate: formatISO(subDays(today, 7)),
+    transactionType: "Payment",
+    paymentMethod: "M-Pesa",
+    status: "Successful",
   },
   {
-    id: "rider-2",
-    name: "Amina Saleh",
-    phone: "0723456789",
-    contractStart: formatISO(subDays(today, 25)),
-    contractEnd: formatISO(addDays(subDays(today, 25), 510)),
-    bikeId: "bike-2",
-    active: true,
-    dailyFee: 10000,
-    plateNumber: "T 042 GFK",
-    shahidiNumber: "SH-20183422",
-    createdAt: formatISO(subDays(today, 25)),
-    location: { lat: -6.8000, lng: 39.2183 },
-  },
-  {
-    id: "rider-3",
-    name: "Baraka Mwangi",
-    phone: "0734567890",
-    contractStart: formatISO(subDays(today, 150)),
-    contractEnd: formatISO(addDays(subDays(today, 150), 510)),
-    bikeId: "bike-3",
-    active: true,
-    dailyFee: 10000,
-    plateNumber: "T 119 HJL",
-    shahidiNumber: "SH-20190998",
-    createdAt: formatISO(subDays(today, 150)),
-    location: { lat: -6.7850, lng: 39.2283 },
-  },
+    id: "tx-2",
+    loanId: "loan-1",
+    amount: 15000,
+    transactionDate: formatISO(subDays(today, 14)),
+    transactionType: "Payment",
+    paymentMethod: "M-Pesa",
+    status: "Successful",
+  }
 ];
 
-export const initialPayments: Payment[] = [
-  // Payments for Juma
-  ...Array.from({ length: 88 }, (_, i) => ({
-    id: `payment-juma-${i}`,
-    riderId: "rider-1",
-    amount: 10000,
-    date: formatISO(subDays(today, i + 2)), // Paid up to 2 days ago
-  })),
-  // Payments for Amina
-  ...Array.from({ length: 23 }, (_, i) => ({
-    id: `payment-amina-${i}`,
-    riderId: "rider-2",
-    amount: 10000,
-    date: formatISO(subDays(today, i + 2)), // Paid up to 2 days ago
-  })),
-    // Payments for Baraka
-  ...Array.from({ length: 149 }, (_, i) => ({
-    id: `payment-baraka-${i}`,
-    riderId: "rider-3",
-    amount: 10000,
-    date: formatISO(subDays(today, i + 1)), // Paid up to yesterday
-  })),
+export const initialDocuments: Document[] = [
+  {
+    id: "doc-1",
+    clientId: "client-1",
+    documentType: "Logbook",
+    documentName: "Vehicle Logbook - T 123 BCD",
+    fileUrl: "#",
+    uploadDate: formatISO(subDays(today, 270)),
+  },
+  {
+    id: "doc-2",
+    clientId: "client-1",
+    documentType: "Insurance",
+    documentName: "Insurance Sticker 2024",
+    fileUrl: "#",
+    uploadDate: formatISO(subDays(today, 30)),
+  }
 ];
+
+export const initialSavings: SavingInsight = {
+  id: "save-1",
+  mogoInterestRate: 0.15,
+  competitorInterestRate: 0.22,
+  monthlySavings: 12500,
+  totalSavingsToDate: 112500,
+};

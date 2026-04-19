@@ -1,46 +1,51 @@
 export interface UserProfile {
-  id: string; // Firebase Auth UID
-  email: string;
-  name: string;
-  role: 'rider' | 'supervisor' | 'admin';
-  createdAt: string;
-}
-
-export interface Rider {
-  id: string; // Corresponds to UserProfile ID
-  name: string;
-  phone: string;
-  contractEnd: string;
-  bikeId: string;
-  active: boolean;
-  contractStart: string;
-  dailyFee: number;
-  plateNumber: string;
-  shahidiNumber: string;
-  notes?: string;
-  createdAt: string;
-  location?: { lat: number; lng: number };
-}
-
-export interface Bike {
   id: string;
-  model: string;
-  plateNumber: string;
-  currentRiderId?: string;
+  email: string;
+  fullName: string;
+  role: 'client' | 'admin';
+  phoneNumber: string;
 }
 
-export interface Payment {
-  id:string;
-  riderId: string;
+export interface Loan {
+  id: string;
+  clientId: string;
+  loanType: 'Boda Boda' | 'Bajaji' | 'Car';
+  principalAmount: number;
+  outstandingBalance: number;
+  interestRate: number;
+  loanTermMonths: number;
+  startDate: string;
+  endDate: string;
+  nextPaymentDueDate: string;
+  minimumPaymentAmount: number;
+  totalAmountPaid: number;
+  loanStatus: 'Active' | 'Completed' | 'Defaulted' | 'In Arrears';
+  progressPercentage: number;
+}
+
+export interface Transaction {
+  id: string;
+  loanId: string;
   amount: number;
-  date: string;
-  createdAt: string;
+  transactionDate: string;
+  transactionType: 'Payment' | 'Disbursement' | 'Penalty';
+  paymentMethod: 'M-Pesa' | 'Airtel Money' | 'Tigo Pesa';
+  status: 'Successful' | 'Pending' | 'Failed';
 }
 
-export interface Alert {
-    id: string;
-    type: 'payment' | 'contract';
-    message: string;
-    date: string;
-    riderId: string;
+export interface Document {
+  id: string;
+  clientId: string;
+  documentType: 'Logbook' | 'Insurance' | 'Agreement' | 'ID';
+  documentName: string;
+  fileUrl: string;
+  uploadDate: string;
+}
+
+export interface SavingInsight {
+  id: string;
+  mogoInterestRate: number;
+  competitorInterestRate: number;
+  monthlySavings: number;
+  totalSavingsToDate: number;
 }

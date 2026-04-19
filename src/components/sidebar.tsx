@@ -2,25 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, Home, Wallet, ShieldCheck, TrendingUp, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/firebase/auth/use-user";
 import { Button } from "@/components/ui/button";
 
-const adminNavItems = [
-  { href: "/", label: "Dashboard", icon: "🏠" },
-  { href: "/fleet", label: "Fleet", icon: "🏍️" },
-  { href: "/collect", label: "Collect", icon: "💰" },
-  { href: "/reports", label: "Reports", icon: "📊" },
-  { href: "/plan", label: "Plan", icon: "📈" },
-  { href: "/map", label: "Map", icon: "🗺️" },
+const navItems = [
+  { href: "/", label: "Dashboard", icon: Home },
+  { href: "/lipa", label: "Lipa Sasa", icon: Wallet },
+  { href: "/vault", label: "Document Vault", icon: ShieldCheck },
+  { href: "/savings", label: "Savings Tracker", icon: TrendingUp },
+  { href: "/about", label: "About Mogo", icon: Info },
 ];
-
-const riderNavItems = [
-    { href: "/", label: "Dashboard", icon: "🏠" },
-    { href: "/payments", label: "Payments", icon: "💰" },
-];
-
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -30,20 +23,19 @@ export function Sidebar() {
     return null;
   }
 
-  const navItems = user.role === 'rider' ? riderNavItems : adminNavItems;
-
   return (
     <aside className="hidden md:flex flex-col w-64 bg-background border-r">
         <div className="h-16 flex items-center px-6 border-b">
             <Link href="/" className="flex items-center gap-2 font-semibold">
                  <div className="text-lg" style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 900}}>
-                    <span>🏍 Boda </span>
-                    <span className="text-primary">Empire</span>
+                    <span>🏍 Mogo </span>
+                    <span className="text-primary">Connect</span>
                 </div>
             </Link>
         </div>
         <nav className="flex-1 p-4 space-y-1">
             {navItems.map((item) => {
+            const Icon = item.icon;
             const isActive = (pathname === '/' && item.href === '/') || (item.href !== '/' && pathname.startsWith(item.href));
             return (
                 <Link
@@ -54,7 +46,7 @@ export function Sidebar() {
                     isActive && "bg-muted text-primary"
                 )}
                 >
-                <div className="text-xl">{item.icon}</div>
+                <Icon className="h-5 w-5" />
                 <span>{item.label}</span>
                 </Link>
             );
