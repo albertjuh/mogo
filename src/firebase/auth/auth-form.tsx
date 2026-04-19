@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User, Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
+import { Loader2, User, Eye, EyeOff, Lock, Mail, ShieldCheck, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { useUser } from "./use-user";
@@ -51,11 +51,15 @@ export function AuthForm({ mode }: AuthFormProps) {
   async function handleGoogleLogin() {
     setIsGoogleLoading(true);
     try {
-      const success = await loginWithGoogle();
-      if (success) {
-        toast({ title: "Logged in with Google!" });
+      const result = await loginWithGoogle();
+      if (result.success) {
+        toast({ title: "Logged in successfully!" });
       } else {
-        toast({ variant: "destructive", title: "Google Login Failed" });
+        toast({ 
+          variant: "destructive", 
+          title: "Google Login Failed",
+          description: result.error
+        });
       }
     } finally {
       setIsGoogleLoading(false);

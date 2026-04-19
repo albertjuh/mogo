@@ -29,7 +29,7 @@ interface AuthContextType {
   firebaseUser: User | null;
   logout: () => Promise<void>;
   login: (email: string, password: string) => Promise<boolean>;
-  loginWithGoogle: () => Promise<boolean>;
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   signup: (email: string, password: string, name: string, role: AppUser['role']) => Promise<boolean>;
   reloadUser: () => Promise<void>;
   loading: boolean;
@@ -62,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const isSystemAdminEmail = fbUser.email?.toLowerCase() === 'berto.admin@bodaempire.com';
         
         try {
+          // Attempt to find the user in any of the role collections
           const [adminDoc, supervisorDoc, recruiterDoc, riderDoc] = await Promise.all([
             getDoc(doc(db, "admins", fbUser.uid)).catch(() => null),
             getDoc(doc(db, "supervisors", fbUser.uid)).catch(() => null),
@@ -83,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               name = riderDoc.data().name || name;
           }
 
+          // Force admin role if it's the specific admin email
           if (isSystemAdminEmail) role = 'admin';
 
         } catch (e) {
@@ -110,11 +112,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const provider = new GoogleAuthProvider();
       const res = await signInWithPopup(auth, provider);
       
-      const riderDoc = await getDoc(doc(db, "riders", res.user.uid));
-      const adminDoc = await getDoc(doc(db, "admins", res.user.uid));
+      const isSystemAdminEmail = res.user.email?.toLowerCase() === 'berto.admin@bodaempire.com';
       
-      if (!riderDoc.exists() && !adminDoc.exists()) {
-          const isSystemAdminEmail = res.user.email?.toLowerCase() === 'berto.admin@bodaempire.com';
+      // Check if user already exists in the registry
+      const [riderDoc, adminDoc] = await Promise.all([
+        getDoc(doc(db, "riders", res.user.uid)).catch(() => null),
+        getDoc(doc(db, "admins", res.user.uid)).catch(() => null)
+      ]);
+      
+      if (!riderDoc?.exists() && !adminDoc?.exists()) {
           const collectionName = isSystemAdminEmail ? "admins" : "riders";
           
           await setDoc(doc(db, collectionName, res.user.uid), {
@@ -124,10 +130,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             createdAt: new Date().toISOString()
           }, { merge: true });
       }
-      return true;
-    } catch (e) {
-      console.error("Google login failed:", e);
-      return false;
+      return { success: true };
+    } catch (e: any) {
+      console.error("Google login error:", e);
+      let errorMessage = "An unknown error occurred during Google sign-in.";
+      
+      if (e.code === 'auth/operation-not-allowed') {
+        errorMessage = "Google Sign-In is not enabled in your Firebase Console. Please enable it in Authentication > Sign-in method.";
+      } else if (e.code === 'auth/popup-closed-by-user') {
+        errorMessage = "Sign-in popup was closed before completion.";
+      } else if (e.code === 'auth/cancelled-popup-request') {
+        errorMessage = "Sign-in request was cancelled.";
+      }
+      
+      return { success: false, error: errorMessage };
     }
   };
 

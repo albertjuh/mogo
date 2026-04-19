@@ -7,6 +7,7 @@
       "type": "object",
       "properties": {
         "name": { "type": "string" },
+        "email": { "type": "string" },
         "phone": { "type": "string" },
         "plateNumber": { "type": "string" },
         "vehicleType": { "enum": ["Boda Boda", "Bajaji"] },
@@ -18,7 +19,7 @@
         "guarantorName": { "type": "string" },
         "guarantorPhone": { "type": "string" }
       },
-      "required": ["name", "phone", "plateNumber", "active"]
+      "required": ["name", "email", "phone", "plateNumber", "active"]
     },
     "Payment": {
       "title": "Payment",
@@ -38,7 +39,8 @@
       "description": "Internal staff with elevated privileges.",
       "type": "object",
       "properties": {
-        "email": { "type": "string" }
+        "email": { "type": "string" },
+        "name": { "type": "string" }
       }
     },
     "Supervisor": {
@@ -46,7 +48,8 @@
       "description": "Operational staff managing daily collections.",
       "type": "object",
       "properties": {
-        "email": { "type": "string" }
+        "email": { "type": "string" },
+        "name": { "type": "string" }
       }
     },
     "Recruiter": {
@@ -54,12 +57,13 @@
       "description": "Staff responsible for onboarding new riders.",
       "type": "object",
       "properties": {
-        "email": { "type": "string" }
+        "email": { "type": "string" },
+        "name": { "type": "string" }
       }
     }
   },
   "auth": {
-    "providers": ["password"]
+    "providers": ["password", "google"]
   },
   "firestore": {
     "/riders/{riderId}": {
