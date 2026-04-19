@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, User, Shield, Bike } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -30,20 +30,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Rider, Bike } from "@/lib/types";
-import { parseISO, addDays } from "date-fns";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Rider, Bike as BikeType } from "@/lib/types";
+import { parseISO, addDays, addMonths } from "date-fns";
 import { Textarea } from "./ui/textarea";
 
 const riderFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   phone: z.string().regex(/^(?:\+255|0)\d{9}$/, "Please enter a valid Tanzanian phone number."),
   plateNumber: z.string().min(3, "Plate number is required."),
-  shahidiNumber: z.string().min(3, "Shahidi number is required."),
+  chassisNumber: z.string().min(5, "Chassis number required for legal contract."),
+  engineNumber: z.string().min(5, "Engine number required for legal contract."),
+  shahidiNumber: z.string().min(3, "Shahidi/ID number is required."),
   dailyFee: z.coerce.number().min(1000, "Fee seems too low."),
-  paymentFrequency: z.enum(['Daily', 'Weekly']),
+  paymentFrequency: z.enum(['Daily', 'Weekly', '10-Day']),
   contractStart: z.date({
     required_error: "A contract start date is required.",
   }),
+  contractTermMonths: z.coerce.number().min(1, "Term required."),
+  guarantorName: z.string().min(2, "Guarantor name is required."),
+  guarantorPhone: z.string().regex(/^(?:\+255|0)\d{9}$/, "Valid phone required."),
+  witnessName: z.string().optional(),
+  witnessPhone: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -51,7 +59,7 @@ export type RiderFormValues = Omit<Rider, 'id' | 'bikeId' | 'contractEnd' | 'act
 
 interface RiderFormProps {
   rider?: Rider | null;
-  bikes: Bike[];
+  bikes: BikeType[];
   onSubmit: (data: any) => void;
   onCancel: () => void;
   className?: string;
@@ -64,24 +72,37 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
       ? { 
           ...rider, 
           contractStart: parseISO(rider.contractStart),
-          paymentFrequency: rider.paymentFrequency || 'Daily'
+          paymentFrequency: rider.paymentFrequency || 'Daily',
+          contractTermMonths: rider.contractTermMonths || 18,
+          chassisNumber: rider.chassisNumber || "",
+          engineNumber: rider.engineNumber || "",
+          guarantorName: rider.guarantorName || "",
+          guarantorPhone: rider.guarantorPhone || "",
+          witnessName: rider.witnessName || "",
+          witnessPhone: rider.witnessPhone || "",
         }
       : {
           name: "",
           phone: "",
           plateNumber: "",
+          chassisNumber: "",
+          engineNumber: "",
           shahidiNumber: "",
-          dailyFee: 15000,
+          dailyFee: 10000,
           paymentFrequency: 'Daily',
           contractStart: new Date(),
+          contractTermMonths: 18,
+          guarantorName: "",
+          guarantorPhone: "",
+          witnessName: "",
+          witnessPhone: "",
           notes: "",
         },
   });
   
   function handleFormSubmit(values: z.infer<typeof riderFormSchema>) {
     const bike = bikes.find(b => b.plateNumber.toLowerCase() === values.plateNumber.toLowerCase()) ?? bikes[0];
-    // Standard Mogo contract is typically 18 months (approx 540 days)
-    const contractEnd = addDays(values.contractStart, 540);
+    const contractEnd = addMonths(values.contractStart, values.contractTermMonths);
     
     const submissionData = {
         ...values,
@@ -93,157 +114,215 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleFormSubmit)} className={cn("space-y-4", className)}>
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Full Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Juma Hassan" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Phone Number</FormLabel>
-              <FormControl>
-                <Input placeholder="+255 712 345 678" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className={cn("space-y-6", className)}>
+        <Tabs defaultValue="personal" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-secondary/50">
+            <TabsTrigger value="personal"><User size={14} className="mr-2" /> Basic</TabsTrigger>
+            <TabsTrigger value="vehicle"><Bike size={14} className="mr-2" /> Vehicle</TabsTrigger>
+            <TabsTrigger value="legal"><Shield size={14} className="mr-2" /> Legal</TabsTrigger>
+          </TabsList>
+
+          {/* PERSONAL INFO TABS */}
+          <TabsContent value="personal" className="space-y-4 pt-4">
             <FormField
-            control={form.control}
-            name="plateNumber"
-            render={({ field }) => (
+              control={form.control}
+              name="name"
+              render={({ field }) => (
                 <FormItem>
-                <FormLabel>Plate Number</FormLabel>
-                <FormControl>
-                    <Input placeholder="T 123 BCD" {...field} className="uppercase"/>
-                </FormControl>
-                <FormMessage />
+                  <FormLabel>Full Name (Jina la Mpangaji)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Juma Hassan" {...field} />
+                  </FormControl>
+                  <FormMessage />
                 </FormItem>
-            )}
+              )}
             />
             <FormField
-            control={form.control}
-            name="shahidiNumber"
-            render={({ field }) => (
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
                 <FormItem>
-                <FormLabel>Shahidi No.</FormLabel>
-                <FormControl>
-                    <Input placeholder="ID Number" {...field} />
-                </FormControl>
-                <FormMessage />
+                  <FormLabel>Phone (Namba ya Simu)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="+255 712 345 678" {...field} />
+                  </FormControl>
+                  <FormMessage />
                 </FormItem>
-            )}
+              )}
             />
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
             <FormField
-            control={form.control}
-            name="paymentFrequency"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Payment Frequency</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+              control={form.control}
+              name="shahidiNumber"
+              render={({ field }) => (
+                  <FormItem>
+                  <FormLabel>ID / Shahidi Number</FormLabel>
+                  <FormControl>
+                      <Input placeholder="SH-1234" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                  </FormItem>
+              )}
+            />
+          </TabsContent>
+
+          {/* VEHICLE INFO TAB */}
+          <TabsContent value="vehicle" className="space-y-4 pt-4">
+            <FormField
+              control={form.control}
+              name="plateNumber"
+              render={({ field }) => (
+                  <FormItem>
+                  <FormLabel>Plate Number (Usajili)</FormLabel>
+                  <FormControl>
+                      <Input placeholder="T 123 BCD" {...field} className="uppercase"/>
+                  </FormControl>
+                  <FormMessage />
+                  </FormItem>
+              )}
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="chassisNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Chassis No.</FormLabel>
                     <FormControl>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Frequency" />
-                    </SelectTrigger>
+                      <Input placeholder="MC..." {...field} />
                     </FormControl>
-                    <SelectContent>
-                    <SelectItem value="Daily">Daily</SelectItem>
-                    <SelectItem value="Weekly">Weekly</SelectItem>
-                    </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-            <FormField
-            control={form.control}
-            name="dailyFee"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Fee (TZS)</FormLabel>
-                <FormControl>
-                    <Input type="number" {...field} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-        </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="engineNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Engine No.</FormLabel>
+                    <FormControl>
+                      <Input placeholder="ENG..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="dailyFee"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Daily Fee (TZS)</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="paymentFrequency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Frequency</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Frequency" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Daily">Daily</SelectItem>
+                        <SelectItem value="Weekly">Weekly</SelectItem>
+                        <SelectItem value="10-Day">Every 10 Days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </TabsContent>
 
-        <FormField
-        control={form.control}
-        name="contractStart"
-        render={({ field }) => (
-            <FormItem className="flex flex-col">
-            <FormLabel>Contract Start</FormLabel>
-            <Popover>
-                <PopoverTrigger asChild>
-                <FormControl>
-                    <Button
-                    variant={"outline"}
-                    className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                    )}
-                    >
-                    {field.value ? (
-                        format(field.value, "PPP")
-                    ) : (
-                        <span>Pick a date</span>
-                    )}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) =>
-                        date > new Date() || date < new Date("1900-01-01")
-                    }
-                    initialFocus
-                />
-                </PopoverContent>
-            </Popover>
-            <FormMessage />
-            </FormItem>
-        )}
-        />
+          {/* LEGAL & GUARANTOR TAB */}
+          <TabsContent value="legal" className="space-y-4 pt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="contractStart"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Start Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                            {field.value ? format(field.value, "dd MMM yy") : "Pick"}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="contractTermMonths"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Term (Months)</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="border-t pt-4 space-y-4">
+              <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Guarantor (Mdhamini)</h4>
+              <FormField
+                control={form.control}
+                name="guarantorName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Mdhamini Name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="guarantorPhone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Mdhamini Phone" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
 
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notes</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Any extra info..." className="resize-none" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="flex justify-end gap-2 pt-4">
+        <div className="flex justify-end gap-2 pt-4 border-t">
             <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-            <Button type="submit" className="bg-[#0d1117] text-primary hover:bg-[#0d1117]/90">{rider ? "Save Changes" : "Save Rider"}</Button>
+            <Button type="submit" className="bg-[#0d1117] text-primary hover:bg-[#0d1117]/90">{rider ? "Update Contract" : "Onboard Rider"}</Button>
         </div>
       </form>
     </Form>

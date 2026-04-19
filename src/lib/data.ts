@@ -1,5 +1,5 @@
 
-import type { Loan, Transaction, Document, SavingInsight, Rider, Payment, Bike } from "./types";
+import type { Loan, Rider, Payment, Bike, SavingInsight, Document } from "./types";
 import { subDays, addDays, formatISO } from 'date-fns';
 
 const today = new Date();
@@ -10,6 +10,8 @@ export const initialRiders: Rider[] = [
     name: "Juma Hassan", 
     phone: "0712345678", 
     plateNumber: "T 123 BCD", 
+    chassisNumber: "MC-123456789-Z",
+    engineNumber: "ENG-998877-X",
     shahidiNumber: "SH-9988", 
     dailyFee: 10000, 
     paymentFrequency: 'Daily', 
@@ -18,13 +20,19 @@ export const initialRiders: Rider[] = [
     active: true, 
     bikeId: "bike-1", 
     createdAt: formatISO(subDays(today, 5)),
-    location: { lat: -6.7924, lng: 39.2083 }
+    location: { lat: -6.7924, lng: 39.2083 },
+    guarantorName: "Hassan Omari",
+    guarantorPhone: "0711000001",
+    witnessName: "Bakari Ally",
+    witnessPhone: "0711000002"
   },
   { 
     id: "rider-2", 
     name: "Ally Ramadhan", 
     phone: "0788112233", 
     plateNumber: "T 445 DEF", 
+    chassisNumber: "MC-445566778-Y",
+    engineNumber: "ENG-112233-W",
     shahidiNumber: "SH-1122", 
     dailyFee: 10000, 
     paymentFrequency: 'Daily', 
@@ -33,13 +41,17 @@ export const initialRiders: Rider[] = [
     active: true, 
     bikeId: "bike-2", 
     createdAt: formatISO(subDays(today, 10)),
-    location: { lat: -6.8234, lng: 39.2694 }
+    location: { lat: -6.8234, lng: 39.2694 },
+    guarantorName: "Ramadhan Juma",
+    guarantorPhone: "0788000001"
   },
   { 
     id: "rider-3", 
     name: "Sofia Said", 
     phone: "0655443322", 
     plateNumber: "T 789 GHI", 
+    chassisNumber: "MC-789012345-V",
+    engineNumber: "ENG-334455-S",
     shahidiNumber: "SH-4455", 
     dailyFee: 10000, 
     paymentFrequency: 'Daily', 
@@ -48,13 +60,17 @@ export const initialRiders: Rider[] = [
     active: true, 
     bikeId: "bike-3", 
     createdAt: formatISO(subDays(today, 3)),
-    location: { lat: -6.7724, lng: 39.2383 }
+    location: { lat: -6.7724, lng: 39.2383 },
+    guarantorName: "Said Ally",
+    guarantorPhone: "0655000001"
   },
   { 
     id: "rider-4", 
     name: "Baraka Mwangi", 
     phone: "0711998877", 
     plateNumber: "T 119 HJL", 
+    chassisNumber: "MC-119228833-U",
+    engineNumber: "ENG-776655-T",
     shahidiNumber: "SH-7766", 
     dailyFee: 10000, 
     paymentFrequency: 'Daily', 
@@ -63,13 +79,17 @@ export const initialRiders: Rider[] = [
     active: true, 
     bikeId: "bike-4", 
     createdAt: formatISO(subDays(today, 7)),
-    location: { lat: -6.8024, lng: 39.2183 }
+    location: { lat: -6.8024, lng: 39.2183 },
+    guarantorName: "Mwangi Karanja",
+    guarantorPhone: "0711000004"
   },
   { 
     id: "rider-5", 
     name: "Amina Saleh", 
     phone: "0622334455", 
     plateNumber: "T 042 GFK", 
+    chassisNumber: "MC-042339944-R",
+    engineNumber: "ENG-990011-Q",
     shahidiNumber: "SH-3344", 
     dailyFee: 10000, 
     paymentFrequency: 'Daily', 
@@ -78,7 +98,9 @@ export const initialRiders: Rider[] = [
     active: true, 
     bikeId: "bike-5", 
     createdAt: formatISO(subDays(today, 2)),
-    location: { lat: -6.8124, lng: 39.2483 }
+    location: { lat: -6.8124, lng: 39.2483 },
+    guarantorName: "Saleh Juma",
+    guarantorPhone: "0622000001"
   }
 ];
 

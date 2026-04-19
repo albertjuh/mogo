@@ -12,11 +12,18 @@ export interface Rider {
   name: string;
   phone: string;
   plateNumber: string;
-  shahidiNumber: string;
+  chassisNumber?: string;
+  engineNumber?: string;
+  shahidiNumber: string; // This is the ID/Shahidi Number
   dailyFee: number;
-  paymentFrequency: 'Daily' | 'Weekly';
+  paymentFrequency: 'Daily' | 'Weekly' | '10-Day';
   contractStart: string;
+  contractTermMonths?: number;
   contractEnd: string;
+  guarantorName?: string;
+  guarantorPhone?: string;
+  witnessName?: string;
+  witnessPhone?: string;
   active: boolean;
   bikeId: string;
   createdAt: string;

@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, MoreVertical, Edit, Trash2 } from "lucide-react";
-import { format, formatDistanceToNow, parseISO } from "date-fns";
+import { Plus, MoreVertical, Edit, Trash2, FileText, Download, Printer } from "lucide-react";
+import { format, parseISO } from "date-fns";
 import { formatISO as dateToISO } from "date-fns/formatISO";
 
 import type { Rider, Bike } from "@/lib/types";
@@ -38,6 +39,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { RiderForm, type RiderFormValues } from "@/components/rider-form";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,6 +48,7 @@ export default function FleetPage() {
   const [riders, setRiders] = useLocalStorage<Rider[]>("riders", initialRiders);
   const [bikes] = useLocalStorage<Bike[]>("bikes", initialBikes);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isContractOpen, setIsContractOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -63,6 +66,11 @@ export default function FleetPage() {
   const handleEdit = (rider: Rider) => {
     setSelectedRider(rider);
     setIsFormOpen(true);
+  };
+
+  const handleViewContract = (rider: Rider) => {
+    setSelectedRider(rider);
+    setIsContractOpen(true);
   };
 
   const handleDelete = (rider: Rider) => {
@@ -84,7 +92,7 @@ export default function FleetPage() {
 
   const handleFormSubmit = (data: RiderFormValues) => {
     if (selectedRider) {
-      const updatedRider = { ...selectedRider, ...data, contractEnd: dateToISO(data.contractEnd) };
+      const updatedRider = { ...selectedRider, ...data, contractEnd: dateToISO(data.contractStart) }; // Simplified for now
       setRiders(riders.map(r => r.id === selectedRider.id ? updatedRider : r));
       toast({ title: "Rider Updated", description: `${data.name}'s details have been saved.` });
     } else {
@@ -92,7 +100,7 @@ export default function FleetPage() {
         id: `rider-${Date.now()}`,
         ...data,
         active: true,
-        contractEnd: dateToISO(data.contractEnd),
+        contractEnd: dateToISO(addDays(data.contractStart, 540)), // Default 18 months
         createdAt: new Date().toISOString(),
       };
       setRiders([...riders, newRider]);
@@ -111,8 +119,8 @@ export default function FleetPage() {
     <div className="space-y-6">
       <header className="flex items-center gap-4">
         <div>
-            <h1 className="text-3xl font-bold font-headline">My Fleet</h1>
-            <p className="text-muted-foreground">Your riders and their bodas.</p>
+            <h1 className="text-3xl font-black font-headline italic uppercase tracking-tighter">Boda Fleet</h1>
+            <p className="text-muted-foreground font-medium">Manage riders and hire-purchase contracts.</p>
         </div>
       </header>
 
@@ -132,13 +140,17 @@ export default function FleetPage() {
         <div className="space-y-4">
           {riders.map((rider) => {
             const bike = getBikeInfo(rider.bikeId);
-            const contractEndDate = parseISO(rider.contractEnd);
             return (
-              <Card key={rider.id}>
-                <CardHeader className="flex flex-row items-start justify-between p-4">
-                  <div>
-                    <CardTitle className="font-headline">{rider.name}</CardTitle>
-                    <CardDescription>{rider.phone}</CardDescription>
+              <Card key={rider.id} className="border-none shadow-md hover:shadow-lg transition-all bg-white overflow-hidden">
+                <CardHeader className="flex flex-row items-start justify-between p-4 pb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-accent text-white flex items-center justify-center font-black">
+                        {rider.name.charAt(0)}
+                    </div>
+                    <div>
+                        <CardTitle className="text-lg font-black uppercase italic tracking-tight">{rider.name}</CardTitle>
+                        <CardDescription className="text-xs font-bold tracking-widest">{rider.phone}</CardDescription>
+                    </div>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -148,7 +160,10 @@ export default function FleetPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleEdit(rider)}>
-                        <Edit className="mr-2 h-4 w-4" /> Edit
+                        <Edit className="mr-2 h-4 w-4" /> Edit Profile
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleViewContract(rider)}>
+                        <FileText className="mr-2 h-4 w-4 text-primary" /> View Contract
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleDelete(rider)} className="text-destructive focus:text-destructive">
                         <Trash2 className="mr-2 h-4 w-4" /> Delete
@@ -156,9 +171,24 @@ export default function FleetPage() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </CardHeader>
-                <CardContent className="space-y-2 text-sm px-4 pb-4">
-                  <p><strong>Boda:</strong> {bike?.model || "N/A"} ({bike?.plateNumber || "N/A"})</p>
-                  <div><strong>Contract Ends:</strong> {format(contractEndDate, "PPP")} {isClient ? <span>({formatDistanceToNow(contractEndDate, { addSuffix: true })})</span> : <Skeleton className="inline-block h-4 w-24" />}</div>
+                <CardContent className="px-4 pb-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-secondary/30 p-2 rounded-lg">
+                        <p className="text-[0.6rem] uppercase font-black text-muted-foreground">Vehicle</p>
+                        <p className="text-xs font-bold truncate">{bike?.plateNumber} • {bike?.model}</p>
+                    </div>
+                    <div className="bg-secondary/30 p-2 rounded-lg">
+                        <p className="text-[0.6rem] uppercase font-black text-muted-foreground">Daily Fee</p>
+                        <p className="text-xs font-bold">TZS {rider.dailyFee.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-[0.6rem] font-bold uppercase tracking-widest text-muted-foreground pt-1 border-t border-muted/50">
+                    <span>Guarantor: {rider.guarantorName || 'N/A'}</span>
+                    <Button variant="link" size="sm" className="h-auto p-0 text-[0.6rem] text-primary" onClick={() => handleViewContract(rider)}>
+                        View Mkataba <FileText size={10} className="ml-1" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             );
@@ -168,22 +198,86 @@ export default function FleetPage() {
 
       {/* FAB and Dialog */}
       <Dialog open={isFormOpen} onOpenChange={open => { if (!open) closeForm(); else setIsFormOpen(open);}}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{selectedRider ? "Edit Rider" : "Add a New Rider"}</DialogTitle>
-          </DialogHeader>
-          <RiderForm
-            rider={selectedRider}
-            bikes={bikes}
-            onSubmit={handleFormSubmit}
-            onCancel={closeForm}
-          />
+        <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden">
+          <div className="bg-accent p-6 text-white">
+            <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">
+                {selectedRider ? "Edit Rider" : "New Onboarding"}
+            </DialogTitle>
+            <p className="text-white/60 text-xs font-bold uppercase tracking-widest mt-1">Recruitment Data Collection</p>
+          </div>
+          <div className="p-6">
+            <RiderForm
+                rider={selectedRider}
+                bikes={bikes}
+                onSubmit={handleFormSubmit}
+                onCancel={closeForm}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Contract Preview Modal */}
+      <Dialog open={isContractOpen} onOpenChange={setIsContractOpen}>
+        <DialogContent className="sm:max-w-[600px] h-[85vh] flex flex-col p-0 overflow-hidden">
+             <div className="bg-accent p-4 text-white flex justify-between items-center">
+                <div>
+                    <DialogTitle className="text-lg font-black italic uppercase tracking-tighter">Mkataba wa Makabidhiano</DialogTitle>
+                    <p className="text-[0.6rem] font-bold text-white/50 uppercase tracking-widest">Legal Document Preview • {selectedRider?.name}</p>
+                </div>
+                <div className="flex gap-2">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 bg-white/10 hover:bg-white/20">
+                        <Printer className="h-4 w-4" />
+                    </Button>
+                     <Button variant="ghost" size="icon" className="h-8 w-8 bg-white/10 hover:bg-white/20">
+                        <Download className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+            <ScrollArea className="flex-1 p-8 font-serif text-sm leading-relaxed bg-white">
+                <div className="max-w-2xl mx-auto space-y-6">
+                    <div className="text-center font-bold underline text-lg">MKATABA WA MAKABIDHIANO YA PIKIPIKI [BODABODA]</div>
+                    
+                    <div className="space-y-1">
+                        <p><strong>JINA LA MMILIKI:</strong> BODA EMPIRE / MOGO CONNECT</p>
+                        <p><strong>JINA LA ANAEKABIDHIWA:</strong> {selectedRider?.name}</p>
+                        <p><strong>NAMBA YA USAJILI:</strong> {selectedRider?.plateNumber}</p>
+                        <p><strong>AINA YA PIKIPIKI:</strong> {getBikeInfo(selectedRider?.bikeId || '')?.model}</p>
+                        <p><strong>CHASSIS NUMBER:</strong> {selectedRider?.chassisNumber || '…………………………'}</p>
+                        <p><strong>ENGINE NUMBER:</strong> {selectedRider?.engineNumber || '…………………………'}</p>
+                    </div>
+
+                    <div className="space-y-4">
+                        <p><strong>MMILIKI WA PIKIPIKI:</strong> Mimi Boda Empire tarehe {selectedRider ? format(parseISO(selectedRider.contractStart), 'dd/MM/yyyy') : '……'} nimemkabidhi ndugu {selectedRider?.name} mali iliyotajwa hapo juu kwa hiari yangu mwenyewe nikiwa na akili zangu timamu, na tumekubaliana atulipe kiasi cha shilingi {selectedRider?.dailyFee.toLocaleString()} kwa siku kwa muda wa miezi {selectedRider?.contractTermMonths || 18}.</p>
+                        
+                        <p><strong>MASHARTI YA MKATABA:</strong></p>
+                        <ol className="list-decimal pl-5 space-y-2">
+                            <li>Ni lazima kuleta pikipiki kila mwisho wa mwezi kwa mwenye mali ili aione kuhakikisha usalama.</li>
+                            <li>Ni lazima kuhakikisha pikipiki inafanyiwa matengenezo (service) kila wakati.</li>
+                            <li>Ni marufuku kumwazima/kumpa mtu yoyote pikipiki hii ndani ya kipindi cha mkataba.</li>
+                            <li>Ni lazima kurejesha kiasi cha shilingi {(selectedRider?.dailyFee || 10000) * 10} kila siku ya 10.</li>
+                        </ol>
+
+                        <p><strong>MDHAMINI:</strong> Mimi {selectedRider?.guarantorName || '…………………………'} nikiwa na akili zangu timamu nakubali kumdhamini {selectedRider?.name} na nakubali kuwajibika na kulipa fidia endapo atapoteza/ataaribu/atakimbia na pikipiki hii.</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-8 pt-8 text-xs border-t">
+                        <div className="space-y-4">
+                            <p><strong>Mwenye Mali Sahihi:</strong> <br/><br/> …………………………………</p>
+                            <p><strong>Mdhamini Sahihi:</strong> <br/><br/> …………………………………</p>
+                        </div>
+                        <div className="space-y-4 text-right">
+                            <p><strong>Dereva Sahihi:</strong> <br/><br/> …………………………………</p>
+                            <p><strong>Mwenyekiti Sahihi:</strong> <br/><br/> …………………………………</p>
+                        </div>
+                    </div>
+                </div>
+            </ScrollArea>
         </DialogContent>
       </Dialog>
       
       <Button
         aria-label="Add Rider"
-        className="absolute bottom-20 right-6 h-14 w-14 rounded-full shadow-lg bg-[#c8860a] hover:bg-[#c8860a]/90 active:scale-95"
+        className="fixed bottom-24 right-6 h-14 w-14 rounded-full shadow-2xl bg-[#c8860a] hover:bg-[#c8860a]/90 active:scale-95 z-20 border-4 border-white"
         onClick={() => {
             setSelectedRider(null);
             setIsFormOpen(true);
@@ -198,15 +292,21 @@ export default function FleetPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete {selectedRider?.name} and all their associated data.
+              This action cannot be undone. This will permanently delete {selectedRider?.name} and all their associated legal records.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={confirmDelete}>Delete</AlertDialogAction>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={confirmDelete}>Terminate Contract</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
   );
+}
+
+function addDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
 }
