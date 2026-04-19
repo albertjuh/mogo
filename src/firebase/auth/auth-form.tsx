@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, User } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { useUser } from "./use-user";
@@ -31,9 +31,10 @@ interface AuthFormProps {
 }
 
 const formSchema = z.object({
+  name: z.string().min(2, "Full name is required.").optional(),
   email: z.string().email("Please enter a valid email address."),
   password: z.string().min(6, "Password must be at least 6 characters."),
-  role: z.enum(['admin', 'supervisor', 'rider', 'recruiter']).optional(),
+  role: z.enum(['supervisor', 'rider', 'recruiter']).optional(),
 });
 
 export function AuthForm({ mode }: AuthFormProps) {
@@ -44,6 +45,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: "",
       email: "",
       password: "",
       role: 'rider',
@@ -65,7 +67,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         setIsLoading(false);
       }
     } else {
-      const success = await signup(values.email, values.password, values.role || 'rider');
+      const success = await signup(values.email, values.password, values.name || "", values.role || 'rider');
       if (success) {
         toast({ title: "Account Created Successfully!" });
       } else {
@@ -82,15 +84,34 @@ export function AuthForm({ mode }: AuthFormProps) {
   return (
     <div className="space-y-4">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 text-left">
+          {mode === "signup" && (
+             <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel className={mode === 'signup' ? 'text-white/80' : ''}>Full Name (Jina Kamili)</FormLabel>
+                    <FormControl>
+                    <div className="relative">
+                        <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="Juma Hassan" {...field} className="pl-9 bg-white/5 border-white/10 text-white" />
+                    </div>
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+          )}
+
           <FormField
             control={form.control}
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email Address</FormLabel>
+                <FormLabel className={mode === 'signup' ? 'text-white/80' : ''}>Email Address</FormLabel>
                 <FormControl>
-                  <Input placeholder="name@bodaempire.com" {...field} />
+                  <Input placeholder="name@email.com" {...field} className={mode === 'signup' ? "bg-white/5 border-white/10 text-white" : ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -101,9 +122,9 @@ export function AuthForm({ mode }: AuthFormProps) {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <FormLabel className={mode === 'signup' ? 'text-white/80' : ''}>Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
+                  <Input type="password" placeholder="••••••••" {...field} className={mode === 'signup' ? "bg-white/5 border-white/10 text-white" : ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -116,11 +137,11 @@ export function AuthForm({ mode }: AuthFormProps) {
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Initial Role</FormLabel>
+                  <FormLabel className="text-white/80">I am a...</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                        <SelectValue placeholder="Select a role" />
+                        <SelectValue placeholder="Select your role" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -138,16 +159,16 @@ export function AuthForm({ mode }: AuthFormProps) {
           <Button 
             type="submit" 
             disabled={isLoading} 
-            className="w-full bg-accent text-white font-bold h-12 uppercase tracking-widest hover:bg-accent/90"
+            className="w-full bg-primary text-primary-foreground font-bold h-12 uppercase tracking-widest hover:bg-primary/90 mt-2"
           >
             {isLoading ? <Loader2 className="animate-spin" /> : mode === "login" ? "Log In" : "Create Account"}
           </Button>
         </form>
       </Form>
 
-      <div className="text-center text-sm">
+      <div className="text-center text-sm pt-2">
         {mode === "login" ? (
-          <p className="text-white/60 font-bold uppercase tracking-widest text-[0.6rem]">
+          <p className="text-muted-foreground font-bold uppercase tracking-widest text-[0.6rem]">
             Don't have an account?{" "}
             <Link href="/signup" className="text-primary hover:underline ml-1">
               Sign Up

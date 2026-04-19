@@ -15,6 +15,7 @@ import { useFirestore } from "@/firebase/provider";
 type AppUser = {
   id: string;
   email: string;
+  name?: string;
   role: 'admin' | 'supervisor' | 'rider' | 'recruiter';
 };
 
@@ -23,7 +24,7 @@ interface AuthContextType {
   firebaseUser: User | null;
   logout: () => Promise<void>;
   login: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string, role: AppUser['role']) => Promise<boolean>;
+  signup: (email: string, password: string, name: string, role: AppUser['role']) => Promise<boolean>;
   loading: boolean;
 }
 
@@ -42,16 +43,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (fbUser) {
         // Parallel check for the user's role in Firestore collections
-        const [adminDoc, supervisorDoc, recruiterDoc] = await Promise.all([
+        const [adminDoc, supervisorDoc, recruiterDoc, riderDoc] = await Promise.all([
           getDoc(doc(db, "admins", fbUser.uid)),
           getDoc(doc(db, "supervisors", fbUser.uid)),
-          getDoc(doc(db, "recruiters", fbUser.uid))
+          getDoc(doc(db, "recruiters", fbUser.uid)),
+          getDoc(doc(db, "riders", fbUser.uid))
         ]);
         
         let role: AppUser['role'] = 'rider';
-        if (adminDoc.exists()) role = 'admin';
-        else if (supervisorDoc.exists()) role = 'supervisor';
-        else if (recruiterDoc.exists()) role = 'recruiter';
+        let name = "";
+        
+        if (adminDoc.exists()) {
+            role = 'admin';
+            name = adminDoc.data().name || "";
+        } else if (supervisorDoc.exists()) {
+            role = 'supervisor';
+            name = supervisorDoc.data().name || "";
+        } else if (recruiterDoc.exists()) {
+            role = 'recruiter';
+            name = recruiterDoc.data().name || "";
+        } else if (riderDoc.exists()) {
+            role = 'rider';
+            name = riderDoc.data().name || "";
+        }
 
         // Administrative Override for specific email
         if (fbUser.email === 'berto.admin@bodaempire.com') {
@@ -61,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser({
           id: fbUser.uid,
           email: fbUser.email || "",
+          name: name,
           role: role
         });
       } else {
@@ -82,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (email: string, password: string, role: AppUser['role']) => {
+  const signup = async (email: string, password: string, name: string, role: AppUser['role']) => {
     try {
       const res = await createUserWithEmailAndPassword(auth, email, password);
       // Create the role entry in the corresponding collection
@@ -92,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       await setDoc(doc(db, collectionName, res.user.uid), {
         email: email,
+        name: name,
         role: role,
         createdAt: new Date().toISOString()
       });

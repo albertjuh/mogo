@@ -63,13 +63,14 @@ export type RiderFormValues = Omit<Rider, 'id' | 'bikeId' | 'contractEnd' | 'act
 interface RiderFormProps {
   rider?: Rider | null;
   initialEmail?: string;
+  initialName?: string;
   bikes: BikeType[];
   onSubmit: (data: any) => void;
   onCancel: () => void;
   className?: string;
 }
 
-export function RiderForm({ rider, initialEmail, bikes, onSubmit, onCancel, className }: RiderFormProps) {
+export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, onCancel, className }: RiderFormProps) {
   const form = useForm<z.infer<typeof riderFormSchema>>({
     resolver: zodResolver(riderFormSchema),
     mode: "onChange",
@@ -90,7 +91,7 @@ export function RiderForm({ rider, initialEmail, bikes, onSubmit, onCancel, clas
           witnessPhone: rider.witnessPhone || "",
         }
       : {
-          name: "",
+          name: initialName || "",
           email: initialEmail || "",
           phone: "",
           vehicleType: "Boda Boda",
@@ -118,7 +119,10 @@ export function RiderForm({ rider, initialEmail, bikes, onSubmit, onCancel, clas
     if (initialEmail) {
       form.setValue('email', initialEmail);
     }
-  }, [initialEmail, form]);
+    if (initialName) {
+      form.setValue('name', initialName);
+    }
+  }, [initialEmail, initialName, form]);
 
   function handleFormSubmit(values: z.infer<typeof riderFormSchema>) {
     const bike = bikes.find(b => b.plateNumber.toLowerCase() === values.plateNumber.toLowerCase()) ?? bikes[0];
@@ -148,7 +152,7 @@ export function RiderForm({ rider, initialEmail, bikes, onSubmit, onCancel, clas
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="personal" className="space-y-4 pt-4">
+          <TabsContent value="personal" className="space-y-4 pt-4 text-left">
             <FormField
               control={form.control}
               name="name"
@@ -206,7 +210,7 @@ export function RiderForm({ rider, initialEmail, bikes, onSubmit, onCancel, clas
             />
           </TabsContent>
 
-          <TabsContent value="vehicle" className="space-y-4 pt-4">
+          <TabsContent value="vehicle" className="space-y-4 pt-4 text-left">
             <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -338,7 +342,7 @@ export function RiderForm({ rider, initialEmail, bikes, onSubmit, onCancel, clas
             </div>
           </TabsContent>
 
-          <TabsContent value="legal" className="space-y-4 pt-4">
+          <TabsContent value="legal" className="space-y-4 pt-4 text-left">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { RiderForm, type RiderFormValues } from "@/components/rider-form";
@@ -18,6 +17,7 @@ function OnboardContent() {
   
   const email = searchParams.get('email') || "";
   const uid = searchParams.get('uid') || "";
+  const name = searchParams.get('name') || "";
 
   const handleFormSubmit = (data: RiderFormValues) => {
     // If we have a UID, we use it as the document ID to link the profile to the Auth account
@@ -53,7 +53,7 @@ function OnboardContent() {
           <Info className="text-primary shrink-0 mt-0.5" />
           <div>
             <p className="text-xs font-bold text-accent uppercase">Linking to Account</p>
-            <p className="text-sm text-muted-foreground">You are completing the profile for <span className="font-bold text-accent">{email}</span>.</p>
+            <p className="text-sm text-muted-foreground">Completing profile for <span className="font-bold text-accent">{name || email}</span>.</p>
           </div>
         </div>
       )}
@@ -62,6 +62,7 @@ function OnboardContent() {
         <CardContent className="p-6">
             <RiderForm
                 initialEmail={email}
+                initialName={name}
                 bikes={[]}
                 onSubmit={handleFormSubmit}
                 onCancel={() => router.back()}
