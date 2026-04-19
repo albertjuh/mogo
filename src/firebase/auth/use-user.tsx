@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, type ReactNode, useEffect } from "react";
@@ -6,7 +7,7 @@ import { useRouter } from "next/navigation";
 type User = {
   id: string;
   email: string;
-  role: 'admin' | 'supervisor' | 'rider';
+  role: 'admin' | 'supervisor' | 'rider' | 'recruiter';
 };
 
 interface AuthContextType {
@@ -18,9 +19,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const hardcodedUsers: Record<string, { password: string; role: 'admin' | 'supervisor' | 'rider', id: string }> = {
+const hardcodedUsers: Record<string, { password: string; role: 'admin' | 'supervisor' | 'rider' | 'recruiter', id: string }> = {
   'admin@bodaempire.com': { password: 'password123', role: 'admin', id: 'user-admin' },
   'supervisor@bodaempire.com': { password: 'password123', role: 'supervisor', id: 'user-supervisor' },
+  'recruiter@bodaempire.com': { password: 'password123', role: 'recruiter', id: 'user-recruiter' },
   'juma@bodaempire.com': { password: 'password123', role: 'rider', id: 'rider-1' },
 };
 

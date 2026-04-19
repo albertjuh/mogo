@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Home, Wallet, ShieldCheck, TrendingUp, Users, BarChart3, AlertCircle } from "lucide-react";
+import { LogOut, Home, Wallet, ShieldCheck, TrendingUp, Users, BarChart3, AlertCircle, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/firebase/auth/use-user";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,13 @@ export function Sidebar() {
         { href: "/vault", label: "Document Vault", icon: ShieldCheck },
         { href: "/savings", label: "Savings Tracker", icon: TrendingUp },
         { href: "/payments", label: "Payment History", icon: BarChart3 },
+      ];
+    }
+
+    if (user.role === 'recruiter') {
+      return [
+        { href: "/", label: "Recruitment Overview", icon: Home },
+        { href: "/fleet", label: "Onboard Riders", icon: UserPlus },
       ];
     }
 

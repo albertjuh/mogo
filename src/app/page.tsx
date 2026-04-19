@@ -7,8 +7,8 @@ import { initialLoans, initialPayments, initialRiders } from "@/lib/data";
 import type { Loan, Payment, Rider } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wallet, Calendar, ArrowUpRight, ShieldCheck, Users, TrendingUp, DollarSign } from "lucide-react";
-import { format, parseISO, isSameDay } from "date-fns";
+import { Wallet, Calendar, ArrowUpRight, ShieldCheck, Users, TrendingUp, DollarSign, UserPlus, CheckCircle } from "lucide-react";
+import { format, parseISO, isSameDay, subDays, isAfter } from "date-fns";
 import { useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ export default function DashboardPage() {
     return loans.find(l => l.clientId === user.id && l.loanStatus === "Active");
   }, [loans, user]);
 
-  // --- Admin/Supervisor View Logic ---
+  // --- Admin/Supervisor/Recruiter View Logic ---
   const stats = useMemo(() => {
     if (user?.role === 'rider') return null;
     const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0);
@@ -33,10 +33,67 @@ export default function DashboardPage() {
     const todayPayments = payments.filter(p => isSameDay(parseISO(p.date), new Date()));
     const collectedToday = todayPayments.reduce((sum, p) => sum + p.amount, 0);
     
-    return { totalCollected, activeRiders, collectedToday };
+    // Recruitment stats for recruiters
+    const sevenDaysAgo = subDays(new Date(), 7);
+    const recruitedThisWeek = riders.filter(r => isAfter(parseISO(r.createdAt), sevenDaysAgo)).length;
+
+    return { totalCollected, activeRiders, collectedToday, recruitedThisWeek };
   }, [payments, riders, user]);
 
   if (!user) return null;
+
+  // --- RECRUITER DASHBOARD ---
+  if (user.role === 'recruiter') {
+      return (
+          <div className="space-y-6">
+            <header className="space-y-1">
+                <h1 className="text-3xl font-black tracking-tight font-headline italic uppercase">Recruitment Center</h1>
+                <p className="text-muted-foreground">Growing the Mogo fleet, one driver at a time.</p>
+            </header>
+
+            <div className="grid grid-cols-1 gap-4">
+                <Card className="bg-primary text-primary-foreground border-none shadow-xl overflow-hidden relative">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <UserPlus size={100} />
+                    </div>
+                    <CardHeader>
+                        <CardTitle className="text-sm font-bold uppercase tracking-wider opacity-80">Riders Recruited (Last 7 Days)</CardTitle>
+                        <div className="text-4xl font-black italic">{stats?.recruitedThisWeek} New Drivers</div>
+                    </CardHeader>
+                    <CardContent>
+                         <p className="text-sm font-medium opacity-90">Great job! You are expanding the Mogo empire.</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="space-y-4">
+                <h3 className="font-bold text-lg">Quick Actions</h3>
+                <div className="grid grid-cols-1 gap-4">
+                    <Button asChild className="h-20 text-lg font-bold shadow-lg bg-accent hover:bg-accent/90">
+                        <Link href="/fleet" className="flex items-center gap-3">
+                            <UserPlus className="h-6 w-6" /> Onboard New Driver (Boda/Bajaji)
+                        </Link>
+                    </Button>
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                <h3 className="font-bold text-lg">Onboarding Tips</h3>
+                <Card className="border-none shadow-sm bg-secondary/50">
+                <CardContent className="p-4 flex items-start gap-4">
+                    <CheckCircle className="text-primary mt-1 shrink-0" />
+                    <div>
+                    <p className="text-sm font-semibold">Eligibility Check</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                        Ensure every driver has a valid ID, a clean record, and a guarantor (Shahidi) before adding them.
+                    </p>
+                    </div>
+                </CardContent>
+                </Card>
+            </div>
+          </div>
+      )
+  }
 
   // --- RIDER DASHBOARD ---
   if (user.role === 'rider') {

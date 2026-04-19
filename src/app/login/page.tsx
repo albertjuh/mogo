@@ -1,3 +1,4 @@
+
 "use client";
 
 import { AuthForm } from "@/firebase/auth/auth-form";
@@ -41,9 +42,16 @@ export default function LoginPage() {
             </CardHeader>
             <CardContent className="text-sm space-y-2">
               <div>
-                <p className="font-semibold">Mteja:</p>
-                <p>Email: <code className="bg-muted px-1.5 py-0.5 rounded text-foreground">admin@bodaempire.com</code></p>
-                <p>Password: <code className="bg-muted px-1.5 py-0.5 rounded text-foreground">password123</code></p>
+                <p className="font-semibold text-xs uppercase text-muted-foreground">Admin/Mgmt:</p>
+                <p><code className="bg-muted px-1.5 py-0.5 rounded text-foreground">admin@bodaempire.com</code></p>
+                
+                <p className="font-semibold text-xs uppercase text-muted-foreground mt-2">Recruiter:</p>
+                <p><code className="bg-muted px-1.5 py-0.5 rounded text-foreground">recruiter@bodaempire.com</code></p>
+                
+                <p className="font-semibold text-xs uppercase text-muted-foreground mt-2">Mteja (Rider):</p>
+                <p><code className="bg-muted px-1.5 py-0.5 rounded text-foreground">juma@bodaempire.com</code></p>
+                
+                <p className="mt-2 text-[0.65rem]">Password kwa wote: <code className="font-bold">password123</code></p>
               </div>
             </CardContent>
           </Card>
