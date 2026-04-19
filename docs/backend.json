@@ -1,379 +1,50 @@
+
 {
   "entities": {
     "Rider": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Rider",
+      "description": "Authenticated motorcycle rider with profile and contract data.",
       "type": "object",
-      "description": "Represents a motorcycle rider associated with BodaEmpire, including their personal and contact details.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Rider entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The full name of the rider."
-        },
-        "phoneNumber": {
-          "type": "string",
-          "description": "The primary contact phone number for the rider."
-        },
-        "email": {
-          "type": "string",
-          "description": "The email address for the rider.",
-          "format": "email"
-        },
-        "address": {
-          "type": "string",
-          "description": "The physical address of the rider."
-        },
-        "dateJoined": {
-          "type": "string",
-          "description": "The date when the rider joined BodaEmpire.",
-          "format": "date-time"
-        },
-        "isActive": {
-          "type": "boolean",
-          "description": "Indicates whether the rider is currently active in the fleet."
-        }
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "plateNumber": { "type": "string" },
+        "vehicleType": { "enum": ["Boda Boda", "Bajaji"] },
+        "dailyFee": { "type": "number" },
+        "paymentFrequency": { "enum": ["Daily", "Weekly", "10-Day"] },
+        "contractStart": { "type": "string", "format": "date-time" },
+        "contractEnd": { "type": "string", "format": "date-time" },
+        "active": { "type": "boolean" },
+        "guarantorName": { "type": "string" },
+        "guarantorPhone": { "type": "string" }
       },
-      "required": [
-        "id",
-        "name",
-        "phoneNumber",
-        "dateJoined",
-        "isActive"
-      ]
-    },
-    "Contract": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Contract",
-      "type": "object",
-      "description": "Details of a contract agreement between BodaEmpire and a rider. Riders can have multiple contracts over time.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Contract entity."
-        },
-        "riderId": {
-          "type": "string",
-          "description": "Reference to the Rider associated with this contract. (Relationship: Rider 1:N Contract)"
-        },
-        "startDate": {
-          "type": "string",
-          "description": "The official start date of the contract.",
-          "format": "date-time"
-        },
-        "endDate": {
-          "type": "string",
-          "description": "The official end date of the contract.",
-          "format": "date-time"
-        },
-        "dailyRate": {
-          "type": "number",
-          "description": "The agreed daily payment amount (in local currency) the rider is expected to pay."
-        },
-        "paymentFrequency": {
-          "type": "string",
-          "description": "The frequency at which payments are expected (e.g., 'daily', 'weekly', 'monthly')."
-        },
-        "contractType": {
-          "type": "string",
-          "description": "The type of contract (e.g., 'Lease', 'Rent-to-Own')."
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the contract (e.g., 'Active', 'Expired', 'Terminated', 'Pending')."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when this contract record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when this contract record was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "riderId",
-        "startDate",
-        "endDate",
-        "dailyRate",
-        "paymentFrequency",
-        "contractType",
-        "status",
-        "createdAt"
-      ]
+      "required": ["name", "phone", "plateNumber", "active"]
     },
     "Payment": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Payment",
+      "description": "Financial transaction record with Selcom reference and JWT-based rider tracking.",
       "type": "object",
-      "description": "Records a payment transaction made by a rider against their contract.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Payment entity."
-        },
-        "riderId": {
-          "type": "string",
-          "description": "Reference to the Rider who made this payment. (Relationship: Rider 1:N Payment)"
-        },
-        "contractId": {
-          "type": "string",
-          "description": "Reference to the specific Contract this payment is applied to. (Relationship: Contract 1:N Payment)"
-        },
-        "paymentDate": {
-          "type": "string",
-          "description": "The date and time when the payment was received.",
-          "format": "date-time"
-        },
-        "amountPaid": {
-          "type": "number",
-          "description": "The actual amount paid by the rider."
-        },
-        "paymentPeriodStartDate": {
-          "type": "string",
-          "description": "The start date of the period this payment covers.",
-          "format": "date-time"
-        },
-        "paymentPeriodEndDate": {
-          "type": "string",
-          "description": "The end date of the period this payment covers.",
-          "format": "date-time"
-        },
-        "isPartialPayment": {
-          "type": "boolean",
-          "description": "Indicates if the payment received is less than the expected amount for the period."
-        },
-        "transactionReference": {
-          "type": "string",
-          "description": "An optional external reference or ID for the payment transaction."
-        },
-        "recordedAt": {
-          "type": "string",
-          "description": "Timestamp when this payment record was added to the system.",
-          "format": "date-time"
-        }
+        "riderId": { "type": "string", "description": "The UID of the rider from Firebase Auth." },
+        "amount": { "type": "number" },
+        "selcomRef": { "type": "string", "description": "External bank reference number." },
+        "status": { "type": "string", "enum": ["pending", "verified", "failed"] },
+        "recordedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "riderId",
-        "contractId",
-        "paymentDate",
-        "amountPaid",
-        "paymentPeriodStartDate",
-        "paymentPeriodEndDate",
-        "isPartialPayment",
-        "recordedAt"
-      ]
-    },
-    "Alert": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Alert",
-      "type": "object",
-      "description": "Represents system-generated notifications for events requiring attention, such as missed payments or expiring contracts.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Alert entity."
-        },
-        "riderId": {
-          "type": "string",
-          "description": "Reference to the Rider to whom this alert pertains. (Relationship: Rider 1:N Alert)"
-        },
-        "alertType": {
-          "type": "string",
-          "description": "The type of alert (e.g., 'MissedPayment', 'ContractExpiration')."
-        },
-        "alertDate": {
-          "type": "string",
-          "description": "The date and time when the alert was generated.",
-          "format": "date-time"
-        },
-        "associatedDate": {
-          "type": "string",
-          "description": "A date relevant to the alert, such as a payment due date or contract expiration date.",
-          "format": "date-time"
-        },
-        "message": {
-          "type": "string",
-          "description": "A detailed message or description of the alert."
-        },
-        "isResolved": {
-          "type": "boolean",
-          "description": "Indicates whether the alert has been acknowledged or addressed."
-        },
-        "resolvedDate": {
-          "type": "string",
-          "description": "The date and time when the alert was resolved, if applicable.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "riderId",
-        "alertType",
-        "alertDate",
-        "message",
-        "isResolved"
-      ]
-    },
-    "FleetGoal": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FleetGoal",
-      "type": "object",
-      "description": "Defines a target goal for fleet expansion, including desired size, timeline, and associated investment.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the FleetGoal entity."
-        },
-        "goalName": {
-          "type": "string",
-          "description": "A descriptive name for the fleet growth goal (e.g., 'Expand to 50 Bodas')."
-        },
-        "targetBodaCount": {
-          "type": "number",
-          "description": "The desired number of motorcycles (bodas) in the fleet to achieve this goal."
-        },
-        "targetDate": {
-          "type": "string",
-          "description": "The target date by which this fleet growth goal is aimed to be achieved.",
-          "format": "date-time"
-        },
-        "estimatedInvestmentAmount": {
-          "type": "number",
-          "description": "The estimated financial investment required to reach the target boda count."
-        },
-        "currentBodaCountAtGoalStart": {
-          "type": "number",
-          "description": "The number of bodas in the fleet at the time this goal was set."
-        },
-        "startDate": {
-          "type": "string",
-          "description": "The date when this fleet growth goal was initiated.",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the goal (e.g., 'Active', 'Achieved', 'Abandoned')."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when this fleet goal record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when this fleet goal record was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "goalName",
-        "targetBodaCount",
-        "targetDate",
-        "estimatedInvestmentAmount",
-        "startDate",
-        "status",
-        "createdAt"
-      ]
+      "required": ["riderId", "amount", "status", "recordedAt"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/riders/{riderId}",
-        "definition": {
-          "entityName": "Rider",
-          "schema": {
-            "$ref": "#/backend/entities/Rider"
-          },
-          "description": "Stores primary information for each motorcycle rider registered with BodaEmpire. This collection serves as the root for rider-specific data. Authorization for this collection is determined by administrative roles.",
-          "params": [
-            {
-              "name": "riderId",
-              "description": "Unique identifier for a specific Rider."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/contracts/{contractId}",
-        "definition": {
-          "entityName": "Contract",
-          "schema": {
-            "$ref": "#/backend/entities/Contract"
-          },
-          "description": "Contains details of contracts between BodaEmpire and riders. Each document includes the 'riderId' field, denormalized from the Rider entity, to ensure authorization independence and efficient querying. This allows rules to evaluate access without fetching the parent Rider document.",
-          "params": [
-            {
-              "name": "contractId",
-              "description": "Unique identifier for a specific Contract."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/payments/{paymentId}",
-        "definition": {
-          "entityName": "Payment",
-          "schema": {
-            "$ref": "#/backend/entities/Payment"
-          },
-          "description": "Records payment transactions made by riders against their contracts. Each document includes denormalized 'riderId' and 'contractId' fields for authorization independence, enabling direct rule evaluation and efficient collection-group queries for reporting across all riders/contracts.",
-          "params": [
-            {
-              "name": "paymentId",
-              "description": "Unique identifier for a specific Payment."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/alerts/{alertId}",
-        "definition": {
-          "entityName": "Alert",
-          "schema": {
-            "$ref": "#/backend/entities/Alert"
-          },
-          "description": "Stores system-generated alerts related to rider activities (e.g., missed payments, contract expirations). Each document includes a denormalized 'riderId' field for authorization independence, allowing rules to directly check the associated rider without a 'get()' call.",
-          "params": [
-            {
-              "name": "alertId",
-              "description": "Unique identifier for a specific Alert."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/fleetGoals/{fleetGoalId}",
-        "definition": {
-          "entityName": "FleetGoal",
-          "schema": {
-            "$ref": "#/backend/entities/FleetGoal"
-          },
-          "description": "Defines and tracks strategic goals for BodaEmpire's fleet expansion. This is a top-level collection managed by administrators, with no hierarchical authorization dependencies.",
-          "params": [
-            {
-              "name": "fleetGoalId",
-              "description": "Unique identifier for a specific FleetGoal."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The proposed Firestore data structure prioritizes security, scalability, and debuggability by adhering strictly to the core design principles and strategy mandates. The structure is built around top-level collections for primary entities, with strategic denormalization of foreign keys to ensure Authorization Independence and support Query-Ability for Admin-level Security (QAPs).\n\n1.  **Authorization Independence (Denormalization):**\n    *   For entities like `Contract`, `Payment`, and `Alert` that conceptually 'belong' to a `Rider`, the `riderId` is explicitly included as a field in each document. This denormalization means that security rules evaluating access to a `contract`, `payment`, or `alert` document can directly check `resource.data.riderId` without needing to perform a `get()` operation on a parent `rider` document. This is critical for maintaining atomic operations and preventing complex, error-prone rule dependencies. For example, if a staff member were only authorized to manage specific riders, their rules could be written as `allow read: if resource.data.riderId in get(/staff/{uid}).data.managedRiders;` (hypothetically, if such a staff role existed) without needing to fetch the rider document itself.\n    *   Similarly, `Payment` documents include `contractId`. This allows authorization rules and queries to relate payments directly to contracts without hierarchical lookups.\n    *   For global administrative access (implied by the 'DBAC' principle), a separate collection (e.g., `/roles_admin/{adminUid}`) would typically be used. The *existence* of a document at `/roles_admin/$(request.auth.uid)` would grant full admin privileges across the entire dataset. This `exists()` check is atomic and highly performant, ensuring authorization independence from complex user profile documents.\n\n2.  **QAPs (Secure List Operations):**\n    *   **Structural Segregation:** All documents within a given collection (`/riders`, `/contracts`, `/payments`, `/alerts`, `/fleetGoals`) share a homogenous security posture, which is primarily administrative access in this BodaEmpire context. This simplifies rules, as a single `allow list: if isAdmin();` rule can apply to the entire collection if the user is an administrator.\n    *   The flattened structure, combined with denormalized `riderId` and `contractId` fields, is crucial for secure and efficient `list` operations, especially for the 'Reporting' feature. For example, an admin can perform a `list` query on `/payments` with a `where('riderId', '==', '{riderId}')` filter. The security rules can then enforce that the requesting user has permission to view payments for that specific `riderId`. Since `riderId` is present on every `payment` document, the rule can evaluate `resource.data.riderId` without violating QAPs. This allows for flexible and efficient querying for reporting purposes (e.g., 'all payments for Rider X' or 'all alerts for Rider Y') while maintaining strong security boundaries.\n\n3.  **Predictability and Clarity:** Consistent naming conventions (`{riderId}`, `{contractId}`) and the use of explicit `status` fields contribute to a clear and debuggable data model. The relationships between entities are made explicit through denormalized foreign keys rather than relying solely on path hierarchy or complex rule logic. This structure is highly maintainable as the application scales."
+    "/riders/{riderId}": {
+      "schema": { "$ref": "#/entities/Rider" },
+      "description": "Rider profiles. Owners can only access their own data via JWT uid verification."
+    },
+    "/payments/{paymentId}": {
+      "schema": { "$ref": "#/entities/Payment" },
+      "description": "Financial ledger. Riders see their own payments; Admins see all for audit."
+    }
   }
 }

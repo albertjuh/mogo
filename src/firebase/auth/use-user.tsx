@@ -2,75 +2,68 @@
 "use client";
 
 import React, { createContext, useContext, useState, type ReactNode, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { onAuthStateChanged, User, signOut, getAuth } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { useFirestore } from "@/firebase/provider";
 
-type User = {
+type AppUser = {
   id: string;
   email: string;
   role: 'admin' | 'supervisor' | 'rider' | 'recruiter';
 };
 
 interface AuthContextType {
-  user: User | null;
-  login: (email: string, pass: string) => boolean;
-  logout: () => void;
+  user: AppUser | null;
+  firebaseUser: User | null;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const hardcodedUsers: Record<string, { password: string; role: 'admin' | 'supervisor' | 'rider' | 'recruiter', id: string }> = {
-  'admin@bodaempire.com': { password: 'password123', role: 'admin', id: 'user-admin' },
-  'supervisor@bodaempire.com': { password: 'password123', role: 'supervisor', id: 'user-supervisor' },
-  'recruiter@bodaempire.com': { password: 'password123', role: 'recruiter', id: 'user-recruiter' },
-  'juma@bodaempire.com': { password: 'password123', role: 'rider', id: 'rider-1' },
-};
-
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const db = useFirestore();
+  const auth = getAuth();
 
   useEffect(() => {
-    // Check if user is in localStorage on initial load
-    try {
-      const storedUser = localStorage.getItem('boda-user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      setFirebaseUser(fbUser);
+      
+      if (fbUser) {
+        // Fetch role from Firestore
+        const adminDoc = await getDoc(doc(db, "admins", fbUser.uid));
+        const riderDoc = await getDoc(doc(db, "riders", fbUser.uid));
+        
+        let role: AppUser['role'] = 'rider';
+        if (adminDoc.exists()) role = 'admin';
+        
+        setUser({
+          id: fbUser.uid,
+          email: fbUser.email || "",
+          role: role
+        });
+      } else {
+        setUser(null);
       }
-    } catch (error) {
-      console.error("Failed to parse user from localStorage", error);
-      localStorage.removeItem('boda-user');
-    }
-    setLoading(false);
-  }, []);
+      setLoading(false);
+    });
 
-  const login = (email: string, pass: string): boolean => {
-    const foundUser = hardcodedUsers[email];
-    if (foundUser && foundUser.password === pass) {
-      const userPayload = { email, role: foundUser.role, id: foundUser.id };
-      localStorage.setItem('boda-user', JSON.stringify(userPayload));
-      setUser(userPayload);
-      router.push('/');
-      return true;
-    }
-    return false;
-  };
+    return () => unsubscribe();
+  }, [auth, db]);
 
-  const logout = () => {
-    localStorage.removeItem('boda-user');
-    setUser(null);
-    router.push('/login');
+  const logout = async () => {
+    await signOut(auth);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, firebaseUser, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
 }
-
 
 export function useUser() {
   const context = useContext(AuthContext);

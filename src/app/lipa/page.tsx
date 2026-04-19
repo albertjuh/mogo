@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -6,12 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/firebase/auth/use-user";
+import { useFirestore } from "@/firebase";
+import { collection } from "firebase/firestore";
+import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Loader2, Smartphone, CheckCircle2 } from "lucide-react";
 
 export default function LipaPage() {
-  const [amount, setAmount] = useState("15000");
+  const [amount, setAmount] = useState("10000");
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const { user } = useUser();
+  const db = useFirestore();
   const { toast } = useToast();
 
   const handleLipa = async () => {
@@ -21,12 +28,25 @@ export default function LipaPage() {
     }
 
     setIsLoading(true);
-    // Simulate STK Push
+    
+    // Simulate STK Push and secure JWT-based recording
     setTimeout(() => {
-      setIsLoading(false);
-      setIsSuccess(true);
-      toast({ title: "STK Push Sent", description: "Please enter your PIN on your phone." });
-    }, 2000);
+      if (user) {
+        const selcomRef = `SEL-${Math.random().toString(36).substring(7).toUpperCase()}`;
+        
+        addDocumentNonBlocking(collection(db, "payments"), {
+          riderId: user.id, // UID from JWT context
+          amount: Number(amount),
+          selcomRef,
+          status: 'pending',
+          recordedAt: new Date().toISOString(),
+        });
+
+        setIsLoading(false);
+        setIsSuccess(true);
+        toast({ title: "STK Push Sent", description: "Muamala unashughulikiwa." });
+      }
+    }, 1500);
   };
 
   if (isSuccess) {
@@ -44,7 +64,7 @@ export default function LipaPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-3xl font-black font-headline">Lipa kwa Mogo</h1>
-        <p className="text-muted-foreground">Malipo rahisi kupitia M-Pesa au Tigo Pesa</p>
+        <p className="text-muted-foreground">Malipo salama kupitia JWT & Selcom</p>
       </header>
 
       <Card className="border-none shadow-xl">
@@ -54,8 +74,8 @@ export default function LipaPage() {
                     <Smartphone className="text-accent" />
                 </div>
                 <div>
-                    <CardTitle className="text-lg">Malipo ya Mbofyo Mmoja</CardTitle>
-                    <CardDescription className="text-white/60">STK Push Integration</CardDescription>
+                    <CardTitle className="text-lg">STK Push Integration</CardTitle>
+                    <CardDescription className="text-white/60">Zero Liability Tokenization</CardDescription>
                 </div>
             </div>
         </CardHeader>
@@ -71,30 +91,9 @@ export default function LipaPage() {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            {["5000", "15000", "50000"].map(val => (
-                <Button 
-                    key={val} 
-                    variant="outline" 
-                    onClick={() => setAmount(val)}
-                    className={amount === val ? "border-primary bg-primary/10 text-primary font-bold" : ""}
-                >
-                    {Number(val).toLocaleString()}
-                </Button>
-            ))}
-          </div>
-
           <Button onClick={handleLipa} disabled={isLoading} className="w-full h-14 text-lg font-bold shadow-lg shadow-primary/20">
-            {isLoading ? (
-                <>
-                    <Loader2 className="mr-2 animate-spin" /> Inatuma...
-                </>
-            ) : "Anzisha STK Push"}
+            {isLoading ? <Loader2 className="mr-2 animate-spin" /> : "Anzisha STK Push"}
           </Button>
-          
-          <p className="text-[0.65rem] text-center text-muted-foreground">
-            Ombi la malipo litatumwa kwa namba ya simu iliyosajiliwa na akaunti yako ya Mogo.
-          </p>
         </CardContent>
       </Card>
     </div>

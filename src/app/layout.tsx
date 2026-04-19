@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/firebase/auth/use-user';
 import { AppClientLayout } from '@/components/app-client-layout';
+import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
   title: 'BodaEmpire',
@@ -27,12 +28,14 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Boda Empire" />
       </head>
       <body className="font-body antialiased">
-        <AuthProvider>
-            <AppClientLayout>
-                {children}
-            </AppClientLayout>
-            <Toaster />
-        </AuthProvider>
+        <FirebaseClientProvider>
+          <AuthProvider>
+              <AppClientLayout>
+                  {children}
+              </AppClientLayout>
+              <Toaster />
+          </AuthProvider>
+        </FirebaseClientProvider>
       </body>
     </html>
   );
