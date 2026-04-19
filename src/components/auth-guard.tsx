@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser } from '@/firebase/auth/use-user';
@@ -38,7 +37,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   // --- EMAIL ACTIVATION GATE ---
-  // We require verification for all users EXCEPT the System Admin for recovery purposes
+  // Everyone except the master admin must verify their email to see data
   const isSystemAdmin = firebaseUser?.email?.toLowerCase() === 'berto.admin@bodaempire.com';
   
   if (firebaseUser && !firebaseUser.emailVerified && !isSystemAdmin && !publicPaths.includes(pathname)) {
@@ -80,17 +79,5 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
   
-  if (user && publicPaths.includes(pathname)) {
-     return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-  
-  if(user || publicPaths.includes(pathname)) {
-    return <>{children}</>;
-  }
-
-  return null;
+  return <>{children}</>;
 }

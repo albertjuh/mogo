@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,7 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User, Eye, EyeOff, Lock, Mail, ShieldCheck, AlertCircle } from "lucide-react";
+import { Loader2, User, Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { useUser } from "./use-user";
@@ -53,7 +52,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     try {
       const result = await loginWithGoogle();
       if (result.success) {
-        toast({ title: "Logged in successfully!" });
+        toast({ title: "Welcome to BodaEmpire!" });
       } else {
         toast({ 
           variant: "destructive", 
@@ -71,18 +70,15 @@ export function AuthForm({ mode }: AuthFormProps) {
     try {
         if (mode === "login") {
           const success = await login(values.email, values.password);
-          if (success) {
-            toast({ title: "Logging you in..." });
-          } else {
+          if (!success) {
             toast({
               variant: "destructive",
               title: "Authentication Failed",
               description: "Invalid email or password.",
             });
-            setIsLoading(false);
           }
         } else {
-          const success = await signup(values.email, values.password, values.name || "", 'rider');
+          const success = await signup(values.email, values.password, values.name || "");
           if (success) {
             toast({ 
                 title: "Activation Link Sent!",
@@ -92,19 +88,12 @@ export function AuthForm({ mode }: AuthFormProps) {
             toast({
               variant: "destructive",
               title: "Signup Failed",
-              description: "Could not create account. Email might already be in use.",
+              description: "Check your connection or try another email.",
             });
-            setIsLoading(false);
           }
         }
-    } catch (error) {
-        console.error("Auth error:", error);
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "An unexpected error occurred."
-        });
-        setIsLoading(false);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -148,7 +137,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className={cn("px-2 font-bold", mode === 'signup' ? 'bg-accent text-white/40' : 'bg-background text-muted-foreground')}>
-            Or continue with email
+            Or use email credentials
           </span>
         </div>
       </div>
@@ -208,7 +197,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-muted-foreground hover:text-primary transition-colors"
+                      className="absolute right-3 top-3 text-muted-foreground hover:text-primary"
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -222,16 +211,9 @@ export function AuthForm({ mode }: AuthFormProps) {
           <Button 
             type="submit" 
             disabled={isLoading || isGoogleLoading} 
-            className="w-full bg-primary text-primary-foreground font-bold h-12 uppercase tracking-widest hover:bg-primary/90 mt-2 relative overflow-hidden"
+            className="w-full bg-primary text-primary-foreground font-bold h-12 uppercase tracking-widest hover:bg-primary/90 mt-2"
           >
-            {isLoading ? (
-              <div className="flex items-center justify-center gap-2 animate-pulse">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Verifying...</span>
-              </div>
-            ) : (
-              <span>{mode === "login" ? "Log In" : "Create Account"}</span>
-            )}
+            {isLoading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : mode === "login" ? "Log In" : "Create Account"}
           </Button>
 
           {mode === "signup" && (
@@ -244,24 +226,6 @@ export function AuthForm({ mode }: AuthFormProps) {
           )}
         </form>
       </Form>
-
-      <div className="text-center text-sm">
-        {mode === "login" ? (
-          <p className="text-muted-foreground font-bold uppercase tracking-widest text-[0.6rem]">
-            New to the Empire?{" "}
-            <Link href="/signup" className="text-primary hover:underline ml-1">
-              Join as Rider
-            </Link>
-          </p>
-        ) : (
-          <p className="text-white/60 font-bold uppercase tracking-widest text-[0.6rem]">
-            Already have an account?{" "}
-            <Link href="/login" className="text-primary hover:underline ml-1">
-              Log In
-            </Link>
-          </p>
-        )}
-      </div>
     </div>
   );
 }

@@ -1,13 +1,11 @@
-
 "use client";
 
 import { useUser } from "@/firebase/auth/use-user";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, doc, deleteDoc, setDoc, getDoc } from "firebase/firestore";
+import { collection, doc, deleteDoc, setDoc } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { format, parseISO } from "date-fns";
 import { ShieldCheck, UserCheck, UserPlus, Info, MoreHorizontal, UserCog } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -21,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 
-export default function UserManagementPage() {
+export default function UserRegistryPage() {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
@@ -40,7 +38,7 @@ export default function UserManagementPage() {
     ...(admins || []).map(u => ({ ...u, role: 'admin' as const })),
     ...(supervisors || []).map(u => ({ ...u, role: 'supervisor' as const })),
     ...(recruiters || []).map(u => ({ ...u, role: 'recruiter' as const })),
-  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  ];
 
   const handleRoleChange = async (targetUser: any, currentRole: string, newRole: string) => {
     if (currentRole === newRole) return;
@@ -53,7 +51,7 @@ export default function UserManagementPage() {
     };
 
     try {
-      // 1. Copy to new collection
+      // 1. Move doc to new role collection
       const newRef = doc(db, collections[newRole], targetUser.id);
       await setDoc(newRef, {
         ...targetUser,
@@ -61,75 +59,56 @@ export default function UserManagementPage() {
         updatedAt: new Date().toISOString()
       });
 
-      // 2. Delete from old collection
+      // 2. Remove from old role collection
       const oldRef = doc(db, collections[currentRole], targetUser.id);
       await deleteDoc(oldRef);
 
       toast({ 
-        title: "Role Updated", 
-        description: `${targetUser.name} is now a ${newRole}.` 
+        title: "Staff Status Updated", 
+        description: `${targetUser.name} is now authorized as a ${newRole}.` 
       });
     } catch (e) {
       console.error(e);
       toast({ 
         variant: "destructive", 
-        title: "Update Failed", 
-        description: "Permissions might be restricted." 
+        title: "Operation Failed", 
+        description: "Insufficient permissions to change system roles." 
       });
     }
   };
 
   if (user?.role !== 'admin') {
-    return <div className="p-12 text-center font-bold">Unauthorized Access</div>;
+    return <div className="p-12 text-center font-bold">Access Denied: Strategic Admin Only</div>;
   }
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-black font-headline italic uppercase tracking-tighter text-accent">User Registry</h1>
-        <p className="text-muted-foreground">Manage digital identities and staff access.</p>
+        <h1 className="text-3xl font-black font-headline italic uppercase tracking-tighter text-accent">Strategic Registry</h1>
+        <p className="text-muted-foreground">Manage digital access and operational staff.</p>
       </header>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="bg-white border-none shadow-md">
-            <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Total Staff</CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-                <div className="text-2xl font-black text-accent">{allStaff.length} Accounts</div>
-            </CardContent>
-        </Card>
-         <Card className="bg-white border-none shadow-md">
-            <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Registered Riders</CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-                <div className="text-2xl font-black text-primary">{riders?.length || 0} Accounts</div>
-            </CardContent>
-        </Card>
-      </div>
 
       <Card className="border-none shadow-xl">
         <CardHeader className="bg-accent text-white rounded-t-xl">
           <CardTitle className="text-lg flex items-center gap-2">
-            <ShieldCheck size={20} /> Staff Accounts
+            <ShieldCheck size={20} /> Management & Staff
           </CardTitle>
-          <CardDescription className="text-white/60">Verified management and operations team.</CardDescription>
+          <CardDescription className="text-white/60">Verified personnel with operational oversight.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-secondary/50 hover:bg-secondary/50 border-none">
+              <TableRow className="bg-secondary/50 border-none">
                 <TableHead className="font-bold text-[0.65rem] uppercase tracking-widest">Name & Email</TableHead>
-                <TableHead className="font-bold text-[0.65rem] uppercase tracking-widest">Role</TableHead>
-                <TableHead className="font-bold text-[0.65rem] uppercase tracking-widest text-right">Action</TableHead>
+                <TableHead className="font-bold text-[0.65rem] uppercase tracking-widest">System Role</TableHead>
+                <TableHead className="font-bold text-[0.65rem] uppercase tracking-widest text-right">Access</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {allStaff.map((staff) => (
                 <TableRow key={staff.id} className="hover:bg-muted/30">
                   <TableCell className="py-4">
-                    <p className="font-black text-sm uppercase italic">{staff.name || "No Name"}</p>
+                    <p className="font-black text-sm uppercase italic">{staff.name || "Pending Name"}</p>
                     <p className="text-[0.65rem] text-muted-foreground font-bold">{staff.email}</p>
                   </TableCell>
                   <TableCell>
@@ -145,16 +124,16 @@ export default function UserManagementPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Change Role</DropdownMenuLabel>
+                        <DropdownMenuLabel>Modify Access</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleRoleChange(staff, staff.role, 'supervisor')}>
-                          Make Supervisor
+                          Promote to Supervisor
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleRoleChange(staff, staff.role, 'recruiter')}>
-                          Make Recruiter
+                          Promote to Recruiter
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleRoleChange(staff, staff.role, 'rider')} className="text-destructive">
-                          Demote to Rider
+                          Revoke Staff Access
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -169,16 +148,16 @@ export default function UserManagementPage() {
       <Card className="border-none shadow-xl">
         <CardHeader className="bg-primary text-white rounded-t-xl">
           <CardTitle className="text-lg flex items-center gap-2">
-            <UserCheck size={20} /> Rider Accounts
+            <UserCheck size={20} /> Registered Riders
           </CardTitle>
-          <CardDescription className="text-white/80">Digital identities for boda drivers.</CardDescription>
+          <CardDescription className="text-white/80">Riders waiting for contract onboarding.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-secondary/50 hover:bg-secondary/50 border-none">
+              <TableRow className="bg-secondary/50 border-none">
                 <TableHead className="font-bold text-[0.65rem] uppercase tracking-widest">Name & Email</TableHead>
-                <TableHead className="font-bold text-[0.65rem] uppercase tracking-widest">Status</TableHead>
+                <TableHead className="font-bold text-[0.65rem] uppercase tracking-widest">Onboarding Status</TableHead>
                 <TableHead className="font-bold text-[0.65rem] uppercase tracking-widest text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -186,12 +165,12 @@ export default function UserManagementPage() {
               {(riders || []).map((rider) => (
                 <TableRow key={rider.id} className="hover:bg-muted/30">
                   <TableCell className="py-4">
-                    <p className="font-black text-sm uppercase italic">{rider.name || "No Name"}</p>
+                    <p className="font-black text-sm uppercase italic">{rider.name || "Incomplete Profile"}</p>
                     <p className="text-[0.65rem] text-muted-foreground font-bold">{rider.email}</p>
                   </TableCell>
                   <TableCell>
                     <Badge variant={rider.plateNumber ? "default" : "secondary"} className="text-[0.6rem] font-black uppercase">
-                      {rider.plateNumber ? "Onboarded" : "Pending"}
+                      {rider.plateNumber ? "Verified" : "Pending Onboarding"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right flex justify-end gap-2">
@@ -202,7 +181,7 @@ export default function UserManagementPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Promote to Staff</DropdownMenuLabel>
+                        <DropdownMenuLabel>Authorize as Staff</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleRoleChange(rider, 'rider', 'supervisor')}>
                           Make Supervisor
                         </DropdownMenuItem>
@@ -220,7 +199,7 @@ export default function UserManagementPage() {
                       </Button>
                     ) : (
                       <Button asChild size="sm" variant="ghost" className="text-muted-foreground text-[0.6rem] uppercase h-8">
-                         <Link href="/fleet">View Details</Link>
+                         <Link href="/fleet">View Contract</Link>
                       </Button>
                     )}
                   </TableCell>
@@ -231,22 +210,22 @@ export default function UserManagementPage() {
         </CardContent>
       </Card>
       
-      <div className="bg-accent/5 p-6 rounded-2xl border border-dashed border-accent/20">
-        <h4 className="font-black text-xs uppercase tracking-widest text-accent mb-4 flex items-center justify-center gap-2">
-            <Info size={14} /> Safer Management Workflow
+      <div className="bg-secondary/30 p-6 rounded-2xl border border-dashed border-muted-foreground/20">
+        <h4 className="font-black text-xs uppercase tracking-widest text-muted-foreground mb-4 flex items-center justify-center gap-2">
+            <Info size={14} /> Standard Operational Workflow
         </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-[0.7rem] font-medium">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-[0.7rem] font-medium leading-relaxed">
             <div className="space-y-3">
-                <p className="font-bold uppercase text-accent border-b border-accent/20 pb-1">Role Verification:</p>
-                <p>1. Strangers can no longer sign up as Supervisors or Recruiters.</p>
-                <p>2. Everyone who registers starts as a basic **Rider** with zero privileges.</p>
-                <p>3. You verify their identity first, then use the **cog icon** to promote them to staff.</p>
+                <p className="font-bold uppercase text-accent border-b border-accent/20 pb-1">Safety First:</p>
+                <p>1. Everyone registers at `/signup` with their verified email.</p>
+                <p>2. They stay locked in the Activation Gate until email is clicked.</p>
+                <p>3. Once verified, they appear here. Use the **cog icon** to promote trusted staff.</p>
             </div>
              <div className="space-y-3">
-                <p className="font-bold uppercase text-primary border-b border-primary/20 pb-1">Google One-Tap:</p>
-                <p>1. Encourage staff to use Google Sign-In. It is safer as Google handles bot detection and 2FA.</p>
-                <p>2. It is simpler because they don't have to remember a separate "Boda Empire" password.</p>
-                <p>3. Their verified Google Name is automatically imported to your registry.</p>
+                <p className="font-bold uppercase text-primary border-b border-primary/20 pb-1">Contract Linking:</p>
+                <p>1. Identify the new Rider in the table above.</p>
+                <p>2. Click **"Onboard Profile"** to finalize their motorcycle details.</p>
+                <p>3. This links their legal Mkataba to their secure digital account for payments.</p>
             </div>
         </div>
       </div>

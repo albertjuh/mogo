@@ -1,9 +1,8 @@
-
 {
   "entities": {
     "Rider": {
       "title": "Rider",
-      "description": "Authenticated motorcycle rider with profile and contract data.",
+      "description": "Verified motorcycle driver profile linked to Auth identity.",
       "type": "object",
       "properties": {
         "name": { "type": "string" },
@@ -11,54 +10,32 @@
         "phone": { "type": "string" },
         "plateNumber": { "type": "string" },
         "vehicleType": { "enum": ["Boda Boda", "Bajaji"] },
-        "dailyFee": { "type": "number" },
-        "paymentFrequency": { "enum": ["Daily", "Weekly", "10-Day"] },
-        "contractStart": { "type": "string", "format": "date-time" },
-        "contractEnd": { "type": "string", "format": "date-time" },
         "active": { "type": "boolean" },
-        "guarantorName": { "type": "string" },
-        "guarantorPhone": { "type": "string" }
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["name", "email", "phone", "plateNumber", "active"]
+      "required": ["email", "active"]
     },
     "Payment": {
       "title": "Payment",
-      "description": "Financial transaction record with Selcom reference and JWT-based rider tracking.",
+      "description": "Financial ledger record for lease installments.",
       "type": "object",
       "properties": {
-        "riderId": { "type": "string", "description": "The UID of the rider from Firebase Auth." },
+        "riderId": { "type": "string" },
         "amount": { "type": "number" },
-        "selcomRef": { "type": "string", "description": "External bank reference number." },
+        "selcomRef": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "verified", "failed"] },
         "recordedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["riderId", "amount", "status", "recordedAt"]
     },
-    "Admin": {
-      "title": "Admin",
-      "description": "Internal staff with elevated privileges.",
+    "Staff": {
+      "title": "Staff Member",
+      "description": "Management account with operational privileges.",
       "type": "object",
       "properties": {
         "email": { "type": "string" },
-        "name": { "type": "string" }
-      }
-    },
-    "Supervisor": {
-      "title": "Supervisor",
-      "description": "Operational staff managing daily collections.",
-      "type": "object",
-      "properties": {
-        "email": { "type": "string" },
-        "name": { "type": "string" }
-      }
-    },
-    "Recruiter": {
-      "title": "Recruiter",
-      "description": "Staff responsible for onboarding new riders.",
-      "type": "object",
-      "properties": {
-        "email": { "type": "string" },
-        "name": { "type": "string" }
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "supervisor", "recruiter"] }
       }
     }
   },
@@ -68,23 +45,14 @@
   "firestore": {
     "/riders/{riderId}": {
       "schema": { "$ref": "#/backend/entities/Rider" },
-      "description": "Rider profiles. Owners can only access their own data via JWT uid verification."
+      "description": "Profiles for boda drivers."
     },
     "/payments/{paymentId}": {
       "schema": { "$ref": "#/backend/entities/Payment" },
-      "description": "Financial ledger. Riders see their own payments; Admins see all for audit."
+      "description": "Financial records for the fleet."
     },
-    "/admins/{adminId}": {
-      "schema": { "$ref": "#/backend/entities/Admin" },
-      "description": "Registry for users with management access."
-    },
-    "/supervisors/{supervisorId}": {
-      "schema": { "$ref": "#/backend/entities/Supervisor" },
-      "description": "Registry for users with operational oversight."
-    },
-    "/recruiters/{recruiterId}": {
-      "schema": { "$ref": "#/backend/entities/Recruiter" },
-      "description": "Registry for users with onboarding privileges."
-    }
+    "/admins/{id}": { "schema": { "$ref": "#/backend/entities/Staff" }, "description": "Registry for strategic owners." },
+    "/supervisors/{id}": { "schema": { "$ref": "#/backend/entities/Staff" }, "description": "Registry for ground operations." },
+    "/recruiters/{id}": { "schema": { "$ref": "#/backend/entities/Staff" }, "description": "Registry for onboarding team." }
   }
 }

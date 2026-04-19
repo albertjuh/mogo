@@ -12,14 +12,13 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // PRIMARY OVERRIDE: Your absolute authority
-    // Using .lower() to prevent case-sensitivity lockouts
+    // PRIMARY OVERRIDE: Absolute authority for the System Admin
     function isSystemAdmin() {
       return isSignedIn() && 
              request.auth.token.email.lower() == 'berto.admin@bodaempire.com';
     }
     
-    // REGISTRY CHECK: Check if UID exists in the admins collection
+    // REGISTRY CHECKS: Verify role by checking collection existence
     function isAdmin() {
       return isSystemAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
     }
@@ -37,43 +36,40 @@ service cloud.firestore {
     }
 
     // --- Global Administrative Access ---
-    // This allows you (System Admin) to bypass all specific collection rules
     match /{document=**} {
       allow read, write: if isSystemAdmin();
     }
 
-    // --- Collection Specific Rules (for non-System Admins) ---
+    // --- Collection Specific Rules ---
 
     match /riders/{riderId} {
-      // Riders see themselves; Managers see everyone
+      // Users see themselves; Managers see the fleet
       allow read, list: if isManager() || isOwner(riderId);
       
-      // Onboarding can be done by managers or self-reg
-      allow create: if isManager() || isOwner(riderId);
+      // Allow self-registration profile creation
+      allow create: if isOwner(riderId) || isManager();
       
-      // Updates allowed for managers or owners
+      // Updates for managers or owners
       allow update: if isManager() || isOwner(riderId);
       
-      // Only full Admins can delete rider profiles
+      // Deletion is a high-level admin task
       allow delete: if isAdmin();
     }
 
     match /payments/{paymentId} {
-      // Ledger visibility: Managers see all; Riders see own
+      // Riders see their own payments; Managers see audit trail
       allow read, list: if isManager() || (isSignedIn() && (resource == null || resource.data.riderId == request.auth.uid));
       
-      // Payment creation
+      // Payment recording
       allow create: if isSignedIn() && (isManager() || request.resource.data.riderId == request.auth.uid);
       
-      // Status verification (e.g. Selcom webhook flow)
+      // Status verification
       allow update: if isManager();
       
-      // Deletion restricted to Admins
       allow delete: if isAdmin();
     }
 
-    // Role-specific registries
-    // These rules allow a user to create their own role profile immediately after signup
+    // Role Registries - Allow users to create their own document during initial signup
     match /admins/{adminId} {
       allow read: if isSignedIn();
       allow create: if isOwner(adminId) || isSystemAdmin();
@@ -82,13 +78,13 @@ service cloud.firestore {
 
     match /supervisors/{supervisorId} {
       allow read: if isSignedIn();
-      allow create: if isOwner(supervisorId) || isAdmin();
+      allow create: if isOwner(supervisorId) || isSystemAdmin();
       allow update, delete: if isAdmin();
     }
 
     match /recruiters/{recruiterId} {
       allow read: if isSignedIn();
-      allow create: if isOwner(recruiterId) || isAdmin();
+      allow create: if isOwner(recruiterId) || isSystemAdmin();
       allow update, delete: if isAdmin();
     }
   }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, type ReactNode, useEffect } from "react";
@@ -30,7 +29,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   login: (email: string, password: string) => Promise<boolean>;
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
-  signup: (email: string, password: string, name: string, role: AppUser['role']) => Promise<boolean>;
+  signup: (email: string, password: string, name: string) => Promise<boolean>;
   reloadUser: () => Promise<void>;
   loading: boolean;
 }
@@ -56,13 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setFirebaseUser(fbUser);
       
       if (fbUser) {
-        let role: AppUser['role'] = 'rider';
+        const isSystemAdminEmail = fbUser.email?.toLowerCase() === 'berto.admin@bodaempire.com';
+        let role: AppUser['role'] = isSystemAdminEmail ? 'admin' : 'rider';
         let name = fbUser.displayName || "";
 
-        const isSystemAdminEmail = fbUser.email?.toLowerCase() === 'berto.admin@bodaempire.com';
-        
         try {
-          // Attempt to find the user in any of the role collections
+          // Verify role from database collections
           const [adminDoc, supervisorDoc, recruiterDoc, riderDoc] = await Promise.all([
             getDoc(doc(db, "admins", fbUser.uid)).catch(() => null),
             getDoc(doc(db, "supervisors", fbUser.uid)).catch(() => null),
@@ -84,12 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               name = riderDoc.data().name || name;
           }
 
-          // Force admin role if it's the specific admin email
+          // Force admin role for the master email
           if (isSystemAdminEmail) role = 'admin';
 
         } catch (e) {
-          console.warn("Profile check failed, using defaults.");
-          if (isSystemAdminEmail) role = 'admin';
+          console.warn("Role check failed, using safe defaults.");
         }
         
         setUser({
@@ -113,37 +110,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await signInWithPopup(auth, provider);
       
       const isSystemAdminEmail = res.user.email?.toLowerCase() === 'berto.admin@bodaempire.com';
+      const collectionName = isSystemAdminEmail ? "admins" : "riders";
       
-      // Check if user already exists in the registry
-      const [riderDoc, adminDoc] = await Promise.all([
-        getDoc(doc(db, "riders", res.user.uid)).catch(() => null),
-        getDoc(doc(db, "admins", res.user.uid)).catch(() => null)
-      ]);
-      
-      if (!riderDoc?.exists() && !adminDoc?.exists()) {
-          const collectionName = isSystemAdminEmail ? "admins" : "riders";
-          
-          await setDoc(doc(db, collectionName, res.user.uid), {
-            email: res.user.email?.toLowerCase(),
-            name: res.user.displayName || "",
-            role: isSystemAdminEmail ? 'admin' : 'rider',
-            createdAt: new Date().toISOString()
-          }, { merge: true });
-      }
+      // Auto-register in the database if document doesn't exist
+      await setDoc(doc(db, collectionName, res.user.uid), {
+        email: res.user.email?.toLowerCase(),
+        name: res.user.displayName || "",
+        role: isSystemAdminEmail ? 'admin' : 'rider',
+        createdAt: new Date().toISOString()
+      }, { merge: true });
+
       return { success: true };
     } catch (e: any) {
-      console.error("Google login error:", e);
-      let errorMessage = "An unknown error occurred during Google sign-in.";
-      
-      if (e.code === 'auth/operation-not-allowed') {
-        errorMessage = "Google Sign-In is not enabled in your Firebase Console. Please enable it in Authentication > Sign-in method.";
-      } else if (e.code === 'auth/popup-closed-by-user') {
-        errorMessage = "Sign-in popup was closed before completion.";
-      } else if (e.code === 'auth/cancelled-popup-request') {
-        errorMessage = "Sign-in request was cancelled.";
-      }
-      
-      return { success: false, error: errorMessage };
+      console.error("Google Auth error:", e);
+      let message = "Could not sign in with Google.";
+      if (e.code === 'auth/operation-not-allowed') message = "Google login not enabled in Firebase Console.";
+      return { success: false, error: message };
     }
   };
 
@@ -160,8 +142,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = async (email: string, password: string, name: string) => {
     try {
       const res = await createUserWithEmailAndPassword(auth, email, password);
-      
-      // Send Activation link immediately
       await sendEmailVerification(res.user);
 
       const isSystemAdminEmail = email.toLowerCase() === 'berto.admin@bodaempire.com';
@@ -176,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       return true;
     } catch (e) {
-      console.error("Signup failed:", e);
+      console.error("Signup error:", e);
       return false;
     }
   };
@@ -195,8 +175,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useUser() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useUser must be used within an AuthProvider");
-  }
+  if (context === undefined) throw new Error("useUser must be used within an AuthProvider");
   return context;
 }
