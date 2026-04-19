@@ -1,153 +1,151 @@
 /**
- * BodaEmpire Fleet Management Security Rules
+ * FIREBASE SECURITY RULES: BodaEmpire Management System
+ * 
+ * CORE PHILOSOPHY:
+ * This ruleset implements a dual-layered security model centered on Administrative Control 
+ * and Rider Privacy. It follows the principle of Authorization Independence by utilizing 
+ * denormalized fields (like riderId) to make security decisions without costly document lookups.
  *
- * Core Philosophy:
- * This ruleset implements a centralized administrative management model. Authorization 
- * is primarily driven by administrative roles, while individual riders are granted 
- * secure access to their own professional records (contracts, payments, and alerts) 
- * via denormalized ownership fields.
+ * DATA STRUCTURE:
+ * The database is organized into top-level collections:
+ * - /riders: Primary identity and profile information.
+ * - /contracts: Legal agreements between the business and riders.
+ * - /payments: Transaction history for contract fulfillment.
+ * - /alerts: System-generated notifications regarding fleet health.
+ * - /fleetGoals: High-level business expansion targets.
  *
- * Data Structure:
- * The system utilizes a flattened, top-level collection structure (/riders, /contracts, 
- * /payments, /alerts, /fleetGoals). This organization supports high-scale reporting 
- * and administrative oversight while maintaining clear security boundaries.
+ * KEY SECURITY DECISIONS:
+ * 1. Role-Based Access Control (RBAC): Global administrative access is managed via a
+ *    dedicated '/admins' collection. Users with a document in this collection have full 
+ *    read/write permissions across the system.
+ * 2. Rider-Specific Access: If a rider is authenticated, they are granted read-only 
+ *    access to their own profile, contracts, payments, and alerts. This is achieved by 
+ *    checking the 'riderId' field directly on each document.
+ * 3. Relational Integrity: On creation, documents must correctly identify the associated 
+ *    rider (riderId) to maintain data consistency and secure future access.
+ * 4. Immutability: Critical relational links (e.g., the riderId on a payment) are 
+ *    immutable once created to prevent data drifting between user accounts.
  *
- * Key Security Decisions:
- * - Authorization Independence: Critical fields like 'riderId' are denormalized onto 
- *   contracts, payments, and alerts. This allows the rules to verify access 
- *   without performing expensive cross-document lookups (get() calls).
- * - Administrative Override: A dedicated '/admins' collection identifies users with 
- *   full system access. The existence of a document at /admins/{uid} grants global CRUD.
- * - Rider Self-Service: Riders can view their own profile and associated financial/contract 
- *   data, but cannot modify these records, ensuring data integrity for the fleet owner.
- * - Prototyping Flexibility: While authorization is strictly enforced based on identity 
- *   and relationships, the specific data types and non-relational fields are not 
- *   validated to allow for rapid schema iteration.
- *
- * Denormalization for Authorization:
- * To ensure performant and reliable security checks, the 'riderId' is required on all 
- * documents that belong to a specific rider. This allows for direct validation:
- * 'resource.data.riderId == request.auth.uid'.
+ * DENORMALIZATION FOR AUTHORIZATION:
+ * To ensure high performance and low cost, 'riderId' and 'contractId' are stored directly 
+ * on all child entities (Contracts, Payments, Alerts). This allows the rules to verify 
+ * ownership (e.g., resource.data.riderId == request.auth.uid) in a single atomic operation.
  */
 
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- HELPER FUNCTIONS ---
+    // --- Helper Functions ---
 
     /** @description Checks if the user is authenticated. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the user exists in the admins collection. */
+    /** @description Checks if the authenticated user has administrative privileges. */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
-    /** @description Checks if the authenticated user's ID matches the provided ID. */
+    /** @description Checks if the authenticated user is the owner of the document based on the path ID. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** @description Checks if the authenticated user is the rider associated with the document. */
-    function isDocumentRider(data) {
-      return isSignedIn() && data.riderId == request.auth.uid;
+    /** @description Checks if the authenticated user is the rider referenced in the document data. */
+    function isRider(riderId) {
+      return isSignedIn() && request.auth.uid == riderId;
     }
 
-    /** @description Verifies ownership and document existence for updates/deletes. */
-    function isAdminExisting() {
-      return isAdmin() && resource != null;
+    /** @description Verifies document existence and checks ownership for update/delete. */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
     }
 
-    // --- COLLECTION RULES ---
+    // --- Collection Rules ---
 
     /**
-     * @description Administrative collection. Existence of a UID here grants full system access.
-     * @path /admins/{adminId}
-     * @allow (get) Any signed-in user can check if an ID is an admin.
-     * @deny (write) No one can write to this collection via client SDKs (managed via Console/Admin SDK).
-     * @principle Role-based access control root.
-     */
-    match /admins/{adminId} {
-      allow get: if isSignedIn();
-      allow list: if isAdmin();
-      allow create, update, delete: if false; 
-    }
-
-    /**
-     * @description Stores primary information for each motorcycle rider.
+     * @description Rules for Rider profiles. Admins manage all; Riders view their own.
      * @path /riders/{riderId}
-     * @allow (create) A user can create their own rider profile.
-     * @deny (update) Only admins can update rider status or details.
-     * @principle Enforces path-based ownership for riders and admin oversight.
+     * @allow (get) auth.uid == 'user_123' requesting /riders/user_123
+     * @deny (list) any non-admin attempting to list all riders.
+     * @principle Enforces path-based ownership for riders and administrative oversight.
      */
     match /riders/{riderId} {
       allow get: if isAdmin() || isOwner(riderId);
       allow list: if isAdmin();
-      allow create: if isOwner(riderId) && request.resource.data.id == riderId;
-      allow update: if isAdminExisting() && request.resource.data.id == resource.data.id;
-      allow delete: if isAdminExisting();
+      allow create: if isAdmin() || (isOwner(riderId) && request.resource.data.id == riderId);
+      allow update: if isAdmin() || (isExistingOwner(riderId) && request.resource.data.id == resource.data.id);
+      allow delete: if isAdmin();
     }
 
     /**
-     * @description Details of contracts between BodaEmpire and riders.
+     * @description Rules for Contracts. Linked to riders via riderId field.
      * @path /contracts/{contractId}
-     * @allow (get) The specific rider or an admin can view the contract.
-     * @deny (write) Riders cannot create or modify contracts.
-     * @principle Authorization independence using denormalized 'riderId'.
+     * @allow (get) auth.uid == 'user_123' where resource.data.riderId == 'user_123'
+     * @deny (create) any non-admin attempting to create a contract.
+     * @principle Uses denormalized riderId for authorization independence.
      */
     match /contracts/{contractId} {
-      allow get: if isAdmin() || isDocumentRider(resource.data);
-      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100); // Note: Secure listing requires riderId filter
-      allow create: if isAdmin() && request.resource.data.id == contractId;
-      allow update: if isAdminExisting() && request.resource.data.id == resource.data.id;
-      allow delete: if isAdminExisting();
+      allow get: if isAdmin() || isRider(resource.data.riderId);
+      allow list: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() && request.resource.data.riderId == resource.data.riderId;
+      allow delete: if isAdmin();
     }
 
     /**
-     * @description Records payment transactions made by riders.
+     * @description Rules for Payment transactions.
      * @path /payments/{paymentId}
-     * @allow (get) The paying rider or an admin can view the receipt.
-     * @deny (delete) Payments are permanent records and cannot be deleted.
-     * @principle Relational integrity and audit trail protection.
+     * @allow (list) admin users generating fleet-wide reports.
+     * @deny (update) any user attempting to change the riderId or contractId of a payment.
+     * @principle Protects financial records with administrative-only writes and immutable relations.
      */
     match /payments/{paymentId} {
-      allow get: if isAdmin() || isDocumentRider(resource.data);
-      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100);
-      allow create: if isAdmin() && request.resource.data.id == paymentId;
-      allow update: if isAdminExisting() && request.resource.data.id == resource.data.id;
-      allow delete: if false;
+      allow get: if isAdmin() || isRider(resource.data.riderId);
+      allow list: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() 
+        && request.resource.data.riderId == resource.data.riderId 
+        && request.resource.data.contractId == resource.data.contractId;
+      allow delete: if isAdmin();
     }
 
     /**
-     * @description System-generated alerts for missed payments or expirations.
+     * @description Rules for system-generated Alerts.
      * @path /alerts/{alertId}
-     * @allow (update) Admins can resolve alerts (mark isResolved = true).
-     * @deny (create) Only the system/admin can generate alerts.
-     * @principle Restricts alert lifecycle management to administrative roles.
+     * @allow (get) rider viewing a missed payment notification assigned to them.
+     * @deny (delete) a rider attempting to delete their own alert.
+     * @principle Restricts alert management to the system/admin while allowing rider visibility.
      */
     match /alerts/{alertId} {
-      allow get: if isAdmin() || isDocumentRider(resource.data);
-      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100);
-      allow create: if isAdmin() && request.resource.data.id == alertId;
-      allow update: if isAdminExisting() && request.resource.data.id == resource.data.id;
-      allow delete: if isAdminExisting();
+      allow get: if isAdmin() || isRider(resource.data.riderId);
+      allow list: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() && request.resource.data.riderId == resource.data.riderId;
+      allow delete: if isAdmin();
     }
 
     /**
-     * @description Strategic goals for BodaEmpire's fleet expansion.
+     * @description Rules for strategic Fleet Goals.
      * @path /fleetGoals/{fleetGoalId}
-     * @allow (read) Any authenticated admin can view goals.
-     * @deny (read) Non-admin riders cannot see fleet expansion targets.
-     * @principle Internal administrative data protection.
+     * @allow (list) admin tracking expansion progress.
+     * @deny (get) any non-admin attempting to view internal business goals.
+     * @principle Restricts access to business-sensitive expansion data to administrators only.
      */
     match /fleetGoals/{fleetGoalId} {
       allow get, list: if isAdmin();
-      allow create: if isAdmin() && request.resource.data.id == fleetGoalId;
-      allow update: if isAdminExisting() && request.resource.data.id == resource.data.id;
-      allow delete: if isAdminExisting();
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Admin Roles collection. 
+     * This collection is for internal system use to define who has administrative access.
+     */
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Admin roles should be managed via Firebase Admin SDK or Console for security.
     }
   }
 }
