@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const paymentsQuery = useMemoFirebase(() => {
     if (!user) return null;
     if (user.role === 'rider') {
+      // Isolation: Only fetch payments belonging to this specific Rider UID
       return query(collection(db, "payments"), where("riderId", "==", user.id));
     }
     return collection(db, "payments");
@@ -128,7 +129,7 @@ export default function DashboardPage() {
     return (
       <div className="space-y-6">
         <header className="space-y-1">
-          <h1 className="text-3xl font-black tracking-tight font-headline">Habari, {user.email.split('@')[0]}!</h1>
+          <h1 className="text-3xl font-black tracking-tight font-headline">Habari, {user.name || user.email.split('@')[0]}!</h1>
           <p className="text-muted-foreground">Muhtasari wa Mkopo wako wa Mogo</p>
         </header>
 

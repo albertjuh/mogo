@@ -1,9 +1,8 @@
 
 "use client";
 
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import { initialLoans, initialRiders, initialPayments } from "@/lib/data";
-import type { Loan, Rider, Payment } from "@/lib/types";
+import { useFirestore, useCollection, useDoc, useMemoFirebase } from "@/firebase";
+import { collection, query, where, doc } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useUser } from "@/firebase/auth/use-user";
@@ -12,11 +11,9 @@ import { cn } from "@/lib/utils";
 
 export function DashboardHeader() {
   const { user } = useUser();
-  const [loans] = useLocalStorage<Loan[]>("loans", initialLoans);
-  const [riders] = useLocalStorage<Rider[]>("riders", initialRiders);
-  const [payments] = useLocalStorage<Payment[]>("payments", initialPayments);
+  const db = useFirestore();
+  
   const [clientNow, setClientNow] = useState<Date | null>(null);
-
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
 
@@ -44,18 +41,32 @@ export function DashboardHeader() {
     return () => mainEl.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const activeLoan = useMemo(() => loans.find(l => l.clientId === user?.id && l.loanStatus === "Active"), [loans, user]);
-  
+  // Real-time Firestore data for the header
+  const riderDocRef = useMemoFirebase(() => user ? doc(db, "riders", user.id) : null, [db, user]);
+  const { data: riderProfile } = useDoc(riderDocRef);
+
+  const ridersQuery = useMemoFirebase(() => {
+    if (!user || user.role === 'rider') return null;
+    return collection(db, "riders");
+  }, [db, user]);
+  const { data: riders } = useCollection(ridersQuery);
+
+  const paymentsQuery = useMemoFirebase(() => {
+    if (!user || user.role === 'rider' || !clientNow) return null;
+    return collection(db, "payments");
+  }, [db, user, clientNow]);
+  const { data: payments } = useCollection(paymentsQuery);
+
   const mngtStats = useMemo(() => {
-    if (!clientNow || user?.role === 'rider') return null;
+    if (!clientNow || !riders || !payments) return null;
     const activeFleet = riders.filter(r => r.active).length;
     const paidTodayCount = new Set(
       payments
-        .filter(p => isSameDay(parseISO(p.date), clientNow))
+        .filter(p => isSameDay(parseISO(p.recordedAt || p.date), clientNow))
         .map(p => p.riderId)
     ).size;
     return { activeFleet, paidTodayCount };
-  }, [riders, payments, clientNow, user]);
+  }, [riders, payments, clientNow]);
 
   const isLoading = !clientNow;
 
@@ -80,15 +91,14 @@ export function DashboardHeader() {
             {user?.role !== 'rider' ? (
                 <div className="relative overflow-hidden">
                     <div className="absolute -top-10 -right-10 w-40 h-40 border-8 border-white/5 rounded-full" />
-                    
                     <p className="text-xs uppercase text-white/60 font-bold tracking-widest relative z-10">
                         {user?.role === 'admin' ? 'Strategic Command' : 'Ground Operations'}
                     </p>
                     <p className="font-black text-4xl text-white italic my-1 relative z-10 uppercase">
-                        {mngtStats?.activeFleet} <span className="text-primary">Riders</span>
+                        {mngtStats?.activeFleet || 0} <span className="text-primary">Riders</span>
                     </p>
                     <p className="text-sm text-white/80 font-semibold relative z-10 uppercase tracking-tighter">
-                        {mngtStats?.paidTodayCount} {mngtStats?.paidTodayCount === 1 ? 'Collection' : 'Collections'} Today
+                        {mngtStats?.paidTodayCount || 0} {mngtStats?.paidTodayCount === 1 ? 'Collection' : 'Collections'} Today
                     </p>
                 </div>
             ) : (
@@ -96,10 +106,10 @@ export function DashboardHeader() {
                     <div className="absolute -top-10 -right-10 w-40 h-40 border-8 border-primary/20 rounded-full" />
                     <p className="text-xs uppercase text-white/60 font-bold tracking-widest relative z-10">Mkopo Wako</p>
                     <p className="font-black text-4xl text-primary italic my-1 relative z-10">
-                      {activeLoan ? activeLoan.loanType : "Huna Mkopo"}
+                      {riderProfile?.vehicleType || "Huna Mkopo"}
                     </p>
                     <p className="text-sm text-white/80 font-semibold relative z-10">
-                      {activeLoan ? `Hali: ${activeLoan.loanStatus}` : "Omba mkopo leo"}
+                      {riderProfile?.plateNumber ? `Plate: ${riderProfile.plateNumber}` : "Omba mkopo leo"}
                     </p>
                 </div>
             )}
