@@ -42,34 +42,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setFirebaseUser(fbUser);
       
       if (fbUser) {
-        // Parallel check for the user's role in Firestore collections
-        const [adminDoc, supervisorDoc, recruiterDoc, riderDoc] = await Promise.all([
-          getDoc(doc(db, "admins", fbUser.uid)),
-          getDoc(doc(db, "supervisors", fbUser.uid)),
-          getDoc(doc(db, "recruiters", fbUser.uid)),
-          getDoc(doc(db, "riders", fbUser.uid))
-        ]);
-        
         let role: AppUser['role'] = 'rider';
         let name = "";
-        
-        if (adminDoc.exists()) {
-            role = 'admin';
-            name = adminDoc.data().name || "";
-        } else if (supervisorDoc.exists()) {
-            role = 'supervisor';
-            name = supervisorDoc.data().name || "";
-        } else if (recruiterDoc.exists()) {
-            role = 'recruiter';
-            name = recruiterDoc.data().name || "";
-        } else if (riderDoc.exists()) {
-            role = 'rider';
-            name = riderDoc.data().name || "";
-        }
 
-        // Administrative Override for specific email
+        // Administrative Override for specific email - check this FIRST to avoid lockout
         if (fbUser.email === 'berto.admin@bodaempire.com') {
           role = 'admin';
+        }
+
+        try {
+          // Attempt to get role from Firestore, but don't let it crash the login
+          const [adminDoc, supervisorDoc, recruiterDoc, riderDoc] = await Promise.all([
+            getDoc(doc(db, "admins", fbUser.uid)).catch(() => null),
+            getDoc(doc(db, "supervisors", fbUser.uid)).catch(() => null),
+            getDoc(doc(db, "recruiters", fbUser.uid)).catch(() => null),
+            getDoc(doc(db, "riders", fbUser.uid)).catch(() => null)
+          ]);
+          
+          if (adminDoc?.exists()) {
+              role = 'admin';
+              name = adminDoc.data().name || "";
+          } else if (supervisorDoc?.exists()) {
+              role = 'supervisor';
+              name = supervisorDoc.data().name || "";
+          } else if (recruiterDoc?.exists()) {
+              role = 'recruiter';
+              name = recruiterDoc.data().name || "";
+          } else if (riderDoc?.exists()) {
+              role = 'rider';
+              name = riderDoc.data().name || "";
+          }
+        } catch (e) {
+          console.warn("Could not fetch user role profile, falling back to default.", e);
         }
         
         setUser({
@@ -100,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = async (email: string, password: string, name: string, role: AppUser['role']) => {
     try {
       const res = await createUserWithEmailAndPassword(auth, email, password);
+      
       // Create the role entry in the corresponding collection
       const collectionName = role === 'admin' ? 'admins' : 
                              role === 'supervisor' ? 'supervisors' : 
@@ -120,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    setLoading(true);
     await signOut(auth);
   };
 

@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User, Eye, EyeOff, Lock } from "lucide-react";
+import { Loader2, User, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { useUser } from "./use-user";
@@ -56,30 +56,43 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    if (mode === "login") {
-      const success = await login(values.email, values.password);
-      if (success) {
-        toast({ title: "Logged In Successfully!" });
-      } else {
+    try {
+        if (mode === "login") {
+          const success = await login(values.email, values.password);
+          if (success) {
+            toast({ title: "Logged In Successfully!" });
+            // Redirect is handled by AuthGuard, but we reset loading state just in case redirect takes time
+            setTimeout(() => setIsLoading(false), 2000);
+          } else {
+            toast({
+              variant: "destructive",
+              title: "Authentication Failed",
+              description: "Invalid email or password.",
+            });
+            setIsLoading(false);
+          }
+        } else {
+          const success = await signup(values.email, values.password, values.name || "", values.role || 'rider');
+          if (success) {
+            toast({ title: "Account Created Successfully!" });
+            setTimeout(() => setIsLoading(false), 2000);
+          } else {
+            toast({
+              variant: "destructive",
+              title: "Signup Failed",
+              description: "Could not create account. Email might already be in use.",
+            });
+            setIsLoading(false);
+          }
+        }
+    } catch (error) {
+        console.error("Auth error:", error);
         toast({
-          variant: "destructive",
-          title: "Authentication Failed",
-          description: "Invalid email or password.",
+            variant: "destructive",
+            title: "Error",
+            description: "An unexpected error occurred. Please try again."
         });
         setIsLoading(false);
-      }
-    } else {
-      const success = await signup(values.email, values.password, values.name || "", values.role || 'rider');
-      if (success) {
-        toast({ title: "Account Created Successfully!" });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Signup Failed",
-          description: "Could not create account. Email might already be in use.",
-        });
-        setIsLoading(false);
-      }
     }
   }
 
@@ -113,7 +126,10 @@ export function AuthForm({ mode }: AuthFormProps) {
               <FormItem>
                 <FormLabel className={mode === 'signup' ? 'text-white/80' : ''}>Email Address</FormLabel>
                 <FormControl>
-                  <Input placeholder="name@email.com" {...field} className={mode === 'signup' ? "bg-white/5 border-white/10 text-white" : ""} />
+                    <div className="relative">
+                        <Mail className={cn("absolute left-3 top-3 h-4 w-4 text-muted-foreground", mode === 'signup' && "text-white/40")} />
+                        <Input placeholder="name@email.com" {...field} className={cn("pl-9", mode === 'signup' ? "bg-white/5 border-white/10 text-white" : "")} />
+                    </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
