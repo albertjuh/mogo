@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -47,7 +46,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     defaultValues: {
       email: "",
       password: "",
-      role: 'admin',
+      role: 'rider',
     },
   });
 
@@ -66,7 +65,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         setIsLoading(false);
       }
     } else {
-      const success = await signup(values.email, values.password, values.role || 'admin');
+      const success = await signup(values.email, values.password, values.role || 'rider');
       if (success) {
         toast({ title: "Account Created Successfully!" });
       } else {
@@ -125,7 +124,6 @@ export function AuthForm({ mode }: AuthFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="admin">Administrator (Strategic)</SelectItem>
                       <SelectItem value="supervisor">Supervisor (Ground Ops)</SelectItem>
                       <SelectItem value="recruiter">Recruiter (Onboarding)</SelectItem>
                       <SelectItem value="rider">Rider (Client)</SelectItem>
