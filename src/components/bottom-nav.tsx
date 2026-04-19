@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -18,7 +17,7 @@ export function BottomNav() {
     if (user.role === 'rider') {
       return [
         { href: "/", label: "Home", icon: Home },
-        { href: "/lipa", label: "Lipa", icon: Wallet },
+        { href: "/payments", label: "History", icon: BarChart3 }, // Swapped Lipa for History for better account management
         { href: "/vault", label: "Docs", icon: ShieldCheck },
         { href: "/savings", label: "Savings", icon: TrendingUp },
       ];

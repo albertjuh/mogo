@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -19,7 +18,7 @@ export function Sidebar() {
     if (user.role === 'rider') {
       return [
         { href: "/", label: "My Dashboard", icon: Home },
-        { href: "/lipa", label: "Lipa Sasa", icon: Wallet },
+        // Removed Lipa Sasa from here as it's the primary action on the Home Dashboard
         { href: "/vault", label: "Document Vault", icon: ShieldCheck },
         { href: "/savings", label: "Savings Tracker", icon: TrendingUp },
         { href: "/payments", label: "Payment History", icon: BarChart3 },
