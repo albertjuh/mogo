@@ -11,7 +11,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Ghost, Flame, AlertTriangle } from "lucide-react";
+import { AlertCircle, CheckCircle2, DollarSign } from "lucide-react";
 
 export default function CollectPage() {
   const [riders] = useLocalStorage<Rider[]>("riders", initialRiders);
@@ -79,8 +79,8 @@ export default function CollectPage() {
   return (
     <div className="space-y-6">
       <div className="bg-accent text-white -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 p-6 rounded-b-3xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-4 opacity-10">
-            <AlertTriangle size={120} />
+        <div className="absolute top-0 right-0 p-4 opacity-5">
+            <DollarSign size={120} />
         </div>
         <p className="text-sm uppercase text-white/60 font-bold tracking-widest">{headerDate}</p>
         <h1 className="font-black text-3xl my-1 italic uppercase">Daily Collection</h1>
@@ -91,7 +91,7 @@ export default function CollectPage() {
             </div>
             <div className="bg-white/10 rounded-lg p-2 border border-white/5">
                 <p className="text-xl font-bold">{riders.filter(r => r.active).length - paidTodayCount}</p>
-                <p className="text-[0.6rem] uppercase font-semibold text-white/60">Missing</p>
+                <p className="text-[0.6rem] uppercase font-semibold text-white/60">Pending</p>
             </div>
             <div className="bg-white/10 rounded-lg p-2 border border-white/5">
                 <p className="text-xl font-bold">{(tzsToday / 1000).toFixed(0)}K</p>
@@ -104,39 +104,39 @@ export default function CollectPage() {
         {ridersWithStatus.map(rider => (
           <Card key={rider.id} className={cn(
             "border-none shadow-sm transition-all duration-300",
-            rider.balance < 0 ? "bg-red-50 ring-1 ring-red-400" : rider.balance > 0 ? "bg-green-50 ring-1 ring-primary" : "bg-white"
+            rider.balance < 0 ? "bg-red-50 ring-1 ring-red-300" : rider.balance > 0 ? "bg-green-50 ring-1 ring-primary/30" : "bg-white"
           )}>
             <CardContent className="p-4 flex justify-between items-center">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                    <p className="font-black italic uppercase">{rider.name}</p>
+                    <p className="font-black italic uppercase text-sm">{rider.name}</p>
                     <Badge variant="secondary" className="text-[0.5rem] font-black uppercase px-1.5 h-4">
                         {rider.paymentFrequency}
                     </Badge>
-                    {rider.balance < 0 && <Ghost className="h-4 w-4 text-red-600 animate-bounce" />}
-                    {rider.balance > 0 && <Flame className="h-4 w-4 text-orange-500 animate-pulse" />}
+                    {rider.balance < 0 && <AlertCircle className="h-4 w-4 text-red-600" />}
+                    {rider.balance > 0 && <CheckCircle2 className="h-4 w-4 text-primary" />}
                 </div>
-                <p className="text-[0.6rem] text-muted-foreground font-black tracking-widest">{rider.plateNumber}</p>
+                <p className="text-[0.6rem] text-muted-foreground font-black tracking-widest uppercase">{rider.plateNumber}</p>
                 {rider.balance < 0 ? (
-                   <p className="text-[0.65rem] text-red-600 font-black uppercase flex items-center gap-1 animate-pulse">
-                       ⚠ TERROR: Owed TZS {Math.abs(rider.balance).toLocaleString()}
+                   <p className="text-[0.65rem] text-red-600 font-bold uppercase flex items-center gap-1">
+                       Owed: TZS {Math.abs(rider.balance).toLocaleString()}
                    </p>
                 ) : rider.balance > 0 ? (
-                   <p className="text-[0.65rem] text-primary font-black uppercase flex items-center gap-1">
-                       🏆 BOSS: Overpaid TZS {rider.balance.toLocaleString()}
+                   <p className="text-[0.65rem] text-primary font-bold uppercase flex items-center gap-1">
+                       Credit: TZS {rider.balance.toLocaleString()}
                    </p>
                 ) : (
-                   <p className="text-[0.65rem] text-primary font-bold uppercase flex items-center gap-1">
-                       ✓ ON TARGET
+                   <p className="text-[0.65rem] text-muted-foreground font-bold uppercase flex items-center gap-1">
+                       ✓ Clear
                    </p>
                 )}
               </div>
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                    <p className={cn("text-[0.6rem] font-black uppercase tracking-tighter", rider.paidToday ? 'text-primary' : 'text-red-500')}>
-                        {rider.paidToday ? 'Leo OK' : 'No Payment'}
+                    <p className={cn("text-[0.6rem] font-black uppercase tracking-tighter", rider.paidToday ? 'text-primary' : 'text-muted-foreground')}>
+                        {rider.paidToday ? 'Recieved' : 'Pending'}
                     </p>
-                    <p className="text-[0.6rem] text-muted-foreground font-black">{rider.dailyFee.toLocaleString()}</p>
+                    <p className="text-[0.6rem] text-muted-foreground font-bold">{rider.dailyFee.toLocaleString()}</p>
                 </div>
                 <Switch
                   className="data-[state=checked]:bg-primary"

@@ -9,7 +9,7 @@ import { format, parseISO, eachDayOfInterval, eachWeekOfInterval, isSameDay, isB
 import { useUser } from "@/firebase/auth/use-user";
 import { useMemo, useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Flame, AlertTriangle, TrendingUp, CheckCircle2, Ghost } from "lucide-react";
+import { AlertCircle, CheckCircle2, TrendingUp, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type PaymentSlot = {
@@ -60,7 +60,6 @@ export default function PaymentsPage() {
 
       intervals.forEach((dueDate) => {
         if (totalPaidRemaining >= fee) {
-          // Find the payment that covered this. For simplicity, we look for payments on or after this due date
           const coveringPayment = riderPayments.find(p => {
              const pDate = startOfDay(parseISO(p.date));
              return isSameDay(pDate, dueDate) || isBefore(dueDate, pDate);
@@ -87,7 +86,7 @@ export default function PaymentsPage() {
 
       return {
         rider,
-        slots: slots.reverse(), // Newest first
+        slots: slots.reverse(),
         totalPaidRemaining,
         isOverpaid,
         hasDebt
@@ -101,22 +100,21 @@ export default function PaymentsPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-3xl font-black font-headline uppercase italic tracking-tighter">Payment Ledger</h1>
-        <p className="text-muted-foreground font-medium">Tracking every cent of the Mogo Empire.</p>
+        <p className="text-muted-foreground font-medium">Official payment records and status tracking.</p>
       </header>
 
       {riderStats.map(({ rider, slots, totalPaidRemaining, isOverpaid, hasDebt }) => (
         <Card key={rider.id} className={cn(
           "border-none shadow-xl transition-all duration-500",
-          hasDebt ? "bg-red-50 ring-2 ring-red-500 animate-pulse" : "",
-          isOverpaid ? "bg-green-50 ring-2 ring-primary" : ""
+          hasDebt ? "bg-red-50 ring-1 ring-red-200" : isOverpaid ? "bg-green-50 ring-1 ring-primary/20" : ""
         )}>
           <CardHeader className="pb-2">
             <div className="flex justify-between items-start">
               <div>
                 <CardTitle className="font-black text-2xl italic uppercase flex items-center gap-2">
                   {rider.name}
-                  {hasDebt && <Ghost className="text-red-600 animate-bounce" />}
-                  {isOverpaid && <Flame className="text-orange-500 animate-pulse" />}
+                  {hasDebt && <AlertCircle className="text-red-600 h-5 w-5" />}
+                  {isOverpaid && <TrendingUp className="text-primary h-5 w-5" />}
                 </CardTitle>
                 <CardDescription className="font-bold text-xs">
                   {rider.plateNumber} • {rider.paymentFrequency} Plan (TZS {rider.dailyFee.toLocaleString()})
@@ -124,16 +122,16 @@ export default function PaymentsPage() {
               </div>
               <div className="text-right">
                 {hasDebt ? (
-                   <Badge variant="destructive" className="font-black animate-pulse px-4 py-1 text-sm">
-                     <AlertTriangle className="mr-2 h-4 w-4" /> TERROR: DEBT DETECTED!
+                   <Badge variant="destructive" className="font-black px-4 py-1 text-sm">
+                     ARREARS DETECTED
                    </Badge>
                 ) : isOverpaid ? (
-                   <Badge className="bg-orange-500 hover:bg-orange-600 font-black px-4 py-1 text-sm text-white">
-                     <Flame className="mr-2 h-4 w-4" /> MOTO SANA! OVERACHIEVER!
+                   <Badge className="bg-primary font-black px-4 py-1 text-sm text-white">
+                     ADVANCE PAYMENT
                    </Badge>
                 ) : (
-                   <Badge className="bg-primary font-black px-4 py-1 text-sm">
-                     <CheckCircle2 className="mr-2 h-4 w-4" /> ALL CLEAR
+                   <Badge className="bg-primary/10 text-primary border-primary/20 font-black px-4 py-1 text-sm">
+                     IN GOOD STANDING
                    </Badge>
                 )}
               </div>
@@ -141,9 +139,9 @@ export default function PaymentsPage() {
           </CardHeader>
           <CardContent>
             {isOverpaid && (
-              <div className="mb-4 p-3 bg-primary/20 rounded-xl border-2 border-primary border-dashed text-center">
-                <p className="font-black text-primary italic text-lg uppercase tracking-widest animate-bounce">
-                  + TZS {totalPaidRemaining.toLocaleString()} EXTRA! THIS DRIVER WORKS HARD! 🚀
+              <div className="mb-4 p-3 bg-primary/10 rounded-xl border-2 border-primary border-dashed text-center">
+                <p className="font-black text-primary italic text-sm uppercase tracking-wider">
+                  + TZS {totalPaidRemaining.toLocaleString()} ACCOUNT CREDIT
                 </p>
               </div>
             )}
@@ -153,31 +151,31 @@ export default function PaymentsPage() {
                 <div 
                   key={idx} 
                   className={cn(
-                    "flex items-center justify-between p-3 rounded-lg border-2 transition-all",
-                    slot.status === 'unpaid' && "bg-red-600 text-white border-red-800 shadow-lg scale-[0.98]",
-                    slot.status === 'paid-on-time' && "bg-white border-primary/20",
-                    slot.status === 'paid-late' && "bg-yellow-50 border-yellow-400 text-yellow-900"
+                    "flex items-center justify-between p-3 rounded-lg border transition-all",
+                    slot.status === 'unpaid' && "bg-red-100 border-red-200 text-red-900 shadow-sm",
+                    slot.status === 'paid-on-time' && "bg-white border-primary/10",
+                    slot.status === 'paid-late' && "bg-amber-50 border-amber-200 text-amber-900"
                   )}
                 >
                   <div className="flex items-center gap-3">
                     <div className={cn(
                       "w-10 h-10 rounded-full flex items-center justify-center font-black",
-                      slot.status === 'unpaid' ? "bg-white text-red-600 animate-ping" : "bg-secondary text-muted-foreground"
+                      slot.status === 'unpaid' ? "bg-red-200 text-red-700" : "bg-secondary text-muted-foreground"
                     )}>
                       {format(slot.dueDate, "dd")}
                     </div>
                     <div>
-                      <p className="font-black uppercase italic leading-none">{format(slot.dueDate, "MMMM yyyy")}</p>
-                      <p className="text-[0.6rem] font-bold opacity-80 uppercase tracking-widest mt-1">
-                        {slot.status === 'unpaid' ? "MISSED PAYMENT - TERROR!" : 
-                         slot.status === 'paid-late' ? `DEBT COVERED ON ${format(parseISO(slot.actualPaymentDate!), "dd MMM")}` :
-                         "CLEAN ON-TIME PAYMENT"}
+                      <p className="font-black uppercase italic leading-none text-sm">{format(slot.dueDate, "MMMM yyyy")}</p>
+                      <p className="text-[0.6rem] font-bold opacity-70 uppercase tracking-widest mt-1">
+                        {slot.status === 'unpaid' ? "PAYMENT MISSING" : 
+                         slot.status === 'paid-late' ? `RECONCILED ON ${format(parseISO(slot.actualPaymentDate!), "dd MMM")}` :
+                         "ON-TIME PAYMENT"}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-black text-lg leading-none">TZS {rider.dailyFee.toLocaleString()}</p>
-                    {slot.status === 'unpaid' && <p className="text-[0.6rem] font-bold uppercase animate-pulse">Pay immediately!</p>}
+                    <p className="font-black text-base leading-none">TZS {rider.dailyFee.toLocaleString()}</p>
+                    {slot.status === 'unpaid' && <p className="text-[0.5rem] font-bold uppercase mt-1 text-red-600">Pending Action</p>}
                   </div>
                 </div>
               ))}

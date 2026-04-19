@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -7,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useMemo } from "react";
 import { useUser } from "@/firebase/auth/use-user";
 import { startOfDay, differenceInDays, differenceInWeeks, parseISO } from "date-fns";
-import { Ghost } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 export function DashboardHeader() {
   const { user } = useUser();
@@ -56,36 +57,39 @@ export function DashboardHeader() {
   if (user?.role === 'admin' || user?.role === 'supervisor') {
     return (
         <div className="bg-accent text-white p-6 rounded-b-3xl flex-shrink-0 relative overflow-hidden transition-all duration-500">
-            {/* Subtle decorative arch */}
-            <div className="absolute -top-10 -right-10 w-40 h-40 border-8 border-red-500/20 rounded-full" />
+            <div className="absolute -top-10 -right-10 w-40 h-40 border-8 border-white/5 rounded-full" />
             
             <div className="flex justify-between items-start relative z-10">
                 <div>
-                    <p className="text-xs uppercase text-white/60 font-bold tracking-widest">Global Status</p>
+                    <p className="text-xs uppercase text-white/60 font-bold tracking-widest">Fleet Status</p>
                     <p className="font-black text-4xl text-white italic my-1 flex items-center gap-2">
                         {riderDebtCount > 0 ? (
                             <>
-                                {riderDebtCount} <span className="text-red-500 underline decoration-wavy">DEBTORS</span>
+                                {riderDebtCount} <span className="text-white/60">PENDING</span>
                             </>
                         ) : (
-                            "SYSTEM CLEAR"
+                            "SYSTEM OK"
                         )}
                     </p>
                     <p className="text-sm text-white/80 font-semibold uppercase tracking-tighter">
-                        {riderDebtCount > 0 ? `Terror level: ${riderDebtCount > 2 ? 'EXTREME' : 'MODERATE'}` : "Great job! Collections are on track."}
+                        {riderDebtCount > 0 
+                            ? `${riderDebtCount} riders require payment reconciliation.` 
+                            : "All collections are currently on track."}
                     </p>
                 </div>
-                {riderDebtCount > 0 && (
-                    <div className="bg-red-600 p-3 rounded-2xl animate-pulse shadow-lg shadow-red-900/50">
-                        <Ghost className="h-8 w-8 text-white" />
-                    </div>
-                )}
+                <div className="bg-white/10 p-3 rounded-2xl shadow-lg">
+                    {riderDebtCount > 0 ? (
+                        <AlertCircle className="h-8 w-8 text-white opacity-80" />
+                    ) : (
+                        <CheckCircle2 className="h-8 w-8 text-primary" />
+                    )}
+                </div>
             </div>
         </div>
     );
   }
 
-  // --- RIDER VIEW (Existing) ---
+  // --- RIDER VIEW ---
   return (
     <div className="bg-accent text-white p-6 rounded-b-3xl flex-shrink-0 relative overflow-hidden">
         <div className="absolute -top-10 -right-10 w-40 h-40 border-8 border-primary/20 rounded-full" />

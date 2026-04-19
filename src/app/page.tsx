@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useUser } from "@/firebase/auth/use-user";
@@ -6,7 +7,7 @@ import { initialLoans, initialPayments, initialRiders } from "@/lib/data";
 import type { Loan, Payment, Rider } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wallet, Calendar, ArrowUpRight, ShieldCheck, Users, TrendingUp, DollarSign, UserPlus, CheckCircle, AlertTriangle, Ghost } from "lucide-react";
+import { Wallet, Calendar, ArrowUpRight, ShieldCheck, Users, TrendingUp, DollarSign, UserPlus, CheckCircle, AlertCircle, TrendingDown } from "lucide-react";
 import { format, parseISO, isSameDay, subDays, isAfter, startOfDay, differenceInDays, differenceInWeeks } from "date-fns";
 import { useMemo } from "react";
 import Link from "next/link";
@@ -36,9 +37,9 @@ export default function DashboardPage() {
     const sevenDaysAgo = subDays(new Date(), 7);
     const recruitedThisWeek = riders.filter(r => isAfter(parseISO(r.createdAt), sevenDaysAgo)).length;
 
-    // TERROR LIST (Debt List)
+    // Arrears List (formerly Terror List)
     const today = new Date();
-    const terrorList = riders.filter(r => r.active).map(rider => {
+    const arrearsList = riders.filter(r => r.active).map(rider => {
         const riderPayments = payments.filter(p => p.riderId === rider.id);
         const start = startOfDay(parseISO(rider.contractStart));
         let totalOwed = 0;
@@ -56,9 +57,9 @@ export default function DashboardPage() {
         return { ...rider, balance };
       })
       .filter(r => r.balance < 0)
-      .sort((a, b) => a.balance - b.balance); // High debt first (most negative)
+      .sort((a, b) => a.balance - b.balance);
 
-    return { totalCollected, activeRiders, collectedToday, recruitedThisWeek, terrorList };
+    return { totalCollected, activeRiders, collectedToday, recruitedThisWeek, arrearsList };
   }, [payments, riders, user]);
 
   if (!user) return null;
@@ -209,14 +210,14 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-black tracking-tight font-headline uppercase italic">
           {user.role === 'admin' ? 'Admin Panel' : 'Supervisor Overview'}
         </h1>
-        <p className="text-muted-foreground">Hali ya biashara na mienendo ya leo.</p>
+        <p className="text-muted-foreground">Business operations and daily trends.</p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-accent text-white border-none shadow-lg">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-bold uppercase tracking-widest opacity-70 flex items-center gap-2">
-              <DollarSign size={14} /> Leo Imekusanywa
+              <DollarSign size={14} /> Collected Today
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -238,7 +239,7 @@ export default function DashboardPage() {
         <Card className="bg-white border-none shadow-md">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <TrendingUp size={14} /> Makusanyo Jumla
+              <TrendingUp size={14} /> Total Collections
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -247,34 +248,24 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* TERROR LIST SECTION */}
-      {stats && stats.terrorList.length > 0 && (
-        <div className="space-y-4">
-            <h3 className="font-bold text-lg flex items-center gap-2 text-red-600 uppercase italic">
-                <AlertTriangle size={20} className="animate-bounce" /> Terror List (Highest Debt First)
-            </h3>
-            <div className="space-y-3">
-                {stats.terrorList.map(rider => (
-                    <Card key={rider.id} className="border-none shadow-md bg-red-50 ring-1 ring-red-400 overflow-hidden relative">
-                        <div className="absolute top-0 right-0 p-2 opacity-5">
-                            <Ghost size={60} />
-                        </div>
-                        <CardContent className="p-4 flex justify-between items-center relative z-10">
-                            <div>
-                                <p className="font-black uppercase italic text-red-900">{rider.name}</p>
-                                <p className="text-[0.6rem] font-bold text-red-700/60 tracking-widest">{rider.plateNumber} • {rider.paymentFrequency}</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-lg font-black text-red-600 uppercase leading-none">
-                                    TZS {Math.abs(rider.balance).toLocaleString()}
-                                </p>
-                                <p className="text-[0.5rem] font-bold uppercase text-red-400 mt-1">Debt Detected</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
+      {/* Arrears Summary Section */}
+      {stats && stats.arrearsList.length > 0 && (
+        <Card className="border-none shadow-md bg-red-50 ring-1 ring-red-200">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="text-red-600 h-6 w-6 shrink-0" />
+              <div>
+                <p className="font-bold text-red-900">{stats.arrearsList.length} Riders with Arrears</p>
+                <p className="text-xs text-red-700/80">Action required to reconcile outstanding payments.</p>
+              </div>
             </div>
-        </div>
+            <Button asChild variant="ghost" size="sm" className="text-red-600 hover:bg-red-100 hover:text-red-700 font-bold uppercase text-[0.65rem] tracking-widest">
+              <Link href="/alerts" className="flex items-center gap-1">
+                View Alerts <ArrowUpRight size={14} />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       <div className="grid grid-cols-2 gap-4">
@@ -298,12 +289,12 @@ export default function DashboardPage() {
           <CardContent className="p-4 flex items-start gap-4">
             <TrendingUp className="text-primary mt-1 shrink-0" />
             <div>
-              <p className="text-sm font-semibold">Ufanisi wa Ulipaji</p>
+              <p className="text-sm font-semibold">Payment Efficiency</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Makusanyo ya leo yamefikia 85% ya lengo la siku. {stats?.terrorList.length} riders wapo kwenye Terror List.
+                Today's collections have reached 85% of the daily target. {stats?.arrearsList.length} riders currently have pending balances.
               </p>
               <Button asChild variant="link" className="p-0 h-auto text-xs font-bold text-primary mt-2">
-                <Link href="/reports">Angalia Ripoti Zaidi</Link>
+                <Link href="/reports">View Detailed Reports</Link>
               </Button>
             </div>
           </CardContent>
