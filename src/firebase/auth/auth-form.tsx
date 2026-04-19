@@ -21,10 +21,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, User } from "lucide-react";
+import { Loader2, User, Eye, EyeOff, Lock } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { useUser } from "./use-user";
+import { cn } from "@/lib/utils";
 
 interface AuthFormProps {
   mode: "login" | "signup";
@@ -41,6 +42,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const { login, signup } = useUser();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -84,7 +86,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   return (
     <div className="space-y-4">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 text-left">
+        <form onSubmit={form.handleSubmit(onSubmit)} className={cn("space-y-4 text-left transition-opacity duration-300", isLoading && "opacity-70 pointer-events-none")}>
           {mode === "signup" && (
              <FormField
                 control={form.control}
@@ -95,7 +97,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                     <FormControl>
                     <div className="relative">
                         <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Juma Hassan" {...field} className="pl-9 bg-white/5 border-white/10 text-white" />
+                        <Input placeholder="Juma Hassan" {...field} className={cn("pl-9", mode === 'signup' && "bg-white/5 border-white/10 text-white")} />
                     </div>
                     </FormControl>
                     <FormMessage />
@@ -124,7 +126,22 @@ export function AuthForm({ mode }: AuthFormProps) {
               <FormItem>
                 <FormLabel className={mode === 'signup' ? 'text-white/80' : ''}>Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} className={mode === 'signup' ? "bg-white/5 border-white/10 text-white" : ""} />
+                  <div className="relative">
+                    <Lock className={cn("absolute left-3 top-3 h-4 w-4 text-muted-foreground", mode === 'signup' && "text-white/40")} />
+                    <Input 
+                      type={showPassword ? "text" : "password"} 
+                      placeholder="••••••••" 
+                      {...field} 
+                      className={cn("pl-9 pr-10", mode === 'signup' ? "bg-white/5 border-white/10 text-white" : "")} 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-3 text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -159,9 +176,19 @@ export function AuthForm({ mode }: AuthFormProps) {
           <Button 
             type="submit" 
             disabled={isLoading} 
-            className="w-full bg-primary text-primary-foreground font-bold h-12 uppercase tracking-widest hover:bg-primary/90 mt-2"
+            className="w-full bg-primary text-primary-foreground font-bold h-12 uppercase tracking-widest hover:bg-primary/90 mt-2 relative overflow-hidden"
           >
-            {isLoading ? <Loader2 className="animate-spin" /> : mode === "login" ? "Log In" : "Create Account"}
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2 animate-pulse">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Verifying...</span>
+              </div>
+            ) : (
+              <span>{mode === "login" ? "Log In" : "Create Account"}</span>
+            )}
+            {isLoading && (
+              <div className="absolute inset-0 bg-primary/20 animate-in slide-in-from-left duration-1000 repeat-infinite" />
+            )}
           </Button>
         </form>
       </Form>
