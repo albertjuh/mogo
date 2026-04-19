@@ -19,20 +19,23 @@ export function DashboardHeader() {
 
   if (isLoading) {
     return (
-      <div className="bg-[#0d1117] text-white p-6 rounded-b-3xl flex-shrink-0">
+      <div className="bg-accent text-white p-6 rounded-b-3xl flex-shrink-0">
         <Skeleton className="h-20 w-full bg-white/10" />
       </div>
     );
   }
 
   return (
-    <div className="bg-[#0d1117] text-white p-6 rounded-b-3xl flex-shrink-0" style={{background: 'radial-gradient(ellipse 80% 80% at 80% 100%, #1a3015 0%, transparent 60%), #0d1117'}}>
-        <p className="text-sm uppercase text-[#a09080] font-bold tracking-widest">Active Loan</p>
-        <p className="font-black text-4xl text-[#FFD700] my-1">
-          {activeLoan ? activeLoan.loanType : "No Loan"}
+    <div className="bg-accent text-white p-6 rounded-b-3xl flex-shrink-0 relative overflow-hidden">
+        {/* Subtle decorative arch mimicking the logo */}
+        <div className="absolute -top-10 -right-10 w-40 h-40 border-8 border-primary/20 rounded-full" />
+        
+        <p className="text-xs uppercase text-white/60 font-bold tracking-widest">Mkopo Wako</p>
+        <p className="font-black text-4xl text-primary italic my-1">
+          {activeLoan ? activeLoan.loanType : "Huna Mkopo"}
         </p>
-        <p className="text-sm text-[#a09080] font-semibold">
-          {activeLoan ? `Status: ${activeLoan.loanStatus}` : "Apply for a loan today"}
+        <p className="text-sm text-white/80 font-semibold">
+          {activeLoan ? `Hali: ${activeLoan.loanStatus}` : "Omba mkopo leo"}
         </p>
     </div>
   );

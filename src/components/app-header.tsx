@@ -29,34 +29,35 @@ export function AppHeader() {
 
   const currentDateString = clientNow ? format(clientNow, 'dd MMM') : null;
 
+  const Logo = () => (
+    <div className="text-xl flex items-baseline gap-0.5" style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 900}}>
+      <span className="text-primary italic">mogo</span>
+      <span className="text-white font-light text-xs opacity-80 ml-1">Connect</span>
+    </div>
+  );
+
   if (!user) {
     return (
-      <header className="md:hidden bg-[#0d1117] text-white flex-shrink-0">
-        <div className="mx-auto flex h-14 w-full items-center justify-between px-4">
-          <div className="text-lg" style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 900}}>
-            <span>🏍 Mogo </span>
-            <span className="text-[#FFD700]">Connect</span>
-          </div>
+      <header className="md:hidden bg-accent text-white flex-shrink-0">
+        <div className="mx-auto flex h-14 w-full items-center justify-center px-4">
+          <Logo />
         </div>
       </header>
     );
   }
 
   return (
-    <header className="md:hidden bg-[#0d1117] text-white flex-shrink-0">
+    <header className="md:hidden bg-accent text-white flex-shrink-0">
       <div className="mx-auto flex h-14 w-full items-center justify-between px-4">
         <button onClick={handleSignOut} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
             <LogOut className="h-5 w-5" />
         </button>
-        <div className="text-lg" style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 900}}>
-          <span>🏍 Mogo </span>
-          <span className="text-[#FFD700]">Connect</span>
-        </div>
+        <Logo />
         <div className="flex items-center gap-3">
           {currentDateString === null ? (
             <Skeleton className="h-4 w-12 bg-white/20" />
           ) : (
-            <span className="text-xs font-semibold uppercase text-[#a09080]">
+            <span className="text-[0.6rem] font-bold uppercase text-white/60 tracking-tighter">
               {currentDateString}
             </span>
           )}

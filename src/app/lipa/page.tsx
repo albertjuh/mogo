@@ -33,9 +33,9 @@ export default function LipaPage() {
     return (
         <div className="flex flex-col items-center justify-center h-full text-center p-6 animate-in fade-in duration-500">
             <CheckCircle2 size={80} className="text-primary mb-6" />
-            <h2 className="text-3xl font-black mb-2">Transaction Initiated!</h2>
-            <p className="text-muted-foreground mb-8">Please check your phone for the M-Pesa prompt and enter your PIN to complete the payment.</p>
-            <Button onClick={() => setIsSuccess(false)} variant="outline" className="w-full">Pay Another Amount</Button>
+            <h2 className="text-3xl font-black mb-2">Imetumwa!</h2>
+            <p className="text-muted-foreground mb-8">Tafadhali angalia simu yako kwa ujumbe wa M-Pesa na uweke PIN yako ili kukamilisha malipo.</p>
+            <Button onClick={() => setIsSuccess(false)} variant="outline" className="w-full">Lipa Kiasi Kingine</Button>
         </div>
     );
   }
@@ -44,30 +44,30 @@ export default function LipaPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-3xl font-black font-headline">Lipa kwa Mogo</h1>
-        <p className="text-muted-foreground">Easy payment via M-Pesa or Tigo Pesa</p>
+        <p className="text-muted-foreground">Malipo rahisi kupitia M-Pesa au Tigo Pesa</p>
       </header>
 
       <Card className="border-none shadow-xl">
-        <CardHeader className="bg-secondary rounded-t-xl">
+        <CardHeader className="bg-accent text-white rounded-t-xl">
             <div className="flex items-center gap-3">
                 <div className="bg-primary p-2 rounded-lg">
-                    <Smartphone className="text-primary-foreground" />
+                    <Smartphone className="text-accent" />
                 </div>
                 <div>
-                    <CardTitle className="text-lg">One-Click Payment</CardTitle>
-                    <CardDescription>STK Push Integration</CardDescription>
+                    <CardTitle className="text-lg">Malipo ya Mbofyo Mmoja</CardTitle>
+                    <CardDescription className="text-white/60">STK Push Integration</CardDescription>
                 </div>
             </div>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="amount" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Amount to Pay (TZS)</Label>
+            <Label htmlFor="amount" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Kiasi cha Kulipa (TZS)</Label>
             <Input 
                 id="amount" 
                 type="number" 
                 value={amount} 
                 onChange={(e) => setAmount(e.target.value)}
-                className="text-2xl font-black h-14"
+                className="text-2xl font-black h-14 border-primary/20 focus:border-primary"
             />
           </div>
 
@@ -77,23 +77,23 @@ export default function LipaPage() {
                     key={val} 
                     variant="outline" 
                     onClick={() => setAmount(val)}
-                    className={amount === val ? "border-primary bg-primary/10" : ""}
+                    className={amount === val ? "border-primary bg-primary/10 text-primary font-bold" : ""}
                 >
                     {Number(val).toLocaleString()}
                 </Button>
             ))}
           </div>
 
-          <Button onClick={handleLipa} disabled={isLoading} className="w-full h-14 text-lg font-bold">
+          <Button onClick={handleLipa} disabled={isLoading} className="w-full h-14 text-lg font-bold shadow-lg shadow-primary/20">
             {isLoading ? (
                 <>
-                    <Loader2 className="mr-2 animate-spin" /> Sending Prompt...
+                    <Loader2 className="mr-2 animate-spin" /> Inatuma...
                 </>
-            ) : "Initiate STK Push"}
+            ) : "Anzisha STK Push"}
           </Button>
           
           <p className="text-[0.65rem] text-center text-muted-foreground">
-            A payment request will be sent to the phone number registered with your Mogo account.
+            Ombi la malipo litatumwa kwa namba ya simu iliyosajiliwa na akaunti yako ya Mogo.
           </p>
         </CardContent>
       </Card>
