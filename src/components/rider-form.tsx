@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, User, Shield, Bike } from "lucide-react";
+import { Calendar as CalendarIcon, User, Shield, Bike, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -33,9 +33,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Rider, Bike as BikeType } from "@/lib/types";
 import { parseISO, addMonths } from "date-fns";
+import { useEffect } from "react";
 
 const riderFormSchema = z.object({
   name: z.string().min(2, "Jina kamili linahitajika."),
+  email: z.string().email("Barua pepe sahihi inahitajika."),
   phone: z.string().regex(/^(?:\+255|0)\d{9}$/, "Namba ya simu ya Tanzania inahitajika."),
   vehicleType: z.enum(['Boda Boda', 'Bajaji']),
   plateNumber: z.string().min(3, "Namba ya usajili inahitajika."),
@@ -61,16 +63,17 @@ export type RiderFormValues = Omit<Rider, 'id' | 'bikeId' | 'contractEnd' | 'act
 
 interface RiderFormProps {
   rider?: Rider | null;
+  initialEmail?: string;
   bikes: BikeType[];
   onSubmit: (data: any) => void;
   onCancel: () => void;
   className?: string;
 }
 
-export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: RiderFormProps) {
+export function RiderForm({ rider, initialEmail, bikes, onSubmit, onCancel, className }: RiderFormProps) {
   const form = useForm<z.infer<typeof riderFormSchema>>({
     resolver: zodResolver(riderFormSchema),
-    mode: "onChange", // Enable real-time validation to update button state
+    mode: "onChange",
     defaultValues: rider
       ? { 
           ...rider, 
@@ -89,6 +92,7 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
         }
       : {
           name: "",
+          email: initialEmail || "",
           phone: "",
           vehicleType: "Boda Boda",
           plateNumber: "",
@@ -110,6 +114,12 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
   });
   
   const { formState: { isValid } } = form;
+
+  useEffect(() => {
+    if (initialEmail) {
+      form.setValue('email', initialEmail);
+    }
+  }, [initialEmail, form]);
 
   function handleFormSubmit(values: z.infer<typeof riderFormSchema>) {
     const bike = bikes.find(b => b.plateNumber.toLowerCase() === values.plateNumber.toLowerCase()) ?? bikes[0];
@@ -148,6 +158,22 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
                   <FormLabel>Full Name (Jina la Mpangaji)</FormLabel>
                   <FormControl>
                     <Input placeholder="Juma Hassan" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email Address (Barua Pepe)</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="rider@email.com" {...field} className="pl-9" readOnly={!!initialEmail} />
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -406,7 +432,7 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
                     name="witnessPhone"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Witness Phone</FormLabel>
+                        <FormLabel>Witness Phone</TableHead>
                         <FormControl>
                         <Input placeholder="07..." {...field} />
                         </FormControl>

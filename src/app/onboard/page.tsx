@@ -3,28 +3,35 @@
 
 import { RiderForm, type RiderFormValues } from "@/components/rider-form";
 import { useFirestore } from "@/firebase";
-import { collection } from "firebase/firestore";
-import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { doc, setDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Info } from "lucide-react";
+import { Suspense } from "react";
 
-export default function OnboardPage() {
+function OnboardContent() {
   const db = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  const email = searchParams.get('email') || "";
+  const uid = searchParams.get('uid') || "";
 
   const handleFormSubmit = (data: RiderFormValues) => {
-    addDocumentNonBlocking(collection(db, "riders"), {
+    // If we have a UID, we use it as the document ID to link the profile to the Auth account
+    const docId = uid || `rider-${Date.now()}`;
+    
+    setDoc(doc(db, "riders", docId), {
       ...data,
       active: true,
       createdAt: new Date().toISOString(),
-    });
+    }, { merge: true });
     
     toast({ 
         title: "Rider Onboarded Successfully", 
-        description: `${data.name} has been added to the fleet. You can now view their contract in the Fleet list.` 
+        description: `${data.name} has been added to the fleet and linked to their account.` 
     });
     router.push("/fleet");
   };
@@ -41,9 +48,20 @@ export default function OnboardPage() {
         <p className="text-sm text-white/60 font-bold uppercase tracking-widest mt-1">Data Collection for Mkataba</p>
       </div>
 
+      {uid && (
+        <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl flex items-start gap-3">
+          <Info className="text-primary shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-bold text-accent uppercase">Linking to Account</p>
+            <p className="text-sm text-muted-foreground">You are completing the profile for <span className="font-bold text-accent">{email}</span>.</p>
+          </div>
+        </div>
+      )}
+
       <Card className="border-none shadow-xl bg-white overflow-hidden">
         <CardContent className="p-6">
             <RiderForm
+                initialEmail={email}
                 bikes={[]}
                 onSubmit={handleFormSubmit}
                 onCancel={() => router.back()}
@@ -62,4 +80,12 @@ export default function OnboardPage() {
       </div>
     </div>
   );
+}
+
+export default function OnboardPage() {
+    return (
+        <Suspense fallback={<div className="p-12 text-center">Loading onboarding form...</div>}>
+            <OnboardContent />
+        </Suspense>
+    )
 }

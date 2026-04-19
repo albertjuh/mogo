@@ -2,15 +2,15 @@
 export interface UserProfile {
   id: string;
   email: string;
-  fullName: string;
   role: 'admin' | 'supervisor' | 'rider' | 'recruiter';
-  phoneNumber: string;
+  createdAt: string;
 }
 
 export interface Rider {
-  id: string;
+  id: string; // This matches the Firebase Auth UID
   name: string;
   phone: string;
+  email: string;
   plateNumber: string;
   vehicleType: 'Boda Boda' | 'Bajaji';
   chassisNumber?: string;
@@ -45,7 +45,10 @@ export interface Payment {
   id: string;
   riderId: string;
   amount: number;
-  date: string;
+  selcomRef: string;
+  status: 'pending' | 'verified' | 'failed';
+  recordedAt: string;
+  verifiedBy?: string;
 }
 
 export interface Loan {
@@ -63,16 +66,6 @@ export interface Loan {
   totalAmountPaid: number;
   loanStatus: 'Active' | 'Completed' | 'Defaulted' | 'In Arrears';
   progressPercentage: number;
-}
-
-export interface Transaction {
-  id: string;
-  loanId: string;
-  amount: number;
-  transactionDate: string;
-  transactionType: 'Payment' | 'Disbursement' | 'Penalty';
-  paymentMethod: 'M-Pesa' | 'Airtel Money' | 'Tigo Pesa';
-  status: 'Successful' | 'Pending' | 'Failed';
 }
 
 export interface Document {

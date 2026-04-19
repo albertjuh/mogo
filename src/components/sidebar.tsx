@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Home, Wallet, ShieldCheck, TrendingUp, Users, BarChart3, AlertCircle, UserPlus } from "lucide-react";
+import { LogOut, Home, Wallet, ShieldCheck, TrendingUp, Users, BarChart3, AlertCircle, UserPlus, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/firebase/auth/use-user";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,6 @@ export function Sidebar() {
       ];
     }
 
-    // Supervisor Nav (Operational Focus)
     const supervisorItems = [
       { href: "/", label: "Fleet Stats", icon: Home },
       { href: "/collect", label: "Daily Collection", icon: Wallet },
@@ -46,17 +45,14 @@ export function Sidebar() {
 
     if (user.role === 'supervisor') return supervisorItems;
 
-    // Admin (Strategic Focus adds Reports and Planning)
     return [
       ...supervisorItems,
+      { href: "/users", label: "User Accounts", icon: ShieldAlert },
       { href: "/reports", label: "Business Insights", icon: TrendingUp },
-      { href: "/growth", label: "Growth Planning", icon: TrendingUp },
     ];
   }, [user]);
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-background border-r">
