@@ -14,11 +14,13 @@ export interface Rider {
   plateNumber: string;
   shahidiNumber: string;
   dailyFee: number;
+  paymentFrequency: 'Daily' | 'Weekly';
   contractStart: string;
   contractEnd: string;
   active: boolean;
   bikeId: string;
   createdAt: string;
+  notes?: string;
   location?: { lat: number; lng: number };
 }
 

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,7 +39,8 @@ const riderFormSchema = z.object({
   phone: z.string().regex(/^(?:\+255|0)\d{9}$/, "Please enter a valid Tanzanian phone number."),
   plateNumber: z.string().min(3, "Plate number is required."),
   shahidiNumber: z.string().min(3, "Shahidi number is required."),
-  dailyFee: z.coerce.number().min(1000, "Daily fee seems too low."),
+  dailyFee: z.coerce.number().min(1000, "Fee seems too low."),
+  paymentFrequency: z.enum(['Daily', 'Weekly']),
   contractStart: z.date({
     required_error: "A contract start date is required.",
   }),
@@ -59,13 +61,18 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
   const form = useForm<z.infer<typeof riderFormSchema>>({
     resolver: zodResolver(riderFormSchema),
     defaultValues: rider
-      ? { ...rider, contractStart: parseISO(rider.contractStart) }
+      ? { 
+          ...rider, 
+          contractStart: parseISO(rider.contractStart),
+          paymentFrequency: rider.paymentFrequency || 'Daily'
+        }
       : {
           name: "",
           phone: "",
           plateNumber: "",
           shahidiNumber: "",
-          dailyFee: 10000,
+          dailyFee: 15000,
+          paymentFrequency: 'Daily',
           contractStart: new Date(),
           notes: "",
         },
@@ -73,7 +80,8 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
   
   function handleFormSubmit(values: z.infer<typeof riderFormSchema>) {
     const bike = bikes.find(b => b.plateNumber.toLowerCase() === values.plateNumber.toLowerCase()) ?? bikes[0];
-    const contractEnd = addDays(values.contractStart, 510);
+    // Standard Mogo contract is typically 18 months (approx 540 days)
+    const contractEnd = addDays(values.contractStart, 540);
     
     const submissionData = {
         ...values,
@@ -82,7 +90,6 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
     }
     onSubmit(submissionData);
   }
-
 
   return (
     <Form {...form}>
@@ -141,41 +148,25 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
             )}
             />
         </div>
+        
         <div className="grid grid-cols-2 gap-4">
             <FormField
             control={form.control}
-            name="contractStart"
+            name="paymentFrequency"
             render={({ field }) => (
-                <FormItem className="flex flex-col">
-                <FormLabel>Contract Start</FormLabel>
-                <Popover>
-                    <PopoverTrigger asChild>
+                <FormItem>
+                <FormLabel>Payment Frequency</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                        <Button
-                        variant={"outline"}
-                        className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                        )}
-                        >
-                        {field.value ? (
-                            format(field.value, "PPP")
-                        ) : (
-                            <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Frequency" />
+                    </SelectTrigger>
                     </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                    />
-                    </PopoverContent>
-                </Popover>
+                    <SelectContent>
+                    <SelectItem value="Daily">Daily</SelectItem>
+                    <SelectItem value="Weekly">Weekly</SelectItem>
+                    </SelectContent>
+                </Select>
                 <FormMessage />
                 </FormItem>
             )}
@@ -185,7 +176,7 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
             name="dailyFee"
             render={({ field }) => (
                 <FormItem>
-                <FormLabel>Daily Fee (TZS)</FormLabel>
+                <FormLabel>Fee (TZS)</FormLabel>
                 <FormControl>
                     <Input type="number" {...field} />
                 </FormControl>
@@ -194,6 +185,49 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
             )}
             />
         </div>
+
+        <FormField
+        control={form.control}
+        name="contractStart"
+        render={({ field }) => (
+            <FormItem className="flex flex-col">
+            <FormLabel>Contract Start</FormLabel>
+            <Popover>
+                <PopoverTrigger asChild>
+                <FormControl>
+                    <Button
+                    variant={"outline"}
+                    className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                    )}
+                    >
+                    {field.value ? (
+                        format(field.value, "PPP")
+                    ) : (
+                        <span>Pick a date</span>
+                    )}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) =>
+                        date > new Date() || date < new Date("1900-01-01")
+                    }
+                    initialFocus
+                />
+                </PopoverContent>
+            </Popover>
+            <FormMessage />
+            </FormItem>
+        )}
+        />
+
         <FormField
           control={form.control}
           name="notes"
@@ -209,7 +243,7 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
         />
         <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-            <Button type="submit" className="bg-[#0d1117] text-[#f5c842] hover:bg-[#0d1117]/90">{rider ? "Save Changes" : "Save Rider"}</Button>
+            <Button type="submit" className="bg-[#0d1117] text-primary hover:bg-[#0d1117]/90">{rider ? "Save Changes" : "Save Rider"}</Button>
         </div>
       </form>
     </Form>
