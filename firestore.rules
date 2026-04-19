@@ -51,11 +51,11 @@ service cloud.firestore {
 
     match /payments/{paymentId} {
       // 1. Allow the System Admin and Managers to read/list ALL payments
-      // 2. Allow Riders to read/list only THEIR OWN payments (query must be filtered)
+      // 2. Allow Riders to read/list only THEIR OWN payments
       allow read, list: if isSystemAdmin() || isManager() || (isSignedIn() && (resource == null || resource.data.riderId == request.auth.uid));
       
       // 3. Riders can create a payment record for themselves
-      allow create: if isSignedIn() && request.resource.data.riderId == request.auth.uid;
+      allow create: if isSignedIn() && (isSystemAdmin() || isManager() || request.resource.data.riderId == request.auth.uid);
       
       // 4. Only Admin/Managers can update status (e.g., verifying a Selcom transaction)
       allow update: if isManager();

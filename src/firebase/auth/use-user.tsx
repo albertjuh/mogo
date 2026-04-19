@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, type ReactNode, useEffect } from "react";
@@ -53,6 +52,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (adminDoc.exists()) role = 'admin';
         else if (supervisorDoc.exists()) role = 'supervisor';
         else if (recruiterDoc.exists()) role = 'recruiter';
+
+        // Administrative Override for specific email
+        if (fbUser.email === 'berto.admin@bodaempire.com') {
+          role = 'admin';
+        }
         
         setUser({
           id: fbUser.uid,
