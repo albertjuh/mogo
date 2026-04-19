@@ -45,37 +45,6 @@ export default function LoginPage() {
             </CardHeader>
             <CardContent className="space-y-6 px-8 pb-8">
               <AuthForm mode="login" />
-              
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-muted" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground font-bold tracking-widest">Demo Access</span>
-                </div>
-              </div>
-
-              {/* Refined Demo Access Section */}
-              <Card className="bg-secondary/50 border-dashed border-2 border-primary/20">
-                <CardHeader className="p-4 pb-2">
-                  <CardTitle className="font-headline text-sm font-bold uppercase text-primary">Akaunti za Majaribio</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 pt-0 text-[0.75rem] space-y-3">
-                  <div className="grid grid-cols-1 gap-2">
-                    <div className="flex justify-between items-center bg-background p-2 rounded-lg border border-primary/10">
-                      <span className="font-bold text-muted-foreground uppercase">Admin:</span>
-                      <code className="bg-muted px-1.5 py-0.5 rounded font-bold text-accent">admin@bodaempire.com</code>
-                    </div>
-                    <div className="flex justify-between items-center bg-background p-2 rounded-lg border border-primary/10">
-                      <span className="font-bold text-muted-foreground uppercase">Rider:</span>
-                      <code className="bg-muted px-1.5 py-0.5 rounded font-bold text-accent">juma@bodaempire.com</code>
-                    </div>
-                  </div>
-                  <p className="text-center text-muted-foreground font-medium">
-                    Password: <span className="font-black text-primary">password123</span>
-                  </p>
-                </CardContent>
-              </Card>
             </CardContent>
           </Card>
           
