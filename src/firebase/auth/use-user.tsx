@@ -36,6 +36,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const SYSTEM_ADMIN_EMAILS = [
+  'berto.admin@bodaempire.com',
+  'aljohme@gmail.com'
+];
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
@@ -55,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setFirebaseUser(fbUser);
       
       if (fbUser) {
-        const isSystemAdminEmail = fbUser.email?.toLowerCase() === 'berto.admin@bodaempire.com';
+        const isSystemAdminEmail = SYSTEM_ADMIN_EMAILS.includes(fbUser.email?.toLowerCase() || "");
         let role: AppUser['role'] = isSystemAdminEmail ? 'admin' : 'rider';
         let name = fbUser.displayName || "";
 
@@ -82,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               name = riderDoc.data().name || name;
           }
 
-          // Force admin role for the master email
+          // Force admin role for master emails even if not in registry yet
           if (isSystemAdminEmail) role = 'admin';
 
         } catch (e) {
@@ -109,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const provider = new GoogleAuthProvider();
       const res = await signInWithPopup(auth, provider);
       
-      const isSystemAdminEmail = res.user.email?.toLowerCase() === 'berto.admin@bodaempire.com';
+      const isSystemAdminEmail = SYSTEM_ADMIN_EMAILS.includes(res.user.email?.toLowerCase() || "");
       const collectionName = isSystemAdminEmail ? "admins" : "riders";
       
       // Auto-register in the database if document doesn't exist
@@ -125,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Google Auth error:", e);
       let message = "Could not sign in with Google.";
       if (e.code === 'auth/operation-not-allowed') message = "Google login not enabled in Firebase Console.";
+      if (e.code === 'auth/popup-closed-by-user') message = "Login popup was closed.";
       return { success: false, error: message };
     }
   };
@@ -144,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await createUserWithEmailAndPassword(auth, email, password);
       await sendEmailVerification(res.user);
 
-      const isSystemAdminEmail = email.toLowerCase() === 'berto.admin@bodaempire.com';
+      const isSystemAdminEmail = SYSTEM_ADMIN_EMAILS.includes(email.toLowerCase());
       const collectionName = isSystemAdminEmail ? "admins" : "riders";
       
       await setDoc(doc(db, collectionName, res.user.uid), {

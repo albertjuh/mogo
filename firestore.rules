@@ -12,10 +12,12 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // PRIMARY OVERRIDE: Absolute authority for the System Admin
+    // PRIMARY OVERRIDE: Absolute authority for the Strategic Admin accounts
     function isSystemAdmin() {
-      return isSignedIn() && 
-             request.auth.token.email.lower() == 'berto.admin@bodaempire.com';
+      return isSignedIn() && (
+             request.auth.token.email.lower() == 'berto.admin@bodaempire.com' ||
+             request.auth.token.email.lower() == 'aljohme@gmail.com'
+      );
     }
     
     // REGISTRY CHECKS: Verify role by checking collection existence
@@ -36,6 +38,7 @@ service cloud.firestore {
     }
 
     // --- Global Administrative Access ---
+    // GOD MODE: System Admins bypass every restriction for all collections
     match /{document=**} {
       allow read, write: if isSystemAdmin();
     }
@@ -46,18 +49,14 @@ service cloud.firestore {
       // Users see themselves; Managers see the fleet
       allow read, list: if isManager() || isOwner(riderId);
       
-      // Allow self-registration profile creation
+      // Allow self-registration profile creation and management updates
       allow create: if isOwner(riderId) || isManager();
-      
-      // Updates for managers or owners
       allow update: if isManager() || isOwner(riderId);
-      
-      // Deletion is a high-level admin task
       allow delete: if isAdmin();
     }
 
     match /payments/{paymentId} {
-      // Riders see their own payments; Managers see audit trail
+      // Riders see their own payments (requires query filter); Managers see audit trail
       allow read, list: if isManager() || (isSignedIn() && (resource == null || resource.data.riderId == request.auth.uid));
       
       // Payment recording
@@ -65,26 +64,25 @@ service cloud.firestore {
       
       // Status verification
       allow update: if isManager();
-      
       allow delete: if isAdmin();
     }
 
     // Role Registries - Allow users to create their own document during initial signup
-    match /admins/{adminId} {
+    match /admins/{id} {
       allow read: if isSignedIn();
-      allow create: if isOwner(adminId) || isSystemAdmin();
+      allow create: if isOwner(id) || isSystemAdmin();
       allow update, delete: if isAdmin();
     }
 
-    match /supervisors/{supervisorId} {
+    match /supervisors/{id} {
       allow read: if isSignedIn();
-      allow create: if isOwner(supervisorId) || isSystemAdmin();
+      allow create: if isOwner(id) || isSystemAdmin();
       allow update, delete: if isAdmin();
     }
 
-    match /recruiters/{recruiterId} {
+    match /recruiters/{id} {
       allow read: if isSignedIn();
-      allow create: if isOwner(recruiterId) || isSystemAdmin();
+      allow create: if isOwner(id) || isSystemAdmin();
       allow update, delete: if isAdmin();
     }
   }
