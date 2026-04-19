@@ -32,6 +32,14 @@
         "recordedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["riderId", "amount", "status", "recordedAt"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Internal staff with elevated privileges.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" }
+      }
     }
   },
   "auth": {
@@ -39,12 +47,16 @@
   },
   "firestore": {
     "/riders/{riderId}": {
-      "schema": { "$ref": "#/entities/Rider" },
+      "schema": { "$ref": "#/backend/entities/Rider" },
       "description": "Rider profiles. Owners can only access their own data via JWT uid verification."
     },
     "/payments/{paymentId}": {
-      "schema": { "$ref": "#/entities/Payment" },
+      "schema": { "$ref": "#/backend/entities/Payment" },
       "description": "Financial ledger. Riders see their own payments; Admins see all for audit."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/backend/entities/Admin" },
+      "description": "Registry for users with management access."
     }
   }
 }

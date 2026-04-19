@@ -25,19 +25,20 @@ service cloud.firestore {
     }
 
     match /payments/{paymentId} {
-      // Riders only see payments where they are the owner.
-      // Admins see all for financial reporting.
+      // 1. A rider can only see THEIR OWN payments. Admins see all for audit.
       allow read: if isAdmin() || (isSignedIn() && resource.data.riderId == request.auth.uid);
       
-      // Only Admins or verified system processes (simulated) can record payments.
-      // If a rider makes a payment via the app, they 'create' it with their uid.
+      // 2. Riders can create a payment record (e.g., initiating an STK push).
+      // They must set themselves as the owner.
       allow create: if isSignedIn() && request.resource.data.riderId == request.auth.uid;
       
-      // Payments are immutable records for audit trails.
+      // 3. Payments are immutable for Riders. They cannot change 'pending' to 'verified' manually.
+      // Only Admins (or server-side logic using Admin SDK) can update or delete.
       allow update, delete: if isAdmin();
     }
 
     match /admins/{adminId} {
+      // Allow signed-in users to check if an admin document exists for role verification.
       allow read: if isSignedIn();
     }
   }
