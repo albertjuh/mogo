@@ -32,8 +32,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Rider, Bike as BikeType } from "@/lib/types";
-import { parseISO, addDays, addMonths } from "date-fns";
-import { Textarea } from "./ui/textarea";
+import { parseISO, addMonths } from "date-fns";
 
 const riderFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -41,6 +40,8 @@ const riderFormSchema = z.object({
   plateNumber: z.string().min(3, "Plate number is required."),
   chassisNumber: z.string().min(5, "Chassis number required for legal contract."),
   engineNumber: z.string().min(5, "Engine number required for legal contract."),
+  engineCapacity: z.string().optional(),
+  modelNumber: z.string().optional(),
   shahidiNumber: z.string().min(3, "Shahidi/ID number is required."),
   dailyFee: z.coerce.number().min(1000, "Fee seems too low."),
   paymentFrequency: z.enum(['Daily', 'Weekly', '10-Day']),
@@ -76,6 +77,8 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
           contractTermMonths: rider.contractTermMonths || 18,
           chassisNumber: rider.chassisNumber || "",
           engineNumber: rider.engineNumber || "",
+          engineCapacity: rider.engineCapacity || "",
+          modelNumber: rider.modelNumber || "",
           guarantorName: rider.guarantorName || "",
           guarantorPhone: rider.guarantorPhone || "",
           witnessName: rider.witnessName || "",
@@ -87,6 +90,8 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
           plateNumber: "",
           chassisNumber: "",
           engineNumber: "",
+          engineCapacity: "",
+          modelNumber: "",
           shahidiNumber: "",
           dailyFee: 10000,
           paymentFrequency: 'Daily',
@@ -106,7 +111,7 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
     
     const submissionData = {
         ...values,
-        bikeId: bike.id,
+        bikeId: bike?.id || "bike-custom",
         contractEnd: contractEnd.toISOString()
     }
     onSubmit(submissionData);
@@ -117,12 +122,17 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className={cn("space-y-6", className)}>
         <Tabs defaultValue="personal" className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-secondary/50">
-            <TabsTrigger value="personal"><User size={14} className="mr-2" /> Basic</TabsTrigger>
-            <TabsTrigger value="vehicle"><Bike size={14} className="mr-2" /> Vehicle</TabsTrigger>
-            <TabsTrigger value="legal"><Shield size={14} className="mr-2" /> Legal</TabsTrigger>
+            <TabsTrigger value="personal" className="data-[state=active]:bg-accent data-[state=active]:text-white">
+                <User size={14} className="mr-2" /> Basic
+            </TabsTrigger>
+            <TabsTrigger value="vehicle" className="data-[state=active]:bg-accent data-[state=active]:text-white">
+                <Bike size={14} className="mr-2" /> Vehicle
+            </TabsTrigger>
+            <TabsTrigger value="legal" className="data-[state=active]:bg-accent data-[state=active]:text-white">
+                <Shield size={14} className="mr-2" /> Legal
+            </TabsTrigger>
           </TabsList>
 
-          {/* PERSONAL INFO TABS */}
           <TabsContent value="personal" className="space-y-4 pt-4">
             <FormField
               control={form.control}
@@ -144,7 +154,7 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
                 <FormItem>
                   <FormLabel>Phone (Namba ya Simu)</FormLabel>
                   <FormControl>
-                    <Input placeholder="+255 712 345 678" {...field} />
+                    <Input placeholder="0712345678" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -157,7 +167,7 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
                   <FormItem>
                   <FormLabel>ID / Shahidi Number</FormLabel>
                   <FormControl>
-                      <Input placeholder="SH-1234" {...field} />
+                      <Input placeholder="NIDA / Voter ID" {...field} />
                   </FormControl>
                   <FormMessage />
                   </FormItem>
@@ -165,7 +175,6 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
             />
           </TabsContent>
 
-          {/* VEHICLE INFO TAB */}
           <TabsContent value="vehicle" className="space-y-4 pt-4">
             <FormField
               control={form.control}
@@ -174,12 +183,40 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
                   <FormItem>
                   <FormLabel>Plate Number (Usajili)</FormLabel>
                   <FormControl>
-                      <Input placeholder="T 123 BCD" {...field} className="uppercase"/>
+                      <Input placeholder="T 123 BCD" {...field} className="uppercase font-black"/>
                   </FormControl>
                   <FormMessage />
                   </FormItem>
               )}
             />
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="modelNumber"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Model / Type</FormLabel>
+                        <FormControl>
+                        <Input placeholder="Boxer 150" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="engineCapacity"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Capacity (CC)</FormLabel>
+                        <FormControl>
+                        <Input placeholder="150cc" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -247,7 +284,6 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
             </div>
           </TabsContent>
 
-          {/* LEGAL & GUARANTOR TAB */}
           <TabsContent value="legal" className="space-y-4 pt-4">
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -289,40 +325,76 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
             </div>
             
             <div className="border-t pt-4 space-y-4">
-              <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Guarantor (Mdhamini)</h4>
-              <FormField
-                control={form.control}
-                name="guarantorName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Mdhamini Name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="guarantorPhone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Mdhamini Phone" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <h4 className="text-[0.65rem] font-black uppercase tracking-widest text-muted-foreground">Guarantor (Mdhamini)</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="guarantorName"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                        <Input placeholder="Mdhamini Name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="guarantorPhone"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Phone</FormLabel>
+                        <FormControl>
+                        <Input placeholder="07..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              </div>
+            </div>
+
+            <div className="border-t pt-4 space-y-4">
+              <h4 className="text-[0.65rem] font-black uppercase tracking-widest text-muted-foreground">Witness (Shahidi)</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="witnessName"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Witness Name</FormLabel>
+                        <FormControl>
+                        <Input placeholder="Jina la Shahidi" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="witnessPhone"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Witness Phone</FormLabel>
+                        <FormControl>
+                        <Input placeholder="07..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              </div>
             </div>
           </TabsContent>
         </Tabs>
 
         <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-            <Button type="submit" className="bg-[#0d1117] text-primary hover:bg-[#0d1117]/90">{rider ? "Update Contract" : "Onboard Rider"}</Button>
+            <Button type="button" variant="outline" onClick={onCancel} className="uppercase font-bold text-xs tracking-widest">Cancel</Button>
+            <Button type="submit" className="bg-accent text-white hover:bg-accent/90 uppercase font-bold text-xs tracking-widest px-8">
+                {rider ? "Save Changes" : "Confirm Onboarding"}
+            </Button>
         </div>
       </form>
     </Form>

@@ -28,8 +28,9 @@ export function Sidebar() {
 
     if (user.role === 'recruiter') {
       return [
-        { href: "/", label: "Recruitment Overview", icon: Home },
-        { href: "/fleet", label: "Onboard Riders", icon: UserPlus },
+        { href: "/", label: "Home", icon: Home },
+        { href: "/onboard", label: "New Onboarding", icon: UserPlus },
+        { href: "/fleet", label: "Fleet List", icon: Users },
       ];
     }
 
@@ -37,6 +38,7 @@ export function Sidebar() {
     const supervisorItems = [
       { href: "/", label: "Fleet Stats", icon: Home },
       { href: "/collect", label: "Daily Collection", icon: Wallet },
+      { href: "/onboard", label: "New Onboarding", icon: UserPlus },
       { href: "/fleet", label: "Manage Fleet", icon: Users },
       { href: "/payments", label: "Payment Log", icon: BarChart3 },
       { href: "/alerts", label: "Urgent Alerts", icon: AlertCircle },

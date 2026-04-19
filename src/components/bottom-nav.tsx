@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -17,7 +18,7 @@ export function BottomNav() {
     if (user.role === 'rider') {
       return [
         { href: "/", label: "Home", icon: Home },
-        { href: "/payments", label: "History", icon: BarChart3 }, // Swapped Lipa for History for better account management
+        { href: "/payments", label: "History", icon: BarChart3 },
         { href: "/vault", label: "Docs", icon: ShieldCheck },
         { href: "/savings", label: "Savings", icon: TrendingUp },
       ];
@@ -26,7 +27,8 @@ export function BottomNav() {
     if (user.role === 'recruiter') {
       return [
         { href: "/", label: "Home", icon: Home },
-        { href: "/fleet", label: "Onboard", icon: UserPlus },
+        { href: "/onboard", label: "Onboard", icon: UserPlus },
+        { href: "/fleet", label: "Fleet", icon: Users },
       ];
     }
 
@@ -34,8 +36,8 @@ export function BottomNav() {
     return [
       { href: "/", label: "Stats", icon: Home },
       { href: "/collect", label: "Collect", icon: Wallet },
+      { href: "/onboard", label: "Onboard", icon: UserPlus },
       { href: "/fleet", label: "Fleet", icon: Users },
-      { href: "/reports", label: "Reports", icon: BarChart3 },
     ];
   }, [user]);
 

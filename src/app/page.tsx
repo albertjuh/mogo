@@ -111,7 +111,7 @@ export default function DashboardPage() {
                 <h3 className="font-bold text-lg">Quick Actions</h3>
                 <div className="grid grid-cols-1 gap-4">
                     <Button asChild className="h-20 text-lg font-bold shadow-lg bg-accent hover:bg-accent/90">
-                        <Link href="/fleet" className="flex items-center gap-3">
+                        <Link href="/onboard" className="flex items-center gap-3">
                             <UserPlus className="h-6 w-6" /> Onboard New Driver
                         </Link>
                     </Button>
@@ -329,15 +329,15 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-2 gap-4">
         <Button asChild variant="outline" className="h-20 flex flex-col gap-1 border-primary/20 hover:bg-primary/5 shadow-sm">
-          <Link href="/collect">
-            <Wallet className="h-5 w-5 text-primary" />
-            <span className="text-xs font-bold uppercase">Collect Today</span>
+          <Link href="/onboard">
+            <UserPlus className="h-5 w-5 text-primary" />
+            <span className="text-xs font-bold uppercase">Onboard New</span>
           </Link>
         </Button>
         <Button asChild variant="outline" className="h-20 flex flex-col gap-1 border-primary/20 hover:bg-primary/5 shadow-sm">
-          <Link href="/fleet">
-            <Users className="h-5 w-5 text-primary" />
-            <span className="text-xs font-bold uppercase">Fleet List</span>
+          <Link href="/collect">
+            <Wallet className="h-5 w-5 text-primary" />
+            <span className="text-xs font-bold uppercase">Collect Today</span>
           </Link>
         </Button>
       </div>
@@ -364,4 +364,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

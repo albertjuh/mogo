@@ -14,6 +14,8 @@ export interface Rider {
   plateNumber: string;
   chassisNumber?: string;
   engineNumber?: string;
+  engineCapacity?: string; // Added from contract
+  modelNumber?: string; // Added from contract
   shahidiNumber: string; // This is the ID/Shahidi Number
   dailyFee: number;
   paymentFrequency: 'Daily' | 'Weekly' | '10-Day';
