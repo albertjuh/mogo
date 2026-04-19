@@ -2,84 +2,72 @@
 "use client";
 
 import { useUser } from "@/firebase/auth/use-user";
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import { initialLoans, initialPayments, initialRiders } from "@/lib/data";
-import type { Loan, Payment, Rider } from "@/lib/types";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, where, orderBy } from "firebase/firestore";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wallet, Calendar, ArrowUpRight, ShieldCheck, Users, TrendingUp, DollarSign, UserPlus, CheckCircle, AlertCircle, Loader2, Target, BarChart3 } from "lucide-react";
-import { format, parseISO, isSameDay, subDays, isAfter, startOfDay, differenceInDays, differenceInWeeks, startOfWeek } from "date-fns";
+import { Wallet, Calendar, ArrowUpRight, ShieldCheck, TrendingUp, DollarSign, UserPlus, CheckCircle, AlertCircle, Loader2, Target, BarChart3 } from "lucide-react";
+import { format, parseISO, isSameDay, subDays, isAfter, startOfDay, differenceInDays, startOfWeek } from "date-fns";
 import { useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
   const { user } = useUser();
-  const [loans] = useLocalStorage<Loan[]>("loans", initialLoans);
-  const [payments] = useLocalStorage<Payment[]>("payments", initialPayments);
-  const [riders] = useLocalStorage<Rider[]>("riders", initialRiders);
+  const db = useFirestore();
+
+  // --- Data Fetching ---
+  const ridersQuery = useMemoFirebase(() => collection(db, "riders"), [db]);
+  const { data: riders } = useCollection(ridersQuery);
+
+  const paymentsQuery = useMemoFirebase(() => collection(db, "payments"), [db]);
+  const { data: allPayments } = useCollection(paymentsQuery);
 
   // --- Rider (Client) View Logic ---
-  const myLoan = useMemo(() => {
-    if (user?.role !== 'rider') return null;
-    return loans.find(l => l.clientId === user.id);
-  }, [loans, user]);
+  const myPayments = useMemo(() => {
+    if (user?.role !== 'rider' || !allPayments) return [];
+    return allPayments.filter(p => p.riderId === user.id);
+  }, [allPayments, user]);
 
-  // --- Management View Logic ---
   const stats = useMemo(() => {
-    if (user?.role === 'rider') return null;
+    if (!riders || !allPayments || user?.role === 'rider') return null;
     
-    const activeRiders = riders.filter(r => r.active).length;
+    const activeRidersList = riders.filter(r => r.active);
+    const activeRidersCount = activeRidersList.length;
     const today = new Date();
     
     // Daily Stats
-    const todayPayments = payments.filter(p => isSameDay(parseISO(p.date), today));
-    const collectedToday = todayPayments.reduce((sum, p) => sum + p.amount, 0);
-    const dailyTarget = activeRiders * 10000;
+    const todayPayments = allPayments.filter(p => isSameDay(parseISO(p.recordedAt), today));
+    const collectedToday = todayPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const dailyTarget = activeRidersCount * 10000;
     
     // Weekly Stats
     const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 });
-    const weekPayments = payments.filter(p => isAfter(parseISO(p.date), startOfCurrentWeek));
-    const collectedThisWeek = weekPayments.reduce((sum, p) => sum + p.amount, 0);
+    const weekPayments = allPayments.filter(p => isAfter(parseISO(p.recordedAt), startOfCurrentWeek));
+    const collectedThisWeek = weekPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
     const weeklyTarget = dailyTarget * 7;
     const weeklyProgress = weeklyTarget > 0 ? (collectedThisWeek / weeklyTarget) * 100 : 0;
 
-    // Arrears Logic
-    const arrearsList = riders.filter(r => r.active).map(rider => {
-        const riderPayments = payments.filter(p => p.riderId === rider.id);
-        const start = startOfDay(parseISO(rider.contractStart));
-        let totalOwed = 0;
-        
-        if (rider.paymentFrequency === 'Weekly') {
-          const weeksElapsed = differenceInWeeks(today, start);
-          totalOwed = weeksElapsed > 0 ? weeksElapsed * rider.dailyFee : 0;
-        } else {
-          const daysElapsed = differenceInDays(today, start);
-          totalOwed = (daysElapsed >= 0) ? (daysElapsed + 1) * rider.dailyFee : 0;
-        }
+    // Arrears Calculation (Riders who haven't paid today)
+    const paidTodayUids = new Set(todayPayments.map(p => p.riderId));
+    const arrearsCount = activeRidersList.filter(r => !paidTodayUids.has(r.id)).length;
 
-        const totalPaid = riderPayments.reduce((sum, p) => sum + p.amount, 0);
-        const balance = totalPaid - totalOwed;
-        return { ...rider, balance };
-      })
-      .filter(r => r.balance < 0);
-
-    const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0);
+    const totalCollected = allPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
     const sevenDaysAgo = subDays(today, 7);
     const recruitedThisWeek = riders.filter(r => isAfter(parseISO(r.createdAt), sevenDaysAgo)).length;
 
     return { 
         collectedToday, 
         dailyTarget, 
-        activeRiders, 
+        activeRiders: activeRidersCount, 
         collectedThisWeek, 
         weeklyTarget, 
         weeklyProgress, 
-        arrearsCount: arrearsList.length,
+        arrearsCount,
         totalCollected,
         recruitedThisWeek
     };
-  }, [payments, riders, user]);
+  }, [allPayments, riders, user]);
 
   if (!user) return null;
 
@@ -99,7 +87,7 @@ export default function DashboardPage() {
                     </div>
                     <CardHeader>
                         <CardTitle className="text-sm font-bold uppercase tracking-wider opacity-80">Riders Recruited (Last 7 Days)</CardTitle>
-                        <div className="text-4xl font-black italic">{stats?.recruitedThisWeek} New Drivers</div>
+                        <div className="text-4xl font-black italic">{stats?.recruitedThisWeek || 0} New Drivers</div>
                     </CardHeader>
                     <CardContent>
                          <p className="text-sm font-medium opacity-90">Great job! You are expanding the Mogo empire.</p>
@@ -117,36 +105,12 @@ export default function DashboardPage() {
                     </Button>
                 </div>
             </div>
-
-            <div className="space-y-4">
-                <h3 className="font-bold text-lg">Onboarding Tips</h3>
-                <Card className="border-none shadow-sm bg-secondary/50">
-                <CardContent className="p-4 flex items-start gap-4">
-                    <CheckCircle className="text-primary mt-1 shrink-0" />
-                    <div>
-                    <p className="text-sm font-semibold">Eligibility Check</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        Ensure every driver has a valid ID, a clean record, and a guarantor before adding them.
-                    </p>
-                    </div>
-                </CardContent>
-                </Card>
-            </div>
           </div>
       )
   }
 
   // --- RIDER DASHBOARD ---
   if (user.role === 'rider') {
-    if (!myLoan) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full text-center p-6 space-y-4">
-          <Loader2 size={48} className="text-primary animate-spin" />
-          <h2 className="text-xl font-bold">Inapakia Maelezo ya Mkopo...</h2>
-        </div>
-      );
-    }
-
     return (
       <div className="space-y-6">
         <header className="space-y-1">
@@ -159,40 +123,13 @@ export default function DashboardPage() {
               <Wallet size={120} />
           </div>
           <CardHeader>
-            <CardTitle className="text-sm font-bold uppercase tracking-wider opacity-80">Salio Linalosubiri</CardTitle>
-            <div className="text-4xl font-black italic">TZS {myLoan.outstandingBalance.toLocaleString()}</div>
+            <CardTitle className="text-sm font-bold uppercase tracking-wider opacity-80">Jumla ya Malipo</CardTitle>
+            <div className="text-4xl font-black italic">TZS {myPayments.reduce((sum, p) => sum + p.amount, 0).toLocaleString()}</div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs font-bold uppercase tracking-tight">
-                <span>Maendeleo ya Mkopo</span>
-                <span>{myLoan.progressPercentage}%</span>
-              </div>
-              <Progress value={myLoan.progressPercentage} className="bg-white/20 h-3" />
-            </div>
+            <p className="text-sm font-medium opacity-90">Asante kwa kulipa kwa wakati. Endelea kukuza historia yako ya mkopo.</p>
           </CardContent>
         </Card>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Card className="border-none shadow-md bg-white">
-              <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
-                  <Calendar className="text-primary h-6 w-6" />
-                  <div>
-                      <p className="text-[0.65rem] uppercase font-bold text-muted-foreground leading-none mb-1">Malipo Yajayo</p>
-                      <p className="text-sm font-bold">{format(parseISO(myLoan.nextPaymentDueDate), "dd MMM")}</p>
-                  </div>
-              </CardContent>
-          </Card>
-          <Card className="border-none shadow-md bg-white">
-              <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
-                  <Wallet className="text-primary h-6 w-6" />
-                  <div>
-                      <p className="text-[0.65rem] uppercase font-bold text-muted-foreground leading-none mb-1">Kiwango kidogo</p>
-                      <p className="text-sm font-bold">TZS {myLoan.minimumPaymentAmount.toLocaleString()}</p>
-                  </div>
-              </CardContent>
-          </Card>
-        </div>
 
         <Button asChild className="w-full h-14 text-lg font-bold shadow-lg" size="lg">
           <Link href="/lipa" className="flex items-center justify-center gap-2">
@@ -206,10 +143,6 @@ export default function DashboardPage() {
                <Link href="/vault" className="flex flex-col items-center p-3 bg-secondary rounded-xl gap-2 hover:bg-primary/10 transition-colors">
                   <ShieldCheck className="text-primary" />
                   <span className="text-[0.65rem] font-bold uppercase">Nyaraka</span>
-              </Link>
-              <Link href="/savings" className="flex flex-col items-center p-3 bg-secondary rounded-xl gap-2 hover:bg-primary/10 transition-colors">
-                  <TrendingUp className="text-primary" />
-                  <span className="text-[0.65rem] font-bold uppercase">Faida</span>
               </Link>
                <Link href="/payments" className="flex flex-col items-center p-3 bg-secondary rounded-xl gap-2 hover:bg-primary/10 transition-colors">
                   <Calendar className="text-primary" />
@@ -228,7 +161,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <header className="space-y-1">
         <h1 className="text-3xl font-black tracking-tight font-headline uppercase italic">
-          {user.role === 'admin' ? 'Admin Panel' : 'Operations Tracker'}
+          {user.role === 'admin' ? 'Strategic Command' : 'Ground Operations'}
         </h1>
         <p className="text-muted-foreground">
           {isSupervisor ? 'Analyzing driver activity and daily collection targets.' : 'Business operations and high-level trends.'}
@@ -236,7 +169,6 @@ export default function DashboardPage() {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Daily Collection Focus */}
         <Card className="bg-accent text-white border-none shadow-lg relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10">
               <Target size={80} />
@@ -247,14 +179,13 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black italic">TZS {stats?.collectedToday.toLocaleString()}</div>
+            <div className="text-3xl font-black italic">TZS {(stats?.collectedToday || 0).toLocaleString()}</div>
             <p className="text-[0.65rem] font-bold text-white/50 uppercase mt-2 tracking-widest">
-                Target: TZS {stats?.dailyTarget.toLocaleString()}
+                Target: TZS {(stats?.dailyTarget || 0).toLocaleString()}
             </p>
           </CardContent>
         </Card>
 
-        {/* Weekly Target Focus for Supervisor */}
         <Card className="bg-white border-none shadow-md">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -265,10 +196,10 @@ export default function DashboardPage() {
             <div className="flex justify-between items-end">
                 <div className="text-2xl font-black italic text-primary">{(stats?.weeklyProgress || 0).toFixed(0)}%</div>
                 <div className="text-[0.65rem] font-bold text-muted-foreground">
-                    TZS {stats?.collectedThisWeek.toLocaleString()} / {stats?.weeklyTarget.toLocaleString()}
+                    TZS {(stats?.collectedThisWeek || 0).toLocaleString()} / {(stats?.weeklyTarget || 0).toLocaleString()}
                 </div>
             </div>
-            <Progress value={stats?.weeklyProgress} className="h-2" />
+            <Progress value={stats?.weeklyProgress || 0} className="h-2" />
           </CardContent>
         </Card>
       </div>
@@ -279,35 +210,22 @@ export default function DashboardPage() {
                 <CardTitle className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">Active Fleet</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4">
-                <div className="text-xl font-black text-accent">{stats?.activeRiders} Riders</div>
+                <div className="text-xl font-black text-accent">{stats?.activeRiders || 0} Riders</div>
             </CardContent>
         </Card>
         
-        {/* Admin only sees the investment/total stuff */}
         {!isSupervisor && (
            <Card className="bg-white border-none shadow-md">
             <CardHeader className="p-4 pb-1">
                 <CardTitle className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">Total Portfolio</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4">
-                <div className="text-xl font-black text-primary">TZS {stats?.totalCollected.toLocaleString()}</div>
+                <div className="text-xl font-black text-primary">TZS {(stats?.totalCollected || 0).toLocaleString()}</div>
             </CardContent>
           </Card>
         )}
-
-        {isSupervisor && (
-            <Card className="bg-white border-none shadow-md">
-                <CardHeader className="p-4 pb-1">
-                    <CardTitle className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">Recruited Week</CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                    <div className="text-xl font-black text-primary">{stats?.recruitedThisWeek} New</div>
-                </CardContent>
-            </Card>
-        )}
       </div>
 
-      {/* Arrears Summary Section - Critical for ground operations */}
       {stats && stats.arrearsCount > 0 && (
         <Card className="border-none shadow-md bg-red-50 ring-1 ring-red-200">
           <CardContent className="p-4 flex items-center justify-between">
@@ -315,12 +233,12 @@ export default function DashboardPage() {
               <AlertCircle className="text-red-600 h-6 w-6 shrink-0" />
               <div>
                 <p className="font-bold text-red-900">{stats.arrearsCount} Riders with Arrears</p>
-                <p className="text-xs text-red-700/80">Immediate driver follow-up required.</p>
+                <p className="text-xs text-red-700/80">Riders who have not paid today's fee.</p>
               </div>
             </div>
             <Button asChild variant="ghost" size="sm" className="text-red-600 hover:bg-red-100 hover:text-red-700 font-bold uppercase text-[0.65rem] tracking-widest">
               <Link href="/alerts" className="flex items-center gap-1">
-                Analyze <ArrowUpRight size={14} />
+                Follow Up <ArrowUpRight size={14} />
               </Link>
             </Button>
           </CardContent>
@@ -337,30 +255,10 @@ export default function DashboardPage() {
         <Button asChild variant="outline" className="h-20 flex flex-col gap-1 border-primary/20 hover:bg-primary/5 shadow-sm">
           <Link href="/collect">
             <Wallet className="h-5 w-5 text-primary" />
-            <span className="text-xs font-bold uppercase">Collect Today</span>
+            <span className="text-xs font-bold uppercase">Verify Payments</span>
           </Link>
         </Button>
       </div>
-
-      {!isSupervisor && (
-        <div className="space-y-4">
-          <h3 className="font-bold text-lg">System Insights</h3>
-          <Card className="border-none shadow-sm bg-secondary/50">
-            <CardContent className="p-4 flex items-start gap-4">
-              <TrendingUp className="text-primary mt-1 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold">Payment Efficiency</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Today's collections have reached 85% of the daily target. {stats?.arrearsCount} riders currently have pending balances.
-                </p>
-                <Button asChild variant="link" className="p-0 h-auto text-xs font-bold text-primary mt-2">
-                  <Link href="/reports">View Detailed Reports</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }
