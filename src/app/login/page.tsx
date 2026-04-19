@@ -1,3 +1,4 @@
+
 "use client";
 
 import { AuthForm } from "@/firebase/auth/auth-form";
@@ -34,17 +35,28 @@ export default function LoginPage() {
       {/* Login Area - Clean, Focused Right Side */}
       <div className="flex items-center justify-center py-12 px-4 sm:px-8">
         <div className="mx-auto w-full max-w-[440px]">
-          <Card className="border-none shadow-2xl bg-background">
-            <CardHeader className="space-y-4 text-center pt-8">
-              {/* Only show this logo if we can't see the other logo on the left (on small screens) */}
-              <div className="flex justify-center mb-2 lg:hidden">
-                <Logo />
+          <Card className="border-none shadow-2xl bg-background overflow-hidden">
+            {/* Colored Header - Added color to the 'front' of the form as requested */}
+            <CardHeader className="bg-accent text-white space-y-4 text-center py-10 relative overflow-hidden">
+              {/* Decorative background logo */}
+              <div className="absolute top-[-20%] right-[-10%] opacity-5 scale-150 rotate-12">
+                  <Logo white />
               </div>
-              <div className="space-y-1">
-                <CardTitle className="text-3xl font-black font-headline italic uppercase">Karibu Tena</CardTitle>
+              
+              {/* Only show this logo if we can't see the other logo on the left (on small screens) */}
+              <div className="flex justify-center lg:hidden relative z-10">
+                <Logo white />
+              </div>
+              
+              <div className="space-y-1 relative z-10">
+                <CardTitle className="text-3xl font-black font-headline italic uppercase tracking-tighter">
+                  Karibu <span className="text-primary">Tena</span>
+                </CardTitle>
+                <p className="text-white/60 text-xs font-bold uppercase tracking-widest">Strategic Command Center</p>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6 px-8 pb-8">
+            
+            <CardContent className="space-y-6 px-8 py-8">
               <AuthForm mode="login" />
             </CardContent>
           </Card>
