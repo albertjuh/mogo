@@ -1,117 +1,125 @@
-/**
- * Mogo Connect PWA - Firestore Security Rules
- *
- * Core Philosophy:
- * This ruleset implements a strict user-ownership authorization model. Every piece of data
- * is organized within a hierarchical structure anchored to a Client's unique Firebase UID.
- * This ensures that sensitive financial data (Loans, Transactions) and personal files 
- * (Documents) are logically and physically isolated per user.
- *
- * Data Structure:
- * - /clients/{clientId}: The root profile for a Mogo client.
- * - /clients/{clientId}/loans/{loanId}: Loan agreements belonging to the client.
- * - /clients/{clientId}/loans/{loanId}/transactions/{transactionId}: Financial history for a specific loan.
- * - /clients/{clientId}/documents/{documentId}: Digital copies of logbooks, IDs, and agreements.
- *
- * Key Security Decisions:
- * 1. Path-Based Ownership: Authorization is primarily determined by comparing the 
- *    `request.auth.uid` against the `{clientId}` wildcard in the document path.
- * 2. Denormalization for Authorization: Following Strategy A from the backend reasoning, 
- *    all sub-documents (Loans, Transactions, Documents) include a `clientId` field. 
- *    This allows for fast, independent authorization checks without cross-document lookups.
- * 3. Relational Integrity: On creation and update, the rules verify that internal 
- *    relationship fields (like `clientId` and `loanId`) remain consistent with the 
- *    document's location in the database hierarchy.
- * 4. Prototyping Flexibility: Rules strictly control WHO can access data, but do NOT 
- *    enforce specific data types or complete schema shapes to allow for rapid UI iteration.
- */
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- Helper Functions ---
-
     /**
-     * @description Checks if the user is authenticated with Firebase.
+     * CORE PHILOSOPHY
+     * This ruleset implements a robust Role-Based Access Control (RBAC) and Owner-Based model for a
+     * Fintech fleet management system. Security is prioritized at the foundation to ensure financial
+     * integrity and PCI-DSS compliance by design.
+     *
+     * DATA STRUCTURE
+     * - /adminUsers: A registry of UIDs that grants administrative privileges across the system.
+     * - /riders: Fleet member details, strictly managed by administrators.
+     * - /payments: Financial transactions linked to riders via denormalized 'riderId' fields.
+     * - /fleetGoals: Strategic growth planning data, restricted to administrators.
+     *
+     * KEY SECURITY DECISIONS
+     * - Authorization Independence: Rules avoid costly get() calls by relying on denormalized
+     *   ownership IDs (riderId) within transaction documents.
+     * - Admin Dominance: A dedicated /adminUsers collection serves as the source of truth for
+     *   system-wide management permissions.
+     * - Fintech Integrity: Critical relational fields like 'riderId' in payments are enforced
+     *   during creation and made immutable during updates to prevent financial record tampering.
+     * - Prototyping Flexibility: While authorization is strictly enforced, specific data shapes
+     *   (fields like names, notes, or status types) are not validated to allow for rapid iteration.
      */
+
+    // --- HELPER FUNCTIONS ---
+
+    /** @description Checks if the request is from an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * @description Checks if the authenticated user's UID matches the provided userId.
-     */
+    /** @description Checks if the authenticated user is registered as an administrator. */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid));
+    }
+
+    /** @description Checks if the user's UID matches the provided ID. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * @description Combines ownership check with document existence for destructive operations.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+    /** @description Checks if the authenticated user owns the specific document via a denormalized riderId. */
+    function isPaymentOwner(resourceData) {
+      return isSignedIn() && resourceData.riderId == request.auth.uid;
     }
 
-    // --- Collection Rules ---
+    // --- COLLECTION RULES ---
 
     /**
-     * @description Rules for Client profile documents.
-     * @path /clients/{clientId}
-     * @allow (get) If auth.uid matches clientId.
-     * @allow (create) If auth.uid matches clientId and internal id field matches.
-     * @deny (list) If the user is not signed in or listing other users' profiles.
-     * @principle Restricts access to a user's own profile tree and ensures ID consistency.
+     * @description Access control for administrative users. Registry existence grants global privileges.
+     * @path /adminUsers/{adminId}
+     * @allow (get) If the user is an admin or is requesting their own admin status.
+     * @deny (list) If the user is not an admin.
+     * @principle Global Role-Based Access Control (DBAC).
      */
-    match /clients/{clientId} {
-      allow get, list: if isOwner(clientId);
-      allow create: if isOwner(clientId) && request.resource.data.id == clientId;
-      allow update: if isExistingOwner(clientId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(clientId);
-
-      /**
-       * @description Rules for individual Loan agreements.
-       * @path /clients/{clientId}/loans/{loanId}
-       * @allow (list) The owner can list all their own loans.
-       * @allow (update) The owner can update loan progress or status.
-       * @deny (create) If the internal clientId does not match the path parameter.
-       * @principle Authorization Independence: Uses denormalized clientId for fast checks.
-       */
-      match /loans/{loanId} {
-        allow get, list: if isOwner(clientId);
-        allow create: if isOwner(clientId) && request.resource.data.clientId == clientId;
-        allow update: if isExistingOwner(clientId) && request.resource.data.clientId == resource.data.clientId;
-        allow delete: if isExistingOwner(clientId);
-
-        /**
-         * @description Rules for financial Transactions linked to a specific loan.
-         * @path /clients/{clientId}/loans/{loanId}/transactions/{transactionId}
-         * @allow (create) If the user owns the path and correctly links clientId and loanId.
-         * @deny (update) If the user attempts to change the associated loanId or clientId.
-         * @principle Relational Integrity: Enforces that transactions stay tied to the correct loan/client.
-         */
-        match /transactions/{transactionId} {
-          allow get, list: if isOwner(clientId);
-          allow create: if isOwner(clientId) && request.resource.data.clientId == clientId && request.resource.data.loanId == loanId;
-          allow update: if isExistingOwner(clientId) && request.resource.data.clientId == resource.data.clientId && request.resource.data.loanId == resource.data.loanId;
-          allow delete: if isExistingOwner(clientId);
-        }
-      }
-
-      /**
-       * @description Rules for the Document Vault (logbooks, insurance stickers, etc.).
-       * @path /clients/{clientId}/documents/{documentId}
-       * @allow (get) The owner can view their own document metadata and URLs.
-       * @allow (create) If the owner sets the internal clientId correctly.
-       * @deny (delete) If the user is not the owner of the client path.
-       * @principle Secure nested access: Protects sensitive document metadata and file pointers.
-       */
-      match /documents/{documentId} {
-        allow get, list: if isOwner(clientId);
-        allow create: if isOwner(clientId) && request.resource.data.clientId == clientId;
-        allow update: if isExistingOwner(clientId) && request.resource.data.clientId == resource.data.clientId;
-        allow delete: if isExistingOwner(clientId);
-      }
+    match /adminUsers/{adminId} {
+      allow get: if isAdmin() || isOwner(adminId);
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
+
+    /**
+     * @description Manages motorcycle rider profiles and contract terms.
+     * @path /riders/{riderId}
+     * @allow (read/write) Only if the user is an authenticated administrator.
+     * @deny (all) For non-admin users, including riders themselves (riders managed by admin).
+     * @principle Strict administrative segregation for fleet management.
+     */
+    match /riders/{riderId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if isAdmin() && resource != null;
+    }
+
+    /**
+     * @description Financial transaction records for payments made via Selcom gateway.
+     * @path /payments/{paymentId}
+     * @allow (get/list) If user is an admin OR the payment's riderId matches the user's UID.
+     * @allow (create) If user is an admin OR is creating a payment for themselves (matching riderId).
+     * @deny (update/delete) If user is not an admin and attempts to modify another's records.
+     * @principle Authorization Independence via denormalized ownership fields.
+     */
+    match /payments/{paymentId} {
+      allow get: if isAdmin() || isPaymentOwner(resource.data);
+      
+      // Enforce client-side filtering by riderId for non-admin users
+      allow list: if isAdmin() || (isSignedIn() && request.query.where.riderId == request.auth.uid);
+
+      allow create: if isAdmin() || (
+        isSignedIn() && 
+        request.resource.data.riderId == request.auth.uid
+      );
+
+      allow update: if (isAdmin() || isPaymentOwner(resource.data)) && 
+        resource != null &&
+        request.resource.data.riderId == resource.data.riderId; // Enforce immutability of owner
+
+      allow delete: if isAdmin() && resource != null;
+    }
+
+    /**
+     * @description Fleet growth goals and strategic calculations.
+     * @path /fleetGoals/{goalId}
+     * @allow (all) Only for authenticated administrators.
+     * @deny (read/write) For any user not in the adminUsers collection.
+     * @principle Private administrative data protection.
+     */
+    match /fleetGoals/{goalId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if isAdmin() && resource != null;
+    }
+
   }
 }
+
+/**
+ * PROTOTYPING MODE NOTICE:
+ * These rules enforce strict authorization (WHO can access) but allow flexible data structures
+ * (WHAT data is stored). Relational integrity is enforced for ID fields to prevent unauthorized
+ * data injection, but general business logic validation should be added as the schema stabilizes.
+ */

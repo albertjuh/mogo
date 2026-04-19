@@ -1,252 +1,136 @@
 {
   "entities": {
-    "Client": {
+    "Rider": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Client",
+      "title": "Rider",
       "type": "object",
-      "description": "Represents a client of Mogo, such as a Boda Boda, Bajaji, or Car Loan client, who has active or past loan agreements.",
+      "description": "Represents a motorcycle rider in the BodaEmpire fleet, including their personal details and contract terms.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Client entity."
+          "description": "Unique identifier for the Rider entity."
         },
-        "fullName": {
+        "name": {
           "type": "string",
-          "description": "The client's full legal name as registered with Mogo."
+          "description": "The full name of the rider."
         },
         "phoneNumber": {
           "type": "string",
-          "description": "The primary contact phone number of the client."
+          "description": "The primary contact phone number of the rider."
         },
         "email": {
           "type": "string",
-          "description": "The client's email address.",
+          "description": "The contact email address of the rider (optional).",
           "format": "email"
         },
-        "nationalIdNumber": {
+        "contractStartDate": {
           "type": "string",
-          "description": "The unique national identification number of the client."
-        },
-        "address": {
-          "type": "string",
-          "description": "The physical address of the client."
-        },
-        "dateJoined": {
-          "type": "string",
-          "description": "The date and time when the client joined Mogo or registered their first loan.",
+          "description": "The date when the rider's contract began.",
           "format": "date-time"
         },
-        "isActive": {
-          "type": "boolean",
-          "description": "Indicates whether the client's account is currently active."
+        "contractEndDate": {
+          "type": "string",
+          "description": "The date when the rider's contract is scheduled to end, used for expiration alerts.",
+          "format": "date-time"
+        },
+        "dailyPaymentAmount": {
+          "type": "number",
+          "description": "The agreed daily payment amount (in local currency) the rider is expected to pay to the BodaEmpire."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Any additional administrative notes or remarks about the rider."
         }
       },
       "required": [
         "id",
-        "fullName",
+        "name",
         "phoneNumber",
-        "nationalIdNumber",
-        "dateJoined",
-        "isActive"
+        "contractStartDate",
+        "contractEndDate",
+        "dailyPaymentAmount"
       ]
     },
-    "Loan": {
+    "Payment": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Loan",
+      "title": "Payment",
       "type": "object",
-      "description": "Represents a specific loan agreement provided by Mogo to a client for vehicles like Boda Bodas, Bajaji, or cars.",
+      "description": "Records individual payment transactions made by a rider to the BodaEmpire.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Loan entity."
+          "description": "Unique identifier for the Payment entity."
         },
-        "clientId": {
+        "riderId": {
           "type": "string",
-          "description": "Reference to the Client who owns this loan. (Relationship: Client 1:N Loan)"
-        },
-        "loanType": {
-          "type": "string",
-          "description": "The type of asset financed by the loan (e.g., 'Boda Boda', 'Bajaji', 'Car')."
-        },
-        "principalAmount": {
-          "type": "number",
-          "description": "The original total principal amount disbursed for the loan."
-        },
-        "outstandingBalance": {
-          "type": "number",
-          "description": "The current remaining balance to be paid on the loan."
-        },
-        "interestRate": {
-          "type": "number",
-          "description": "The annual interest rate applied to the loan, represented as a decimal (e.g., 0.15 for 15%)."
-        },
-        "loanTermMonths": {
-          "type": "number",
-          "description": "The agreed-upon total duration of the loan in months."
-        },
-        "startDate": {
-          "type": "string",
-          "description": "The date when the loan agreement officially commenced.",
-          "format": "date"
-        },
-        "endDate": {
-          "type": "string",
-          "description": "The projected date when the loan is expected to be fully repaid.",
-          "format": "date"
-        },
-        "nextPaymentDueDate": {
-          "type": "string",
-          "description": "The specific date when the next payment for this loan is due.",
-          "format": "date"
-        },
-        "minimumPaymentAmount": {
-          "type": "number",
-          "description": "The minimum amount required for the upcoming payment."
-        },
-        "totalAmountPaid": {
-          "type": "number",
-          "description": "The cumulative sum of all payments successfully made towards this loan."
-        },
-        "loanStatus": {
-          "type": "string",
-          "description": "The current operational status of the loan (e.g., 'Active', 'Completed', 'Defaulted', 'In Arrears', 'Restructured')."
-        },
-        "progressPercentage": {
-          "type": "number",
-          "description": "The calculated percentage of the loan's completion towards full repayment."
-        },
-        "lastUpdateDate": {
-          "type": "string",
-          "description": "The timestamp of the last modification or status update to this loan record.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "clientId",
-        "loanType",
-        "principalAmount",
-        "outstandingBalance",
-        "interestRate",
-        "loanTermMonths",
-        "startDate",
-        "endDate",
-        "nextPaymentDueDate",
-        "minimumPaymentAmount",
-        "totalAmountPaid",
-        "loanStatus",
-        "progressPercentage",
-        "lastUpdateDate"
-      ]
-    },
-    "Transaction": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Transaction",
-      "type": "object",
-      "description": "Records individual financial transactions related to a client's loan, including payments and disbursements.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Transaction entity."
-        },
-        "loanId": {
-          "type": "string",
-          "description": "Reference to the Loan associated with this transaction. (Relationship: Loan 1:N Transaction)"
-        },
-        "clientId": {
-          "type": "string",
-          "description": "Reference to the Client involved in this transaction. (Relationship: Client 1:N Transaction)"
-        },
-        "transactionType": {
-          "type": "string",
-          "description": "The nature of the financial movement (e.g., 'Payment', 'Disbursement', 'Penalty', 'Adjustment', 'Reversal')."
+          "description": "Reference to the Rider who made this payment. (Relationship: Rider 1:N Payment)"
         },
         "amount": {
           "type": "number",
-          "description": "The monetary value of the transaction."
+          "description": "The amount of money paid in this transaction."
         },
-        "transactionDate": {
+        "paymentDate": {
           "type": "string",
-          "description": "The precise date and time when the transaction was recorded or occurred.",
+          "description": "The date and time when the payment was recorded.",
           "format": "date-time"
         },
-        "paymentMethod": {
+        "selcomReference": {
           "type": "string",
-          "description": "The channel or method used for the transaction (e.g., 'M-Pesa', 'Airtel Money', 'Tigo Pesa', 'Bank Transfer', 'Cash')."
-        },
-        "externalReferenceId": {
-          "type": "string",
-          "description": "A unique reference identifier provided by the external payment gateway or system (e.g., M-Pesa transaction ID)."
+          "description": "The unique reference ID provided by the Selcom payment gateway for this transaction, ensuring PCI-DSS compliance by not storing sensitive card data."
         },
         "status": {
           "type": "string",
-          "description": "The current processing status of the transaction (e.g., 'Successful', 'Pending', 'Failed', 'Reversed', 'Initiated')."
-        },
-        "description": {
-          "type": "string",
-          "description": "A concise description or internal note about the transaction."
+          "description": "The current status of the payment (e.g., 'Paid', 'Missed', 'Partial', 'Pending')."
         }
       },
       "required": [
         "id",
-        "loanId",
-        "clientId",
-        "transactionType",
+        "riderId",
         "amount",
-        "transactionDate",
-        "paymentMethod",
+        "paymentDate",
+        "selcomReference",
         "status"
       ]
     },
-    "Document": {
+    "FleetGoal": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Document",
+      "title": "FleetGoal",
       "type": "object",
-      "description": "Stores references and metadata for digital copies of important documents associated with a client's loan or profile.",
+      "description": "Defines a strategic goal for the growth of the BodaEmpire fleet, used by the Fleet Growth Calculator to track progress and provide recommendations.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Document entity."
+          "description": "Unique identifier for the FleetGoal entity."
         },
-        "clientId": {
-          "type": "string",
-          "description": "Reference to the Client to whom this document belongs. (Relationship: Client 1:N Document)"
+        "targetBodas": {
+          "type": "number",
+          "description": "The desired number of bodas (motorcycles) the BodaEmpire aims to achieve for this goal."
         },
-        "documentType": {
+        "targetDate": {
           "type": "string",
-          "description": "The category or classification of the document (e.g., 'Logbook', 'Insurance Sticker', 'Loan Agreement', 'Client ID', 'Proof of Address')."
-        },
-        "documentName": {
-          "type": "string",
-          "description": "A human-readable name or title for the document."
-        },
-        "fileUrl": {
-          "type": "string",
-          "description": "The secure URL where the digital document file is stored (e.g., Firebase Storage URL).",
-          "format": "uri"
-        },
-        "uploadDate": {
-          "type": "string",
-          "description": "The date and time when the document was uploaded.",
+          "description": "The target date by which the desired number of bodas should be reached.",
           "format": "date-time"
         },
-        "expirationDate": {
+        "startDate": {
           "type": "string",
-          "description": "The date when the document (e.g., insurance, permit) is set to expire. Optional.",
-          "format": "date"
+          "description": "The date when this fleet growth goal was initially set.",
+          "format": "date-time"
         },
-        "isVerified": {
-          "type": "boolean",
-          "description": "Indicates whether the document has been reviewed and verified by a Mogo agent."
+        "status": {
+          "type": "string",
+          "description": "The current status of the fleet goal (e.g., 'Active', 'Achieved', 'Abandoned', 'On Hold')."
+        },
+        "initialInvestment": {
+          "type": "number",
+          "description": "The initial investment (in local currency) specifically allocated towards achieving this fleet growth goal (optional)."
         }
       },
       "required": [
         "id",
-        "clientId",
-        "documentType",
-        "documentName",
-        "fileUrl",
-        "uploadDate"
+        "targetBodas",
+        "targetDate",
+        "startDate",
+        "status"
       ]
     }
   },
@@ -259,80 +143,70 @@
   "firestore": {
     "structure": [
       {
-        "path": "/clients/{clientId}",
+        "path": "/adminUsers/{adminId}",
         "definition": {
-          "entityName": "Client",
+          "entityName": "AdminUser",
           "schema": {
-            "$ref": "#/backend/entities/Client"
+            "$ref": "#/backend/entities/AdminUser"
           },
-          "description": "Top-level collection for individual client profiles. The `clientId` document ID must match `request.auth.uid` for authorization. Each client can only access their own profile."
-        }
-      },
-      {
-        "path": "/clients/{clientId}/loans/{loanId}",
-        "definition": {
-          "entityName": "Loan",
-          "schema": {
-            "$ref": "#/backend/entities/Loan"
-          },
-          "description": "Subcollection storing individual loan agreements for a specific client. Includes a denormalized 'clientId' field that must match the parent path parameter for authorization independence. Ensures only the authenticated client can access their own loans.",
+          "description": "Stores documents for users with administrative privileges. The existence of a document for a user's UID in this collection grants admin access. Used for Database Access Control (DBAC).",
           "params": [
             {
-              "name": "clientId",
-              "description": "The unique identifier of the client, corresponding to `request.auth.uid`."
-            },
-            {
-              "name": "loanId",
-              "description": "The unique identifier for a specific loan agreement."
+              "name": "adminId",
+              "description": "The unique Firebase Authentication UID of the administrator."
             }
           ]
         }
       },
       {
-        "path": "/clients/{clientId}/loans/{loanId}/transactions/{transactionId}",
+        "path": "/riders/{riderId}",
         "definition": {
-          "entityName": "Transaction",
+          "entityName": "Rider",
           "schema": {
-            "$ref": "#/backend/entities/Transaction"
+            "$ref": "#/backend/entities/Rider"
           },
-          "description": "Subcollection recording financial transactions related to a specific loan and client. Includes denormalized 'clientId' and 'loanId' fields that must match the respective parent path parameters for authorization independence. Ensures transactions are securely nested under the owning loan and client.",
+          "description": "Collection for all BodaEmpire riders. Managed solely by administrators, providing core rider details and contract terms. Access is restricted to authenticated administrators.",
           "params": [
             {
-              "name": "clientId",
-              "description": "The unique identifier of the client, corresponding to `request.auth.uid`."
-            },
-            {
-              "name": "loanId",
-              "description": "The unique identifier for the associated loan agreement."
-            },
-            {
-              "name": "transactionId",
-              "description": "The unique identifier for a specific financial transaction."
+              "name": "riderId",
+              "description": "The unique identifier for a specific rider (document ID)."
             }
           ]
         }
       },
       {
-        "path": "/clients/{clientId}/documents/{documentId}",
+        "path": "/payments/{paymentId}",
         "definition": {
-          "entityName": "Document",
+          "entityName": "Payment",
           "schema": {
-            "$ref": "#/backend/entities/Document"
+            "$ref": "#/backend/entities/Payment"
           },
-          "description": "Subcollection storing metadata for digital documents belonging to a specific client. Includes a denormalized 'clientId' field that must match the parent path parameter for authorization independence. Ensures only the authenticated client can access their own documents.",
+          "description": "Records individual payment transactions from riders. Includes a denormalized 'riderId' field for authorization independence, allowing riders to securely access only their own payments and administrators to access all. Compliant with PCI-DSS via 'selcomReference'.",
           "params": [
             {
-              "name": "clientId",
-              "description": "The unique identifier of the client, corresponding to `request.auth.uid`."
-            },
+              "name": "paymentId",
+              "description": "The unique identifier for a specific payment transaction (document ID)."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/fleetGoals/{goalId}",
+        "definition": {
+          "entityName": "FleetGoal",
+          "schema": {
+            "$ref": "#/backend/entities/FleetGoal"
+          },
+          "description": "Defines strategic goals for fleet growth, used by the Fleet Growth Calculator. This collection is exclusively managed by administrators. Access is restricted to authenticated administrators.",
+          "params": [
             {
-              "name": "documentId",
-              "description": "The unique identifier for a specific digital document."
+              "name": "goalId",
+              "description": "The unique identifier for a specific fleet growth goal (document ID)."
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed following a strict hierarchical, user-owned pattern, which inherently addresses Authorization Independence, ensures clear security intent, and supports robust Query-Aware Security (QAP) principles.The core principle applied is **Authorization Independence via Denormalization (Strategy A)**. Every subcollection document (Loan, Transaction, Document) will contain a `clientId` field that matches the `request.auth.uid` AND the `{clientId}` wildcard in its parent path. This eliminates the need for `get()` calls in security rules, as all authorization context is available directly in the document being accessed or its immediate path. For example, a 'Loan' document will store its `clientId` as a field, allowing rules to check `request.auth.uid == /clients/{clientId}/...` AND `resource.data.clientId == {clientId}`.\n\n**Structural Segregation (Strategy B)** is maintained by dedicating specific paths to homogeneous data types with consistent security postures. For instance, all documents under `/clients/{clientId}/loans` are exclusively the loans belonging to that specific client, simplifying rule logic to a single ownership check.\n\n**Access Modeling (Strategy C)** heavily leverages Path-Based ownership (`/clients/{clientId}/...`). Since each Firebase authenticated user (`request.auth.uid`) is a 'Client' in the Mogo system, the top-level collection `clients` uses the Firebase `uid` as its document ID. Subsequent related entities (Loans, Transactions, Documents) are nested as subcollections under their respective client, creating a naturally secure and intuitive hierarchy.\n\n**Query-Aware Security (QAPs, Principle 4)** is supported by this structure. When a user requests `/clients/{request.auth.uid}/loans`, the security rules can directly compare `request.auth.uid` with the `{clientId}` wildcard in the path, ensuring that only the authenticated user's loans are returned. The same applies to `transactions` and `documents`, making `list` operations implicitly secure without relying on client-side filtering or complex server-side rule evaluations. The `clientId` and `loanId` fields within the documents further reinforce this, allowing for data integrity checks against the path parameters.\n\nFinally, **Data Clarity and Predictability (Strategy D)** is enforced through consistent naming conventions (`clientId`, `loanId`, `transactionId`, `documentId`) for wildcards and document fields, aligning with explicit state modeling like `loanStatus` and `transaction.status` fields in the schemas."
+    "reasoning": "The Firestore structure for BodaEmpire prioritizes security, scalability, and debuggability by adhering to core design principles, especially Authorization Independence and secure Queryable Access Patterns (QAPs). \n\n**Authorization Independence (CRITICAL):**\nThis structure completely avoids hierarchical authorization dependencies (`get()` calls in security rules). This is achieved through two main strategies:\n1.  **Dedicated Admin Role Collection:** A top-level collection, `/adminUsers/{adminId}`, is used to store the UIDs of authorized administrators. Security rules can check for the existence of `request.auth.uid` in this collection (`exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid))`) to grant administrative access. This allows for atomic operations and prevents breaking changes if related documents (like a 'company' or 'organization' document) were to change or be deleted.\n2.  **Denormalized Authorization Context:** For rider-specific data, such as payments, the necessary `riderId` is directly embedded within each `Payment` document (`resource.data.riderId`). This means that when a rider attempts to access their payment history, the security rule can directly compare `request.auth.uid` with `resource.data.riderId` without needing to perform a `get()` operation on a parent `Rider` document. This enables robust security and allows for atomic creation of related entities without complex rule dependencies.\n\n**Queryable Access Patterns (QAPs):**\nSecure `list` operations are supported by ensuring that security requirements are homogeneous for documents within a collection and by leveraging denormalization and structural segregation:\n1.  **Admin Collections (`/riders`, `/payments`, `/fleetGoals`):** Administrators, whose UIDs are in `/adminUsers`, have full `read` and `write` access to these collections. This enables them to perform `list` operations on all riders, payments, and fleet goals for reporting and management purposes without additional filtering required by the rules (as their admin status is already checked).\n2.  **Rider-Specific Payments (`/payments`):** Riders can only view their own payment records. The security rules for the `/payments` collection will enforce that any `list` operation by a non-admin user *must* include a query filter `riderId == request.auth.uid`. The `riderId` is denormalized within each `payment` document, allowing the rule to securely validate this filter, preventing riders from listing or accessing other riders' payment data. This adheres to the QAP principle by enabling secure listing while restricting unauthorized access.\n\n**Structural Segregation:**\nEach collection (`/adminUsers`, `/riders`, `/payments`, `/fleetGoals`) is designed to hold documents with a consistent security posture, simplifying security rules. For example, all `Rider` documents are admin-managed. All `Payment` documents are either admin-managed or rider-viewable (for their own), with the `riderId` field facilitating the latter.\n\n**Access Modeling:**\n*   **Global Roles (DBAC):** Implemented via the `/adminUsers/{adminId}` collection for BodaEmpire administrators.\n*   **Private Data:** `Rider` and `FleetGoal` data are considered private to the BodaEmpire administration and are controlled by the `adminUsers` role.\n*   **Hierarchical Paths/User-Owned Data:** While `Rider` data is not directly user-owned by the rider themselves (it's admin-managed), `Payment` data is linked to a specific `riderId` and allows riders to access their own records efficiently and securely using the denormalized `riderId` field."
   }
 }
