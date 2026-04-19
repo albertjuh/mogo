@@ -16,30 +16,46 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    function isSupervisor() {
+      return isSignedIn() && exists(/databases/$(database)/documents/supervisors/$(request.auth.uid));
+    }
+
+    function isRecruiter() {
+      return isSignedIn() && exists(/databases/$(database)/documents/recruiters/$(request.auth.uid));
+    }
+
     // --- Collection Rules ---
 
     match /riders/{riderId} {
-      // Riders see their own profile. Admins manage all.
-      allow read: if isOwner(riderId) || isAdmin();
-      allow write: if isAdmin();
+      // Riders see their own profile. Admins/Supervisors/Recruiters manage or view all.
+      allow read: if isOwner(riderId) || isAdmin() || isSupervisor() || isRecruiter();
+      allow write: if isAdmin() || isRecruiter();
     }
 
     match /payments/{paymentId} {
-      // 1. A rider can only see THEIR OWN payments. Admins see all for audit.
-      allow read: if isAdmin() || (isSignedIn() && resource.data.riderId == request.auth.uid);
+      // Riders see THEIR OWN. Admins/Supervisors see all.
+      allow read: if isAdmin() || isSupervisor() || (isSignedIn() && resource.data.riderId == request.auth.uid);
       
-      // 2. Riders can create a payment record (e.g., initiating an STK push).
-      // They must set themselves as the owner.
+      // Riders can create a payment record (e.g., initiating an STK push).
       allow create: if isSignedIn() && request.resource.data.riderId == request.auth.uid;
       
-      // 3. Payments are immutable for Riders. They cannot change 'pending' to 'verified' manually.
-      // Only Admins (or server-side logic using Admin SDK) can update or delete.
+      // Only Admins (or secure server-side logic) can update or delete.
       allow update, delete: if isAdmin();
     }
 
     match /admins/{adminId} {
-      // Allow signed-in users to check if an admin document exists for role verification.
       allow read: if isSignedIn();
+      allow write: if false; // Only manageable via Admin SDK or manually in console
+    }
+
+    match /supervisors/{supervisorId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /recruiters/{recruiterId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
   }
 }
