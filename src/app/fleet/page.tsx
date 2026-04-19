@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
 import { Plus, MoreVertical, Edit, Trash2, FileText, Download, Printer, Loader2 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isValid } from "date-fns";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, deleteDoc, doc, setDoc } from "firebase/firestore";
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -110,6 +109,25 @@ export default function FleetPage() {
     setIsFormOpen(false);
     setSelectedRider(null);
   }
+
+  const safeFormatDate = (date: any) => {
+    if (!date) return '……';
+    try {
+      let d: Date;
+      if (typeof date === 'string') {
+        d = parseISO(date);
+      } else if (date.toDate) {
+        d = date.toDate();
+      } else if (date instanceof Date) {
+        d = date;
+      } else {
+        return '……';
+      }
+      return isValid(d) ? format(d, 'dd/MM/yyyy') : '……';
+    } catch (e) {
+      return '……';
+    }
+  };
 
   if (!isManager) {
     return <div className="p-12 text-center text-muted-foreground font-bold">Unauthorized Access</div>;
@@ -253,9 +271,9 @@ export default function FleetPage() {
                     </div>
 
                     <div className="space-y-4">
-                        <p><strong>MMILIKI WA PIKIPIKI:</strong> Mimi Boda Empire tarehe {selectedRider ? format(parseISO(selectedRider.contractStart), 'dd/MM/yyyy') : '……'} nimemkabidhi ndugu {selectedRider?.name} Mali iliyotajwa hapo juu kwa hiari yangu mwenyewe nikiwa na akili zangu timamu bila kushauriwa na mtu yeyote, na tumekubaliana atulipe kiasi cha shilingi 10,000 kwa siku [utaratibu wa malipo ni Tsh 100,000 kila siku ya 10] kwa mda wa miezi {selectedRider?.contractTermMonths || 18}. Mkataba huu ni kuanzia tarehe {selectedRider ? format(parseISO(selectedRider.contractStart), 'dd/MM/yyyy') : '……'} hadi tarehe {selectedRider ? format(parseISO(selectedRider.contractEnd), 'dd/MM/yyyy') : '……'} Itakuwa mwisho wa mkataba huu na pikipiki itakuwa ni mali yake na atakabidhiwa kadi ya pikipiki.</p>
+                        <p><strong>MMILIKI WA PIKIPIKI:</strong> Mimi Boda Empire tarehe {safeFormatDate(selectedRider?.contractStart)} nimemkabidhi ndugu {selectedRider?.name} Mali iliyotajwa hapo juu kwa hiari yangu mwenyewe nikiwa na akili zangu timamu bila kushauriwa na mtu yeyote, na tumekubaliana atulipe kiasi cha shilingi 10,000 kwa siku [utaratibu wa malipo ni Tsh 100,000 kila siku ya 10] kwa mda wa miezi {selectedRider?.contractTermMonths || 18}. Mkataba huu ni kuanzia tarehe {safeFormatDate(selectedRider?.contractStart)} hadi tarehe {safeFormatDate(selectedRider?.contractEnd)} Itakuwa mwisho wa mkataba huu na pikipiki itakuwa ni mali yake na atakabidhiwa kadi ya pikipiki.</p>
                         
-                        <p><strong>ANAEKABIDHIWA PIKIPIKI:</strong> Mimi {selectedRider?.name} nikiwa na akili zangu timamu na kwa hiari yangu mwenyewe bila kulazimishwa na mtu yeyote wala kushawishiwa nimekubali kupokea pikipiki tajwa hapo juu kutoka kwa ndugu Boda Empire leo tarehe {selectedRider ? format(parseISO(selectedRider.contractStart), 'dd/MM/yyyy') : '……'} hadi tarehe {selectedRider ? format(parseISO(selectedRider.contractEnd), 'dd/MM/yyyy') : '……'}. Na ninaambatanisha nakala ya kitambulisho changu cha mpiga kura/kitambulisho cha taifa/picha ya passport.</p>
+                        <p><strong>ANAEKABIDHIWA PIKIPIKI:</strong> Mimi {selectedRider?.name} nikiwa na akili zangu timamu na kwa hiari yangu mwenyewe bila kulazimishwa na mtu yeyote wala kushawishiwa nimekubali kupokea pikipiki tajwa hapo juu kutoka kwa ndugu Boda Empire leo tarehe {safeFormatDate(selectedRider?.contractStart)} hadi tarehe {safeFormatDate(selectedRider?.contractEnd)}. Na ninaambatanisha nakala ya kitambulisho changu cha mpiga kura/kitambulisho cha taifa/picha ya passport.</p>
 
                         <p><strong>MASHARTI YA MKATABA:</strong></p>
                         <ol className="list-decimal pl-5 space-y-2">
@@ -269,7 +287,7 @@ export default function FleetPage() {
                             <li>Dereva ana wajibu wa kuhakikisha anafuata sheria zote za barabarani na kulipa faini zozote zitakazotokana na ukiukwaji wa sheria.</li>
                         </ol>
 
-                        <p><strong>KUVUNJA MKATABA (ANAEKABIDHIWA):</strong> Mimi {selectedRider?.name} endapo nitavunja makubaliano haya ikiwa ni pamoja na kushindwa kulipa kiasi cha shilingi 10,000 kwa siku kwa kupitiliza siku 3 (tatu) kwa sababu zisizo za msingi nitakuwa nimevunja mkataba wangu mwenyewe na nitakuwa tayari kuwalipa ela yao yote wanayonidai na kuwakabidhi chombo chao kikiwa katika hali nzuri.</p>
+                        <p><strong>KUVUNJA MKATABA (ANAEKABIDHIWA):</strong> Mimi {selectedRider?.name} endapo nitavunja makubaliano haya ikiwa ni pamoja na kushindwa kulipa kiasi cha shilingi 10,000 kwa siku kwa kupitiliza siku 3 (tatu) kwa sababu zisizo za msingi nitakuwa nimevunja mkataba wangu mwenyewe and nitakuwa tayari kuwalipa ela yao yote wanayonidai na kuwakabidhi chombo chao kikiwa katika hali nzuri.</p>
                         
                         <p><strong>MDHAMINI:</strong> Mimi {selectedRider?.guarantorName} nikiwa na akili zangu timamu bila kulazimishwa nakubali kumdhamini {selectedRider?.name} mbele ya mwenyekiti, mwenye mali na shahidi wake na nakubali kuwajibika na kulipa fidia endapo atapoteza/ataaribu/atakimbia na chombo hiki au atashindwa kulipa kiasi chochote atakachokuwa anadaiwa ndani ya siku 14 za tukio.</p>
                     </div>

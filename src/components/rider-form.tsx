@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Rider, Bike as BikeType } from "@/lib/types";
-import { parseISO, addMonths } from "date-fns";
+import { parseISO, addMonths, isValid } from "date-fns";
 import { useEffect } from "react";
 
 const riderFormSchema = z.object({
@@ -77,7 +77,7 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
     defaultValues: rider
       ? { 
           ...rider, 
-          contractStart: parseISO(rider.contractStart),
+          contractStart: rider.contractStart ? (typeof rider.contractStart === 'string' ? parseISO(rider.contractStart) : (rider.contractStart as any).toDate?.() || new Date()) : new Date(),
           vehicleType: rider.vehicleType || 'Boda Boda',
           paymentFrequency: rider.paymentFrequency || 'Daily',
           contractTermMonths: rider.contractTermMonths || 18,
@@ -130,6 +130,7 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
     
     const submissionData = {
         ...values,
+        contractStart: values.contractStart.toISOString(),
         bikeId: bike?.id || "bike-custom",
         contractEnd: contractEnd.toISOString()
     }
