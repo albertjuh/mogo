@@ -53,7 +53,7 @@ export function DashboardHeader() {
             
             <p className="text-xs uppercase text-white/60 font-bold tracking-widest relative z-10">Mogo Connect</p>
             <p className="font-black text-4xl text-white italic my-1 relative z-10 uppercase">
-                {mngtStats?.activeFleet} Riders
+                {mngtStats?.activeFleet} <span className="text-primary">Riders</span>
             </p>
             <p className="text-sm text-white/80 font-semibold relative z-10 uppercase tracking-tighter">
                 {mngtStats?.paidToday} Payments Received Today
