@@ -37,6 +37,7 @@ import { parseISO, addMonths } from "date-fns";
 const riderFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   phone: z.string().regex(/^(?:\+255|0)\d{9}$/, "Please enter a valid Tanzanian phone number."),
+  vehicleType: z.enum(['Boda Boda', 'Bajaji']),
   plateNumber: z.string().min(3, "Plate number is required."),
   chassisNumber: z.string().min(5, "Chassis number required for legal contract."),
   engineNumber: z.string().min(5, "Engine number required for legal contract."),
@@ -73,6 +74,7 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
       ? { 
           ...rider, 
           contractStart: parseISO(rider.contractStart),
+          vehicleType: rider.vehicleType || 'Boda Boda',
           paymentFrequency: rider.paymentFrequency || 'Daily',
           contractTermMonths: rider.contractTermMonths || 18,
           chassisNumber: rider.chassisNumber || "",
@@ -87,6 +89,7 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
       : {
           name: "",
           phone: "",
+          vehicleType: "Boda Boda",
           plateNumber: "",
           chassisNumber: "",
           engineNumber: "",
@@ -176,19 +179,42 @@ export function RiderForm({ rider, bikes, onSubmit, onCancel, className }: Rider
           </TabsContent>
 
           <TabsContent value="vehicle" className="space-y-4 pt-4">
-            <FormField
-              control={form.control}
-              name="plateNumber"
-              render={({ field }) => (
-                  <FormItem>
-                  <FormLabel>Plate Number (Usajili)</FormLabel>
-                  <FormControl>
-                      <Input placeholder="T 123 BCD" {...field} className="uppercase font-black"/>
-                  </FormControl>
-                  <FormMessage />
-                  </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="vehicleType"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Vehicle Type (Chombo)</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                          <SelectItem value="Boda Boda">Boda Boda</SelectItem>
+                          <SelectItem value="Bajaji">Bajaji</SelectItem>
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="plateNumber"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Plate Number (Usajili)</FormLabel>
+                      <FormControl>
+                          <Input placeholder="T 123 BCD" {...field} className="uppercase font-black"/>
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+                />
+            </div>
             <div className="grid grid-cols-2 gap-4">
                 <FormField
                     control={form.control}

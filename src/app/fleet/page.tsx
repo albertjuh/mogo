@@ -42,7 +42,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RiderForm, type RiderFormValues } from "@/components/rider-form";
 import { useToast } from "@/hooks/use-toast";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export default function FleetPage() {
   const [riders, setRiders] = useLocalStorage<Rider[]>("riders", initialRiders);
@@ -102,6 +101,7 @@ export default function FleetPage() {
         active: true,
         contractEnd: dateToISO(addDays(data.contractStart, 540)), // Default 18 months
         createdAt: new Date().toISOString(),
+        bikeId: "bike-custom" // Logic handled in form submit
       };
       setRiders([...riders, newRider]);
       toast({ title: "Rider Added", description: `${data.name} is now part of your fleet.` });
@@ -175,7 +175,7 @@ export default function FleetPage() {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="bg-secondary/30 p-2 rounded-lg">
                         <p className="text-[0.6rem] uppercase font-black text-muted-foreground">Vehicle</p>
-                        <p className="text-xs font-bold truncate">{bike?.plateNumber} • {bike?.model}</p>
+                        <p className="text-xs font-bold truncate">{rider.plateNumber} • {rider.vehicleType}</p>
                     </div>
                     <div className="bg-secondary/30 p-2 rounded-lg">
                         <p className="text-[0.6rem] uppercase font-black text-muted-foreground">Daily Fee</p>
@@ -196,7 +196,7 @@ export default function FleetPage() {
         </div>
       )}
 
-      {/* FAB and Dialog */}
+      {/* Onboarding Dialog */}
       <Dialog open={isFormOpen} onOpenChange={open => { if (!open) closeForm(); else setIsFormOpen(open);}}>
         <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden">
           <div className="bg-accent p-6 text-white">
@@ -235,29 +235,29 @@ export default function FleetPage() {
             </div>
             <ScrollArea className="flex-1 p-8 font-serif text-sm leading-relaxed bg-white">
                 <div className="max-w-2xl mx-auto space-y-6">
-                    <div className="text-center font-bold underline text-lg">MKATABA WA MAKABIDHIANO YA PIKIPIKI [BODABODA]</div>
+                    <div className="text-center font-bold underline text-lg uppercase">MKATABA WA MAKABIDHIANO YA {selectedRider?.vehicleType === 'Bajaji' ? 'BAJAJI' : 'PIKIPIKI [BODABODA]'}</div>
                     
                     <div className="space-y-1">
                         <p><strong>JINA LA MMILIKI:</strong> BODA EMPIRE / MOGO CONNECT</p>
                         <p><strong>JINA LA ANAEKABIDHIWA:</strong> {selectedRider?.name}</p>
                         <p><strong>NAMBA YA USAJILI:</strong> {selectedRider?.plateNumber}</p>
-                        <p><strong>AINA YA PIKIPIKI:</strong> {getBikeInfo(selectedRider?.bikeId || '')?.model}</p>
+                        <p><strong>AINA YA CHOMBO:</strong> {selectedRider?.vehicleType} • {selectedRider?.modelNumber}</p>
                         <p><strong>CHASSIS NUMBER:</strong> {selectedRider?.chassisNumber || '…………………………'}</p>
                         <p><strong>ENGINE NUMBER:</strong> {selectedRider?.engineNumber || '…………………………'}</p>
                     </div>
 
                     <div className="space-y-4">
-                        <p><strong>MMILIKI WA PIKIPIKI:</strong> Mimi Boda Empire tarehe {selectedRider ? format(parseISO(selectedRider.contractStart), 'dd/MM/yyyy') : '……'} nimemkabidhi ndugu {selectedRider?.name} mali iliyotajwa hapo juu kwa hiari yangu mwenyewe nikiwa na akili zangu timamu, na tumekubaliana atulipe kiasi cha shilingi {selectedRider?.dailyFee.toLocaleString()} kwa siku kwa muda wa miezi {selectedRider?.contractTermMonths || 18}.</p>
+                        <p><strong>MAKAMIDHIANO:</strong> Mimi Boda Empire tarehe {selectedRider ? format(parseISO(selectedRider.contractStart), 'dd/MM/yyyy') : '……'} nimemkabidhi ndugu {selectedRider?.name} mali iliyotajwa hapo juu kwa hiari yangu mwenyewe nikiwa na akili zangu timamu, na tumekubaliana atulipe kiasi cha shilingi {selectedRider?.dailyFee.toLocaleString()} kwa siku kwa muda wa miezi {selectedRider?.contractTermMonths || 18}.</p>
                         
                         <p><strong>MASHARTI YA MKATABA:</strong></p>
                         <ol className="list-decimal pl-5 space-y-2">
-                            <li>Ni lazima kuleta pikipiki kila mwisho wa mwezi kwa mwenye mali ili aione kuhakikisha usalama.</li>
-                            <li>Ni lazima kuhakikisha pikipiki inafanyiwa matengenezo (service) kila wakati.</li>
-                            <li>Ni marufuku kumwazima/kumpa mtu yoyote pikipiki hii ndani ya kipindi cha mkataba.</li>
+                            <li>Ni lazima kuleta {selectedRider?.vehicleType.toLowerCase()} kila mwisho wa mwezi kwa mwenye mali ili aione kuhakikisha usalama.</li>
+                            <li>Ni lazima kuhakikisha {selectedRider?.vehicleType.toLowerCase()} inafanyiwa matengenezo (service) kila wakati.</li>
+                            <li>Ni marufuku kumwazima/kumpa mtu yoyote chombo hiki ndani ya kipindi cha mkataba.</li>
                             <li>Ni lazima kurejesha kiasi cha shilingi {(selectedRider?.dailyFee || 10000) * 10} kila siku ya 10.</li>
                         </ol>
 
-                        <p><strong>MDHAMINI:</strong> Mimi {selectedRider?.guarantorName || '…………………………'} nikiwa na akili zangu timamu nakubali kumdhamini {selectedRider?.name} na nakubali kuwajibika na kulipa fidia endapo atapoteza/ataaribu/atakimbia na pikipiki hii.</p>
+                        <p><strong>MDHAMINI:</strong> Mimi {selectedRider?.guarantorName || '…………………………'} nikiwa na akili zangu timamu nakubali kumdhamini {selectedRider?.name} na nakubali kuwajibika na kulipa fidia endapo atapoteza/ataaribu/atakimbia na {selectedRider?.vehicleType.toLowerCase()} hii.</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-8 pt-8 text-xs border-t">
@@ -274,33 +274,6 @@ export default function FleetPage() {
             </ScrollArea>
         </DialogContent>
       </Dialog>
-      
-      <Button
-        aria-label="Add Rider"
-        className="fixed bottom-24 right-6 h-14 w-14 rounded-full shadow-2xl bg-[#c8860a] hover:bg-[#c8860a]/90 active:scale-95 z-20 border-4 border-white"
-        onClick={() => {
-            setSelectedRider(null);
-            setIsFormOpen(true);
-        }}
-        >
-        <Plus className="h-8 w-8" />
-      </Button>
-
-      {/* Delete Confirmation */}
-      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete {selectedRider?.name} and all their associated legal records.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={confirmDelete}>Terminate Contract</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

@@ -12,11 +12,12 @@ export interface Rider {
   name: string;
   phone: string;
   plateNumber: string;
+  vehicleType: 'Boda Boda' | 'Bajaji';
   chassisNumber?: string;
   engineNumber?: string;
-  engineCapacity?: string; // Added from contract
-  modelNumber?: string; // Added from contract
-  shahidiNumber: string; // This is the ID/Shahidi Number
+  engineCapacity?: string; 
+  modelNumber?: string; 
+  shahidiNumber: string; 
   dailyFee: number;
   paymentFrequency: 'Daily' | 'Weekly' | '10-Day';
   contractStart: string;
