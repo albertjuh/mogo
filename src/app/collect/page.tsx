@@ -6,10 +6,12 @@ import { initialRiders, initialPayments } from "@/lib/data";
 import type { Rider, Payment } from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
-import { format, parseISO, differenceInDays, differenceInWeeks } from "date-fns";
+import { format, parseISO, differenceInDays, differenceInWeeks, startOfDay } from "date-fns";
 import { useMemo, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { Ghost, Flame, AlertTriangle } from "lucide-react";
 
 export default function CollectPage() {
   const [riders] = useLocalStorage<Rider[]>("riders", initialRiders);
@@ -31,8 +33,7 @@ export default function CollectPage() {
       const riderPayments = payments.filter(p => p.riderId === rider.id);
       const paidToday = riderPayments.some(p => format(parseISO(p.date), 'yyyy-MM-dd') === todayStr);
       
-      // Calculate automated balance
-      const start = parseISO(rider.contractStart);
+      const start = startOfDay(parseISO(rider.contractStart));
       let totalOwed = 0;
       
       if (rider.paymentFrequency === 'Weekly') {
@@ -40,7 +41,7 @@ export default function CollectPage() {
         totalOwed = weeksElapsed > 0 ? weeksElapsed * rider.dailyFee : 0;
       } else {
         const daysElapsed = differenceInDays(clientNow, start);
-        totalOwed = daysElapsed > 0 ? daysElapsed * rider.dailyFee : 0;
+        totalOwed = (daysElapsed >= 0) ? (daysElapsed + 1) * rider.dailyFee : 0;
       }
 
       const totalPaid = riderPayments.reduce((sum, p) => sum + p.amount, 0);
@@ -61,11 +62,9 @@ export default function CollectPage() {
   const handlePaymentToggle = (riderId: string, dailyFee: number, isPaid: boolean) => {
     if (!todayStr) return;
     if (isPaid) {
-      // Remove payment for today
       setPayments(prev => prev.filter(p => !(p.riderId === riderId && format(parseISO(p.date), 'yyyy-MM-dd') === todayStr)));
       toast({ title: "Payment Removed" });
     } else {
-      // Add payment for today
       const newPayment: Payment = {
         id: `payment-${Date.now()}`,
         riderId,
@@ -79,7 +78,10 @@ export default function CollectPage() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-accent text-white -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 p-6 rounded-b-3xl">
+      <div className="bg-accent text-white -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 p-6 rounded-b-3xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-4 opacity-10">
+            <AlertTriangle size={120} />
+        </div>
         <p className="text-sm uppercase text-white/60 font-bold tracking-widest">{headerDate}</p>
         <h1 className="font-black text-3xl my-1 italic uppercase">Daily Collection</h1>
         <div className="grid grid-cols-3 gap-2 mt-4 text-center">
@@ -100,32 +102,41 @@ export default function CollectPage() {
 
       <div className="space-y-3">
         {ridersWithStatus.map(rider => (
-          <Card key={rider.id} className="border-none shadow-sm overflow-hidden">
+          <Card key={rider.id} className={cn(
+            "border-none shadow-sm transition-all duration-300",
+            rider.balance < 0 ? "bg-red-50 ring-1 ring-red-400" : rider.balance > 0 ? "bg-green-50 ring-1 ring-primary" : "bg-white"
+          )}>
             <CardContent className="p-4 flex justify-between items-center">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                    <p className="font-bold">{rider.name}</p>
-                    <Badge variant="secondary" className="text-[0.6rem] px-1.5 py-0 h-4">
+                    <p className="font-black italic uppercase">{rider.name}</p>
+                    <Badge variant="secondary" className="text-[0.5rem] font-black uppercase px-1.5 h-4">
                         {rider.paymentFrequency}
                     </Badge>
+                    {rider.balance < 0 && <Ghost className="h-4 w-4 text-red-600 animate-bounce" />}
+                    {rider.balance > 0 && <Flame className="h-4 w-4 text-orange-500 animate-pulse" />}
                 </div>
-                <p className="text-xs text-muted-foreground font-mono">{rider.plateNumber}</p>
+                <p className="text-[0.6rem] text-muted-foreground font-black tracking-widest">{rider.plateNumber}</p>
                 {rider.balance < 0 ? (
-                   <p className="text-xs text-destructive font-bold flex items-center gap-1">
-                       ⚠ Owed: TZS {Math.abs(rider.balance).toLocaleString()}
+                   <p className="text-[0.65rem] text-red-600 font-black uppercase flex items-center gap-1 animate-pulse">
+                       ⚠ TERROR: Owed TZS {Math.abs(rider.balance).toLocaleString()}
+                   </p>
+                ) : rider.balance > 0 ? (
+                   <p className="text-[0.65rem] text-primary font-black uppercase flex items-center gap-1">
+                       🏆 BOSS: Overpaid TZS {rider.balance.toLocaleString()}
                    </p>
                 ) : (
-                   <p className="text-xs text-primary font-semibold flex items-center gap-1">
-                       ✓ Paid Up
+                   <p className="text-[0.65rem] text-primary font-bold uppercase flex items-center gap-1">
+                       ✓ ON TARGET
                    </p>
                 )}
               </div>
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                    <p className={cn("text-xs font-black uppercase", rider.paidToday ? 'text-primary' : 'text-muted-foreground')}>
-                        {rider.paidToday ? 'Leo OK' : 'No Entry'}
+                    <p className={cn("text-[0.6rem] font-black uppercase tracking-tighter", rider.paidToday ? 'text-primary' : 'text-red-500')}>
+                        {rider.paidToday ? 'Leo OK' : 'No Payment'}
                     </p>
-                    <p className="text-[0.6rem] text-muted-foreground font-bold">{rider.dailyFee.toLocaleString()}</p>
+                    <p className="text-[0.6rem] text-muted-foreground font-black">{rider.dailyFee.toLocaleString()}</p>
                 </div>
                 <Switch
                   className="data-[state=checked]:bg-primary"
