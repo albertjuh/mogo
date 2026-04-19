@@ -1,7 +1,7 @@
 "use client";
 
 import { AuthForm } from "@/firebase/auth/auth-form";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 
 export default function LoginPage() {
@@ -40,9 +40,6 @@ export default function LoginPage() {
               </div>
               <div className="space-y-1">
                 <CardTitle className="text-3xl font-black font-headline italic uppercase">Karibu Tena</CardTitle>
-                <CardDescription className="text-muted-foreground font-medium">
-                  Ingia ili kudhibiti akaunti yako ya Mogo.
-                </CardDescription>
               </div>
             </CardHeader>
             <CardContent className="space-y-6 px-8 pb-8">
