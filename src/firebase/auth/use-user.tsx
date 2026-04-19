@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, type ReactNode, useEffect } from "react";
@@ -7,7 +8,9 @@ import {
   signOut, 
   getAuth, 
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword 
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
@@ -24,6 +27,7 @@ interface AuthContextType {
   firebaseUser: User | null;
   logout: () => Promise<void>;
   login: (email: string, password: string) => Promise<boolean>;
+  loginWithGoogle: () => Promise<boolean>;
   signup: (email: string, password: string, name: string, role: AppUser['role']) => Promise<boolean>;
   loading: boolean;
 }
@@ -43,18 +47,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (fbUser) {
         let role: AppUser['role'] = 'rider';
-        let name = "";
+        let name = fbUser.displayName || "";
 
-        // STRATEGIC COMMAND OVERRIDE: Check this before any database calls
-        // This prevents you from being locked out if the database is in a bad state
         const isSystemAdminEmail = fbUser.email?.toLowerCase() === 'berto.admin@bodaempire.com';
         
-        if (isSystemAdminEmail) {
-          role = 'admin';
-        }
-
         try {
-          // Attempt to get role from Firestore
+          // Attempt to get role from Firestore registry
           const [adminDoc, supervisorDoc, recruiterDoc, riderDoc] = await Promise.all([
             getDoc(doc(db, "admins", fbUser.uid)).catch(() => null),
             getDoc(doc(db, "supervisors", fbUser.uid)).catch(() => null),
@@ -64,23 +62,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           if (adminDoc?.exists()) {
               role = 'admin';
-              name = adminDoc.data().name || "";
+              name = adminDoc.data().name || name;
           } else if (supervisorDoc?.exists()) {
               role = 'supervisor';
-              name = supervisorDoc.data().name || "";
+              name = supervisorDoc.data().name || name;
           } else if (recruiterDoc?.exists()) {
               role = 'recruiter';
-              name = recruiterDoc.data().name || "";
+              name = recruiterDoc.data().name || name;
           } else if (riderDoc?.exists()) {
               role = 'rider';
-              name = riderDoc.data().name || "";
+              name = riderDoc.data().name || name;
           }
 
-          // If you are the system admin but didn't have a doc, ensure the role is 'admin'
+          // System Admin Override
           if (isSystemAdminEmail) role = 'admin';
 
         } catch (e) {
-          console.warn("User role profile check partial failure, using defaults.", e);
+          console.warn("Profile check failed, using defaults.");
         }
         
         setUser({
@@ -98,6 +96,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [auth, db]);
 
+  const loginWithGoogle = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const res = await signInWithPopup(auth, provider);
+      
+      // Check if profile exists, if not create one as 'rider'
+      const riderDoc = await getDoc(doc(db, "riders", res.user.uid));
+      if (!riderDoc.exists()) {
+          const isSystemAdminEmail = res.user.email?.toLowerCase() === 'berto.admin@bodaempire.com';
+          const collectionName = isSystemAdminEmail ? "admins" : "riders";
+          
+          await setDoc(doc(db, collectionName, res.user.uid), {
+            email: res.user.email?.toLowerCase(),
+            name: res.user.displayName || "",
+            role: isSystemAdminEmail ? 'admin' : 'rider',
+            createdAt: new Date().toISOString()
+          }, { merge: true });
+      }
+      return true;
+    } catch (e) {
+      console.error("Google login failed:", e);
+      return false;
+    }
+  };
+
   const login = async (email: string, password: string) => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -111,21 +134,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = async (email: string, password: string, name: string, role: AppUser['role']) => {
     try {
       const res = await createUserWithEmailAndPassword(auth, email, password);
+      const isSystemAdminEmail = email.toLowerCase() === 'berto.admin@bodaempire.com';
+      const collectionName = isSystemAdminEmail ? "admins" : "riders";
       
-      // Determine registry path. System admin email always goes to 'admins'
-      let collectionName = role === 'admin' ? 'admins' : 
-                           role === 'supervisor' ? 'supervisors' : 
-                           role === 'recruiter' ? 'recruiters' : 'riders';
-
-      if (email.toLowerCase() === 'berto.admin@bodaempire.com') {
-        collectionName = 'admins';
-      }
-      
-      // Save the identity document
       await setDoc(doc(db, collectionName, res.user.uid), {
         email: email.toLowerCase(),
         name: name,
-        role: email.toLowerCase() === 'berto.admin@bodaempire.com' ? 'admin' : role,
+        role: isSystemAdminEmail ? 'admin' : 'rider', // Ignore external role choice for safety
         createdAt: new Date().toISOString()
       });
       
@@ -142,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, logout, login, signup, loading }}>
+    <AuthContext.Provider value={{ user, firebaseUser, logout, login, signup, loginWithGoogle, loading }}>
       {children}
     </AuthContext.Provider>
   );

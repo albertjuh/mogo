@@ -1,19 +1,30 @@
+
 "use client";
 
 import { useUser } from "@/firebase/auth/use-user";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection, doc, deleteDoc, setDoc, getDoc } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
-import { ShieldCheck, UserCheck, Clock, UserPlus, Info } from "lucide-react";
+import { ShieldCheck, UserCheck, UserPlus, Info, MoreHorizontal, UserCog } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 
 export default function UserManagementPage() {
   const { user } = useUser();
   const db = useFirestore();
+  const { toast } = useToast();
 
   const adminsQuery = useMemoFirebase(() => collection(db, "admins"), [db]);
   const supervisorsQuery = useMemoFirebase(() => collection(db, "supervisors"), [db]);
@@ -26,10 +37,47 @@ export default function UserManagementPage() {
   const { data: riders } = useCollection(ridersQuery);
 
   const allStaff = [
-    ...(admins || []).map(u => ({ ...u, role: 'admin' })),
-    ...(supervisors || []).map(u => ({ ...u, role: 'supervisor' })),
-    ...(recruiters || []).map(u => ({ ...u, role: 'recruiter' })),
+    ...(admins || []).map(u => ({ ...u, role: 'admin' as const })),
+    ...(supervisors || []).map(u => ({ ...u, role: 'supervisor' as const })),
+    ...(recruiters || []).map(u => ({ ...u, role: 'recruiter' as const })),
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const handleRoleChange = async (targetUser: any, currentRole: string, newRole: string) => {
+    if (currentRole === newRole) return;
+    
+    const collections: Record<string, string> = {
+      'admin': 'admins',
+      'supervisor': 'supervisors',
+      'recruiter': 'recruiters',
+      'rider': 'riders'
+    };
+
+    try {
+      // 1. Copy to new collection
+      const newRef = doc(db, collections[newRole], targetUser.id);
+      await setDoc(newRef, {
+        ...targetUser,
+        role: newRole,
+        updatedAt: new Date().toISOString()
+      });
+
+      // 2. Delete from old collection
+      const oldRef = doc(db, collections[currentRole], targetUser.id);
+      await deleteDoc(oldRef);
+
+      toast({ 
+        title: "Role Updated", 
+        description: `${targetUser.name} is now a ${newRole}.` 
+      });
+    } catch (e) {
+      console.error(e);
+      toast({ 
+        variant: "destructive", 
+        title: "Update Failed", 
+        description: "Permissions might be restricted." 
+      });
+    }
+  };
 
   if (user?.role !== 'admin') {
     return <div className="p-12 text-center font-bold">Unauthorized Access</div>;
@@ -42,7 +90,7 @@ export default function UserManagementPage() {
         <p className="text-muted-foreground">Manage digital identities and staff access.</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="bg-white border-none shadow-md">
             <CardHeader className="p-4 pb-2">
                 <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Total Staff</CardTitle>
@@ -74,7 +122,7 @@ export default function UserManagementPage() {
               <TableRow className="bg-secondary/50 hover:bg-secondary/50 border-none">
                 <TableHead className="font-bold text-[0.65rem] uppercase tracking-widest">Name & Email</TableHead>
                 <TableHead className="font-bold text-[0.65rem] uppercase tracking-widest">Role</TableHead>
-                <TableHead className="font-bold text-[0.65rem] uppercase tracking-widest">Joined</TableHead>
+                <TableHead className="font-bold text-[0.65rem] uppercase tracking-widest text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -89,8 +137,27 @@ export default function UserManagementPage() {
                       {staff.role}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {staff.createdAt ? format(parseISO(staff.createdAt), "dd MMM yyyy") : "N/A"}
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal size={14} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Change Role</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleRoleChange(staff, staff.role, 'supervisor')}>
+                          Make Supervisor
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleRoleChange(staff, staff.role, 'recruiter')}>
+                          Make Recruiter
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleRoleChange(staff, staff.role, 'rider')} className="text-destructive">
+                          Demote to Rider
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
@@ -111,7 +178,7 @@ export default function UserManagementPage() {
             <TableHeader>
               <TableRow className="bg-secondary/50 hover:bg-secondary/50 border-none">
                 <TableHead className="font-bold text-[0.65rem] uppercase tracking-widest">Name & Email</TableHead>
-                <TableHead className="font-bold text-[0.65rem] uppercase tracking-widest">Profile Status</TableHead>
+                <TableHead className="font-bold text-[0.65rem] uppercase tracking-widest">Status</TableHead>
                 <TableHead className="font-bold text-[0.65rem] uppercase tracking-widest text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -124,10 +191,27 @@ export default function UserManagementPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant={rider.plateNumber ? "default" : "secondary"} className="text-[0.6rem] font-black uppercase">
-                      {rider.plateNumber ? "Onboarded" : "Account Only"}
+                      {rider.plateNumber ? "Onboarded" : "Pending"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right flex justify-end gap-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <UserCog size={14} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Promote to Staff</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => handleRoleChange(rider, 'rider', 'supervisor')}>
+                          Make Supervisor
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleRoleChange(rider, 'rider', 'recruiter')}>
+                          Make Recruiter
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
                     {!rider.plateNumber ? (
                       <Button asChild size="sm" variant="ghost" className="text-primary hover:text-primary font-bold text-[0.6rem] uppercase h-8">
                         <Link href={`/onboard?email=${rider.email}&uid=${rider.id}&name=${encodeURIComponent(rider.name || '')}`}>
@@ -142,13 +226,6 @@ export default function UserManagementPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {(!riders || riders.length === 0) && (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center py-10 text-muted-foreground italic">
-                    No riders have registered yet.
-                  </TableCell>
-                </TableRow>
-              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -156,20 +233,20 @@ export default function UserManagementPage() {
       
       <div className="bg-accent/5 p-6 rounded-2xl border border-dashed border-accent/20">
         <h4 className="font-black text-xs uppercase tracking-widest text-accent mb-4 flex items-center justify-center gap-2">
-            <Info size={14} /> Registration Workflow
+            <Info size={14} /> Safer Management Workflow
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-[0.7rem] font-medium">
             <div className="space-y-3">
-                <p className="font-bold uppercase text-accent border-b border-accent/20 pb-1">For Staff (Supervisors/Recruiters):</p>
-                <p>1. They use their **work email** to sign up at <span className="underline font-bold">bodaempire.com/signup</span>.</p>
-                <p>2. They must enter their **Full Name** so you can recognize them.</p>
-                <p>3. Once registered, they appear in the "Staff Accounts" list above instantly.</p>
+                <p className="font-bold uppercase text-accent border-b border-accent/20 pb-1">Role Verification:</p>
+                <p>1. Strangers can no longer sign up as Supervisors or Recruiters.</p>
+                <p>2. Everyone who registers starts as a basic **Rider** with zero privileges.</p>
+                <p>3. You verify their identity first, then use the **cog icon** to promote them to staff.</p>
             </div>
              <div className="space-y-3">
-                <p className="font-bold uppercase text-primary border-b border-primary/20 pb-1">For Riders (Clients):</p>
-                <p>1. The Rider signs up at <span className="underline font-bold">bodaempire.com/signup</span> using their **personal email** and **Legal Name**.</p>
-                <p>2. They appear in "Rider Accounts" as **"Account Only"** (meaning they have a login but no motorcycle assigned yet).</p>
-                <p>3. You click **"Onboard Profile"** to record their NIDA ID, plate number, and sign the official Mkataba.</p>
+                <p className="font-bold uppercase text-primary border-b border-primary/20 pb-1">Google One-Tap:</p>
+                <p>1. Encourage staff to use Google Sign-In. It is safer as Google handles bot detection and 2FA.</p>
+                <p>2. It is simpler because they don't have to remember a separate "Boda Empire" password.</p>
+                <p>3. Their verified Google Name is automatically imported to your registry.</p>
             </div>
         </div>
       </div>
