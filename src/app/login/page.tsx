@@ -36,7 +36,8 @@ export default function LoginPage() {
         <div className="mx-auto w-full max-w-[440px]">
           <Card className="border-none shadow-2xl bg-background">
             <CardHeader className="space-y-4 text-center pt-8">
-              <div className="flex justify-center mb-2">
+              {/* Only show this logo if we can't see the other logo on the left (on small screens) */}
+              <div className="flex justify-center mb-2 lg:hidden">
                 <Logo />
               </div>
               <div className="space-y-1">
