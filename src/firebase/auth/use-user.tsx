@@ -45,13 +45,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         let role: AppUser['role'] = 'rider';
         let name = "";
 
-        // Administrative Override for specific email - check this FIRST to avoid lockout
-        if (fbUser.email === 'berto.admin@bodaempire.com') {
+        // STRATEGIC COMMAND OVERRIDE: Check this before any database calls
+        // This prevents you from being locked out if the database is in a bad state
+        const isSystemAdminEmail = fbUser.email?.toLowerCase() === 'berto.admin@bodaempire.com';
+        
+        if (isSystemAdminEmail) {
           role = 'admin';
         }
 
         try {
-          // Attempt to get role from Firestore, but don't let it crash the login
+          // Attempt to get role from Firestore
           const [adminDoc, supervisorDoc, recruiterDoc, riderDoc] = await Promise.all([
             getDoc(doc(db, "admins", fbUser.uid)).catch(() => null),
             getDoc(doc(db, "supervisors", fbUser.uid)).catch(() => null),
@@ -72,8 +75,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               role = 'rider';
               name = riderDoc.data().name || "";
           }
+
+          // If you are the system admin but didn't have a doc, ensure the role is 'admin'
+          if (isSystemAdminEmail) role = 'admin';
+
         } catch (e) {
-          console.warn("Could not fetch user role profile, falling back to default.", e);
+          console.warn("User role profile check partial failure, using defaults.", e);
         }
         
         setUser({
@@ -96,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await signInWithEmailAndPassword(auth, email, password);
       return true;
     } catch (e) {
-      console.error("Login error:", e);
+      console.error("Login failed:", e);
       return false;
     }
   };
@@ -105,21 +112,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Create the role entry in the corresponding collection
-      const collectionName = role === 'admin' ? 'admins' : 
-                             role === 'supervisor' ? 'supervisors' : 
-                             role === 'recruiter' ? 'recruiters' : 'riders';
+      // Determine registry path. System admin email always goes to 'admins'
+      let collectionName = role === 'admin' ? 'admins' : 
+                           role === 'supervisor' ? 'supervisors' : 
+                           role === 'recruiter' ? 'recruiters' : 'riders';
+
+      if (email.toLowerCase() === 'berto.admin@bodaempire.com') {
+        collectionName = 'admins';
+      }
       
+      // Save the identity document
       await setDoc(doc(db, collectionName, res.user.uid), {
-        email: email,
+        email: email.toLowerCase(),
         name: name,
-        role: role,
+        role: email.toLowerCase() === 'berto.admin@bodaempire.com' ? 'admin' : role,
         createdAt: new Date().toISOString()
       });
       
       return true;
     } catch (e) {
-      console.error("Signup error:", e);
+      console.error("Signup failed:", e);
       return false;
     }
   };
