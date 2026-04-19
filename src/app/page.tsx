@@ -22,11 +22,10 @@ export default function DashboardPage() {
   // --- Rider (Client) View Logic ---
   const myLoan = useMemo(() => {
     if (user?.role !== 'rider') return null;
-    // We assume an active rider ALWAYS has a loan associated with them
     return loans.find(l => l.clientId === user.id);
   }, [loans, user]);
 
-  // --- Admin/Supervisor/Recruiter View Logic ---
+  // --- Management View Logic ---
   const stats = useMemo(() => {
     if (user?.role === 'rider') return null;
     const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0);
@@ -34,11 +33,9 @@ export default function DashboardPage() {
     const todayPayments = payments.filter(p => isSameDay(parseISO(p.date), new Date()));
     const collectedToday = todayPayments.reduce((sum, p) => sum + p.amount, 0);
     
-    // Recruitment stats for recruiters
     const sevenDaysAgo = subDays(new Date(), 7);
     const recruitedThisWeek = riders.filter(r => isAfter(parseISO(r.createdAt), sevenDaysAgo)).length;
 
-    // Arrears Summary
     const today = new Date();
     const arrearsList = riders.filter(r => r.active).map(rider => {
         const riderPayments = payments.filter(p => p.riderId === rider.id);
@@ -119,7 +116,6 @@ export default function DashboardPage() {
 
   // --- RIDER DASHBOARD ---
   if (user.role === 'rider') {
-    // If loan is still loading or truly missing (fallback), show a generic placeholder
     if (!myLoan) {
       return (
         <div className="flex flex-col items-center justify-center h-full text-center p-6 space-y-4">
@@ -204,13 +200,17 @@ export default function DashboardPage() {
   }
 
   // --- ADMIN / SUPERVISOR DASHBOARD ---
+  const isSupervisor = user.role === 'supervisor';
+
   return (
     <div className="space-y-6">
       <header className="space-y-1">
         <h1 className="text-3xl font-black tracking-tight font-headline uppercase italic">
           {user.role === 'admin' ? 'Admin Panel' : 'Supervisor Overview'}
         </h1>
-        <p className="text-muted-foreground">Business operations and daily trends.</p>
+        <p className="text-muted-foreground">
+          {isSupervisor ? 'Monitoring fleet health and daily collections.' : 'Business operations and high-level trends.'}
+        </p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -228,7 +228,7 @@ export default function DashboardPage() {
         <Card className="bg-white border-none shadow-md">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <Users size={14} /> Fleet Size
+              <Users size={14} /> Active Fleet
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -236,16 +236,18 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white border-none shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <TrendingUp size={14} /> Total Collections
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">TZS {stats?.totalCollected.toLocaleString()}</div>
-          </CardContent>
-        </Card>
+        {!isSupervisor && (
+          <Card className="bg-white border-none shadow-md">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <TrendingUp size={14} /> Total Collections
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl font-bold">TZS {stats?.totalCollected.toLocaleString()}</div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Arrears Summary Section */}
@@ -283,23 +285,25 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      <div className="space-y-4">
-        <h3 className="font-bold text-lg">System Insights</h3>
-        <Card className="border-none shadow-sm bg-secondary/50">
-          <CardContent className="p-4 flex items-start gap-4">
-            <TrendingUp className="text-primary mt-1 shrink-0" />
-            <div>
-              <p className="text-sm font-semibold">Payment Efficiency</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Today's collections have reached 85% of the daily target. {stats?.arrearsCount} riders currently have pending balances.
-              </p>
-              <Button asChild variant="link" className="p-0 h-auto text-xs font-bold text-primary mt-2">
-                <Link href="/reports">View Detailed Reports</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {!isSupervisor && (
+        <div className="space-y-4">
+          <h3 className="font-bold text-lg">System Insights</h3>
+          <Card className="border-none shadow-sm bg-secondary/50">
+            <CardContent className="p-4 flex items-start gap-4">
+              <TrendingUp className="text-primary mt-1 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold">Payment Efficiency</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Today's collections have reached 85% of the daily target. {stats?.arrearsCount} riders currently have pending balances.
+                </p>
+                <Button asChild variant="link" className="p-0 h-auto text-xs font-bold text-primary mt-2">
+                  <Link href="/reports">View Detailed Reports</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -19,7 +20,6 @@ export function Sidebar() {
     if (user.role === 'rider') {
       return [
         { href: "/", label: "My Dashboard", icon: Home },
-        // Removed Lipa Sasa from here as it's the primary action on the Home Dashboard
         { href: "/vault", label: "Document Vault", icon: ShieldCheck },
         { href: "/savings", label: "Savings Tracker", icon: TrendingUp },
         { href: "/payments", label: "Payment History", icon: BarChart3 },
@@ -33,7 +33,7 @@ export function Sidebar() {
       ];
     }
 
-    // Supervisor Nav
+    // Supervisor Nav (Operational Focus)
     const supervisorItems = [
       { href: "/", label: "Fleet Stats", icon: Home },
       { href: "/collect", label: "Daily Collection", icon: Wallet },
@@ -44,7 +44,7 @@ export function Sidebar() {
 
     if (user.role === 'supervisor') return supervisorItems;
 
-    // Admin adds Reports and Planning
+    // Admin (Strategic Focus adds Reports and Planning)
     return [
       ...supervisorItems,
       { href: "/reports", label: "Business Insights", icon: TrendingUp },
