@@ -1,9 +1,8 @@
-// Replace with your actual Firebase project configuration
 export const firebaseConfig = {
-  projectId: "studio-1862145107-b405d",
-  appId: "1:757855378687:web:a91971e217a3c8085c80ca",
-  apiKey: "AIzaSyCRFe1ASTr_Hej4cKu-3gD-VTJ-lZt3ZRQ",
-  authDomain: "studio-1862145107-b405d.firebaseapp.com",
-  measurementId: "",
-  messagingSenderId: "757855378687",
+  "projectId": "mogo-project-03266626-3ccf8",
+  "appId": "1:104144553611:web:0431ee75934a8b1c95f68e",
+  "apiKey": "AIzaSyDNs_sWKKsi1OxaaqCf_ECB097vCAWSf5c",
+  "authDomain": "mogo-project-03266626-3ccf8.firebaseapp.com",
+  "measurementId": "",
+  "messagingSenderId": "104144553611"
 };

@@ -1,173 +1,338 @@
 {
   "entities": {
-    "UserProfile": {
-      "title": "User Profile",
-      "description": "Stores public-facing information about a user.",
+    "Client": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Client",
       "type": "object",
+      "description": "Represents a client of Mogo, such as a Boda Boda, Bajaji, or Car Loan client, who has active or past loan agreements.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "The user's unique ID, matching their Firebase Auth UID."
+          "description": "Unique identifier for the Client entity."
+        },
+        "fullName": {
+          "type": "string",
+          "description": "The client's full legal name as registered with Mogo."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The primary contact phone number of the client."
         },
         "email": {
           "type": "string",
-          "format": "email",
-          "description": "The user's email address."
+          "description": "The client's email address.",
+          "format": "email"
         },
-        "name": {
+        "nationalIdNumber": {
           "type": "string",
-          "description": "The user's full name."
+          "description": "The unique national identification number of the client."
         },
-        "role": {
+        "address": {
           "type": "string",
-          "enum": ["rider", "supervisor", "admin"],
-          "description": "The user's role in the system."
+          "description": "The physical address of the client."
         },
-        "createdAt": {
+        "dateJoined": {
           "type": "string",
-          "format": "date-time",
-          "description": "The timestamp when the user profile was created."
+          "description": "The date and time when the client joined Mogo or registered their first loan.",
+          "format": "date-time"
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates whether the client's account is currently active."
         }
       },
-      "required": ["id", "email", "name", "role", "createdAt"]
+      "required": [
+        "id",
+        "fullName",
+        "phoneNumber",
+        "nationalIdNumber",
+        "dateJoined",
+        "isActive"
+      ]
     },
-    "Rider": {
-        "title": "Rider",
-        "description": "Stores detailed information about a boda boda rider.",
-        "type": "object",
-        "properties": {
-            "id": {
-                "type": "string",
-                "description": "The unique ID for the rider, corresponding to their UserProfile ID."
-            },
-            "phone": {
-                "type": "string",
-                "description": "The rider's phone number."
-            },
-            "contractStart": {
-                "type": "string",
-                "format": "date-time",
-                "description": "The start date of the rider's contract."
-            },
-            "contractEnd": {
-                "type": "string",
-                "format": "date-time",
-                "description": "The end date of the rider's contract."
-            },
-            "bikeId": {
-                "type": "string",
-                "description": "The ID of the bike assigned to the rider."
-            },
-            "active": {
-                "type": "boolean",
-                "description": "Whether the rider is currently active."
-            },
-            "dailyFee": {
-                "type": "number",
-                "description": "The daily fee the rider is required to pay."
-            },
-            "plateNumber": {
-                "type": "string",
-                "description": "The license plate number of the assigned boda."
-            },
-            "shahidiNumber": {
-                "type": "string",
-                "description": "The rider's Shahidi (witness/guarantor) number."
-            },
-            "notes": {
-                "type": "string",
-                "description": "Optional notes about the rider."
-            },
-            "createdAt": {
-              "type": "string",
-              "format": "date-time",
-              "description": "The timestamp when the rider was added."
-            }
+    "Loan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Loan",
+      "type": "object",
+      "description": "Represents a specific loan agreement provided by Mogo to a client for vehicles like Boda Bodas, Bajaji, or cars.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Loan entity."
         },
-        "required": ["id", "phone", "contractStart", "contractEnd", "bikeId", "active", "dailyFee", "plateNumber", "shahidiNumber", "createdAt"]
+        "clientId": {
+          "type": "string",
+          "description": "Reference to the Client who owns this loan. (Relationship: Client 1:N Loan)"
+        },
+        "loanType": {
+          "type": "string",
+          "description": "The type of asset financed by the loan (e.g., 'Boda Boda', 'Bajaji', 'Car')."
+        },
+        "principalAmount": {
+          "type": "number",
+          "description": "The original total principal amount disbursed for the loan."
+        },
+        "outstandingBalance": {
+          "type": "number",
+          "description": "The current remaining balance to be paid on the loan."
+        },
+        "interestRate": {
+          "type": "number",
+          "description": "The annual interest rate applied to the loan, represented as a decimal (e.g., 0.15 for 15%)."
+        },
+        "loanTermMonths": {
+          "type": "number",
+          "description": "The agreed-upon total duration of the loan in months."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The date when the loan agreement officially commenced.",
+          "format": "date"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The projected date when the loan is expected to be fully repaid.",
+          "format": "date"
+        },
+        "nextPaymentDueDate": {
+          "type": "string",
+          "description": "The specific date when the next payment for this loan is due.",
+          "format": "date"
+        },
+        "minimumPaymentAmount": {
+          "type": "number",
+          "description": "The minimum amount required for the upcoming payment."
+        },
+        "totalAmountPaid": {
+          "type": "number",
+          "description": "The cumulative sum of all payments successfully made towards this loan."
+        },
+        "loanStatus": {
+          "type": "string",
+          "description": "The current operational status of the loan (e.g., 'Active', 'Completed', 'Defaulted', 'In Arrears', 'Restructured')."
+        },
+        "progressPercentage": {
+          "type": "number",
+          "description": "The calculated percentage of the loan's completion towards full repayment."
+        },
+        "lastUpdateDate": {
+          "type": "string",
+          "description": "The timestamp of the last modification or status update to this loan record.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "clientId",
+        "loanType",
+        "principalAmount",
+        "outstandingBalance",
+        "interestRate",
+        "loanTermMonths",
+        "startDate",
+        "endDate",
+        "nextPaymentDueDate",
+        "minimumPaymentAmount",
+        "totalAmountPaid",
+        "loanStatus",
+        "progressPercentage",
+        "lastUpdateDate"
+      ]
     },
-    "Bike": {
-        "title": "Bike",
-        "description": "Represents a motorcycle (boda boda) in the fleet.",
-        "type": "object",
-        "properties": {
-            "id": {
-                "type": "string",
-                "description": "The unique ID for the bike."
-            },
-            "model": {
-                "type": "string",
-                "description": "The model of the bike (e.g., 'Boxer 150')."
-            },
-            "plateNumber": {
-                "type": "string",
-                "description": "The license plate number of the bike."
-            },
-            "currentRiderId": {
-              "type": "string",
-              "description": "The ID of the rider currently assigned to this bike."
-            }
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Records individual financial transactions related to a client's loan, including payments and disbursements.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Transaction entity."
         },
-        "required": ["id", "model", "plateNumber"]
+        "loanId": {
+          "type": "string",
+          "description": "Reference to the Loan associated with this transaction. (Relationship: Loan 1:N Transaction)"
+        },
+        "clientId": {
+          "type": "string",
+          "description": "Reference to the Client involved in this transaction. (Relationship: Client 1:N Transaction)"
+        },
+        "transactionType": {
+          "type": "string",
+          "description": "The nature of the financial movement (e.g., 'Payment', 'Disbursement', 'Penalty', 'Adjustment', 'Reversal')."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The monetary value of the transaction."
+        },
+        "transactionDate": {
+          "type": "string",
+          "description": "The precise date and time when the transaction was recorded or occurred.",
+          "format": "date-time"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "The channel or method used for the transaction (e.g., 'M-Pesa', 'Airtel Money', 'Tigo Pesa', 'Bank Transfer', 'Cash')."
+        },
+        "externalReferenceId": {
+          "type": "string",
+          "description": "A unique reference identifier provided by the external payment gateway or system (e.g., M-Pesa transaction ID)."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current processing status of the transaction (e.g., 'Successful', 'Pending', 'Failed', 'Reversed', 'Initiated')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A concise description or internal note about the transaction."
+        }
+      },
+      "required": [
+        "id",
+        "loanId",
+        "clientId",
+        "transactionType",
+        "amount",
+        "transactionDate",
+        "paymentMethod",
+        "status"
+      ]
     },
-    "Payment": {
-        "title": "Payment",
-        "description": "Represents a single payment made by a rider.",
-        "type": "object",
-        "properties": {
-            "id": {
-                "type": "string",
-                "description": "The unique ID for the payment."
-            },
-            "riderId": {
-                "type": "string",
-                "description": "The ID of the rider who made the payment."
-            },
-            "amount": {
-                "type": "number",
-                "description": "The amount of the payment in TZS."
-            },
-            "date": {
-                "type": "string",
-                "format": "date-time",
-                "description": "The date the payment was recorded for."
-            },
-            "createdAt": {
-              "type": "string",
-              "format": "date-time",
-              "description": "The timestamp when the payment record was created."
-            }
+    "Document": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Document",
+      "type": "object",
+      "description": "Stores references and metadata for digital copies of important documents associated with a client's loan or profile.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Document entity."
         },
-        "required": ["id", "riderId", "amount", "date", "createdAt"]
+        "clientId": {
+          "type": "string",
+          "description": "Reference to the Client to whom this document belongs. (Relationship: Client 1:N Document)"
+        },
+        "documentType": {
+          "type": "string",
+          "description": "The category or classification of the document (e.g., 'Logbook', 'Insurance Sticker', 'Loan Agreement', 'Client ID', 'Proof of Address')."
+        },
+        "documentName": {
+          "type": "string",
+          "description": "A human-readable name or title for the document."
+        },
+        "fileUrl": {
+          "type": "string",
+          "description": "The secure URL where the digital document file is stored (e.g., Firebase Storage URL).",
+          "format": "uri"
+        },
+        "uploadDate": {
+          "type": "string",
+          "description": "The date and time when the document was uploaded.",
+          "format": "date-time"
+        },
+        "expirationDate": {
+          "type": "string",
+          "description": "The date when the document (e.g., insurance, permit) is set to expire. Optional.",
+          "format": "date"
+        },
+        "isVerified": {
+          "type": "boolean",
+          "description": "Indicates whether the document has been reviewed and verified by a Mogo agent."
+        }
+      },
+      "required": [
+        "id",
+        "clientId",
+        "documentType",
+        "documentName",
+        "fileUrl",
+        "uploadDate"
+      ]
     }
   },
   "auth": {
-    "providers": ["email-password"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
-    "/users/{userId}": {
-      "schema": { "$ref": "#/entities/UserProfile" },
-      "description": "Stores public profiles for all users."
-    },
-    "/riders/{riderId}": {
-      "schema": { "$ref": "#/entities/Rider" },
-      "description": "Stores detailed profiles for users with the 'rider' role."
-    },
-    "/bodas/{bodaId}": {
-        "schema": { "$ref": "#/entities/Bike" },
-        "description": "Collection of all motorcycles in the fleet."
-    },
-    "/payments/{paymentId}": {
-        "schema": { "$ref": "#/entities/Payment" },
-        "description": "Collection of all payment records from riders."
-    },
-    "/roles_admin/{userId}": {
-        "schema": { "type": "object" },
-        "description": "Documents here indicate the user ID is an admin. Document can be empty."
-    },
-    "/roles_supervisor/{userId}": {
-        "schema": { "type": "object" },
-        "description": "Documents here indicate the user ID is a supervisor. Document can be empty."
-    }
+    "structure": [
+      {
+        "path": "/clients/{clientId}",
+        "definition": {
+          "entityName": "Client",
+          "schema": {
+            "$ref": "#/backend/entities/Client"
+          },
+          "description": "Top-level collection for individual client profiles. The `clientId` document ID must match `request.auth.uid` for authorization. Each client can only access their own profile."
+        }
+      },
+      {
+        "path": "/clients/{clientId}/loans/{loanId}",
+        "definition": {
+          "entityName": "Loan",
+          "schema": {
+            "$ref": "#/backend/entities/Loan"
+          },
+          "description": "Subcollection storing individual loan agreements for a specific client. Includes a denormalized 'clientId' field that must match the parent path parameter for authorization independence. Ensures only the authenticated client can access their own loans.",
+          "params": [
+            {
+              "name": "clientId",
+              "description": "The unique identifier of the client, corresponding to `request.auth.uid`."
+            },
+            {
+              "name": "loanId",
+              "description": "The unique identifier for a specific loan agreement."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/clients/{clientId}/loans/{loanId}/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
+          "description": "Subcollection recording financial transactions related to a specific loan and client. Includes denormalized 'clientId' and 'loanId' fields that must match the respective parent path parameters for authorization independence. Ensures transactions are securely nested under the owning loan and client.",
+          "params": [
+            {
+              "name": "clientId",
+              "description": "The unique identifier of the client, corresponding to `request.auth.uid`."
+            },
+            {
+              "name": "loanId",
+              "description": "The unique identifier for the associated loan agreement."
+            },
+            {
+              "name": "transactionId",
+              "description": "The unique identifier for a specific financial transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/clients/{clientId}/documents/{documentId}",
+        "definition": {
+          "entityName": "Document",
+          "schema": {
+            "$ref": "#/backend/entities/Document"
+          },
+          "description": "Subcollection storing metadata for digital documents belonging to a specific client. Includes a denormalized 'clientId' field that must match the parent path parameter for authorization independence. Ensures only the authenticated client can access their own documents.",
+          "params": [
+            {
+              "name": "clientId",
+              "description": "The unique identifier of the client, corresponding to `request.auth.uid`."
+            },
+            {
+              "name": "documentId",
+              "description": "The unique identifier for a specific digital document."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed following a strict hierarchical, user-owned pattern, which inherently addresses Authorization Independence, ensures clear security intent, and supports robust Query-Aware Security (QAP) principles.The core principle applied is **Authorization Independence via Denormalization (Strategy A)**. Every subcollection document (Loan, Transaction, Document) will contain a `clientId` field that matches the `request.auth.uid` AND the `{clientId}` wildcard in its parent path. This eliminates the need for `get()` calls in security rules, as all authorization context is available directly in the document being accessed or its immediate path. For example, a 'Loan' document will store its `clientId` as a field, allowing rules to check `request.auth.uid == /clients/{clientId}/...` AND `resource.data.clientId == {clientId}`.\n\n**Structural Segregation (Strategy B)** is maintained by dedicating specific paths to homogeneous data types with consistent security postures. For instance, all documents under `/clients/{clientId}/loans` are exclusively the loans belonging to that specific client, simplifying rule logic to a single ownership check.\n\n**Access Modeling (Strategy C)** heavily leverages Path-Based ownership (`/clients/{clientId}/...`). Since each Firebase authenticated user (`request.auth.uid`) is a 'Client' in the Mogo system, the top-level collection `clients` uses the Firebase `uid` as its document ID. Subsequent related entities (Loans, Transactions, Documents) are nested as subcollections under their respective client, creating a naturally secure and intuitive hierarchy.\n\n**Query-Aware Security (QAPs, Principle 4)** is supported by this structure. When a user requests `/clients/{request.auth.uid}/loans`, the security rules can directly compare `request.auth.uid` with the `{clientId}` wildcard in the path, ensuring that only the authenticated user's loans are returned. The same applies to `transactions` and `documents`, making `list` operations implicitly secure without relying on client-side filtering or complex server-side rule evaluations. The `clientId` and `loanId` fields within the documents further reinforce this, allowing for data integrity checks against the path parameters.\n\nFinally, **Data Clarity and Predictability (Strategy D)** is enforced through consistent naming conventions (`clientId`, `loanId`, `transactionId`, `documentId`) for wildcards and document fields, aligning with explicit state modeling like `loanStatus` and `transaction.status` fields in the schemas."
   }
 }

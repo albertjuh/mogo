@@ -1,59 +1,117 @@
+/**
+ * Mogo Connect PWA - Firestore Security Rules
+ *
+ * Core Philosophy:
+ * This ruleset implements a strict user-ownership authorization model. Every piece of data
+ * is organized within a hierarchical structure anchored to a Client's unique Firebase UID.
+ * This ensures that sensitive financial data (Loans, Transactions) and personal files 
+ * (Documents) are logically and physically isolated per user.
+ *
+ * Data Structure:
+ * - /clients/{clientId}: The root profile for a Mogo client.
+ * - /clients/{clientId}/loans/{loanId}: Loan agreements belonging to the client.
+ * - /clients/{clientId}/loans/{loanId}/transactions/{transactionId}: Financial history for a specific loan.
+ * - /clients/{clientId}/documents/{documentId}: Digital copies of logbooks, IDs, and agreements.
+ *
+ * Key Security Decisions:
+ * 1. Path-Based Ownership: Authorization is primarily determined by comparing the 
+ *    `request.auth.uid` against the `{clientId}` wildcard in the document path.
+ * 2. Denormalization for Authorization: Following Strategy A from the backend reasoning, 
+ *    all sub-documents (Loans, Transactions, Documents) include a `clientId` field. 
+ *    This allows for fast, independent authorization checks without cross-document lookups.
+ * 3. Relational Integrity: On creation and update, the rules verify that internal 
+ *    relationship fields (like `clientId` and `loanId`) remain consistent with the 
+ *    document's location in the database hierarchy.
+ * 4. Prototyping Flexibility: Rules strictly control WHO can access data, but do NOT 
+ *    enforce specific data types or complete schema shapes to allow for rapid UI iteration.
+ */
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // --- Helper Functions ---
+
+    /**
+     * @description Checks if the user is authenticated with Firebase.
+     */
     function isSignedIn() {
       return request.auth != null;
     }
 
+    /**
+     * @description Checks if the authenticated user's UID matches the provided userId.
+     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    /**
+     * @description Combines ownership check with document existence for destructive operations.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
     }
 
-    function isSupervisor() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_supervisor/$(request.auth.uid));
-    }
+    // --- Collection Rules ---
 
-    match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin() || isSupervisor();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
-    }
+    /**
+     * @description Rules for Client profile documents.
+     * @path /clients/{clientId}
+     * @allow (get) If auth.uid matches clientId.
+     * @allow (create) If auth.uid matches clientId and internal id field matches.
+     * @deny (list) If the user is not signed in or listing other users' profiles.
+     * @principle Restricts access to a user's own profile tree and ensures ID consistency.
+     */
+    match /clients/{clientId} {
+      allow get, list: if isOwner(clientId);
+      allow create: if isOwner(clientId) && request.resource.data.id == clientId;
+      allow update: if isExistingOwner(clientId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(clientId);
 
-    match /riders/{riderId} {
-      allow get: if isOwner(riderId) || isAdmin() || isSupervisor();
-      allow list: if isAdmin() || isSupervisor();
-      // Allow a user to create their own rider profile, or an admin to create one.
-      allow create: if isOwner(riderId) || isAdmin();
-      allow update: if (isOwner(riderId) || isAdmin());
-      allow delete: if isAdmin();
-    }
+      /**
+       * @description Rules for individual Loan agreements.
+       * @path /clients/{clientId}/loans/{loanId}
+       * @allow (list) The owner can list all their own loans.
+       * @allow (update) The owner can update loan progress or status.
+       * @deny (create) If the internal clientId does not match the path parameter.
+       * @principle Authorization Independence: Uses denormalized clientId for fast checks.
+       */
+      match /loans/{loanId} {
+        allow get, list: if isOwner(clientId);
+        allow create: if isOwner(clientId) && request.resource.data.clientId == clientId;
+        allow update: if isExistingOwner(clientId) && request.resource.data.clientId == resource.data.clientId;
+        allow delete: if isExistingOwner(clientId);
 
-    match /bodas/{bodaId} {
-      allow read: if isSignedIn(); // Any signed-in user can see bike details
-      allow list: if isSignedIn();
-      allow create, update, delete: if isAdmin();
-    }
+        /**
+         * @description Rules for financial Transactions linked to a specific loan.
+         * @path /clients/{clientId}/loans/{loanId}/transactions/{transactionId}
+         * @allow (create) If the user owns the path and correctly links clientId and loanId.
+         * @deny (update) If the user attempts to change the associated loanId or clientId.
+         * @principle Relational Integrity: Enforces that transactions stay tied to the correct loan/client.
+         */
+        match /transactions/{transactionId} {
+          allow get, list: if isOwner(clientId);
+          allow create: if isOwner(clientId) && request.resource.data.clientId == clientId && request.resource.data.loanId == loanId;
+          allow update: if isExistingOwner(clientId) && request.resource.data.clientId == resource.data.clientId && request.resource.data.loanId == resource.data.loanId;
+          allow delete: if isExistingOwner(clientId);
+        }
+      }
 
-    match /payments/{paymentId} {
-      // Rider can read their own payments, Admin/Supervisor can read all
-      allow get: if isAdmin() || isSupervisor() || (isSignedIn() && resource.data.riderId == request.auth.uid);
-      allow list: if isAdmin() || isSupervisor();
-       // Rider can create their own payment, or Admin can create on their behalf
-      allow create: if (isSignedIn() && request.resource.data.riderId == request.auth.uid) || isAdmin();
-      allow update, delete: if isAdmin();
-    }
-    
-    match /roles_admin/{userId} {
-      allow read, write: if isAdmin();
-    }
-
-    match /roles_supervisor/{userId} {
-      allow read, write: if isAdmin();
+      /**
+       * @description Rules for the Document Vault (logbooks, insurance stickers, etc.).
+       * @path /clients/{clientId}/documents/{documentId}
+       * @allow (get) The owner can view their own document metadata and URLs.
+       * @allow (create) If the owner sets the internal clientId correctly.
+       * @deny (delete) If the user is not the owner of the client path.
+       * @principle Secure nested access: Protects sensitive document metadata and file pointers.
+       */
+      match /documents/{documentId} {
+        allow get, list: if isOwner(clientId);
+        allow create: if isOwner(clientId) && request.resource.data.clientId == clientId;
+        allow update: if isExistingOwner(clientId) && request.resource.data.clientId == resource.data.clientId;
+        allow delete: if isExistingOwner(clientId);
+      }
     }
   }
 }
