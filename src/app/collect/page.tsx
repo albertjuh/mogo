@@ -78,12 +78,14 @@ export default function CollectPage() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-accent text-white -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 p-6 rounded-b-3xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-4 opacity-5">
+      <div className="bg-accent text-white -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 p-6 rounded-b-3xl relative overflow-hidden border-b-4 border-primary/20">
+        <div className="absolute top-0 right-0 p-4 opacity-10 text-primary">
             <DollarSign size={120} />
         </div>
         <p className="text-sm uppercase text-white/60 font-bold tracking-widest">{headerDate}</p>
-        <h1 className="font-black text-3xl my-1 italic uppercase">Daily Collection</h1>
+        <h1 className="font-black text-3xl my-1 italic uppercase tracking-tighter">
+            Daily <span className="text-primary">Collection</span>
+        </h1>
         <div className="grid grid-cols-3 gap-2 mt-4 text-center">
             <div className="bg-white/10 rounded-lg p-2 border border-white/5">
                 <p className="text-xl font-bold">{paidTodayCount}</p>
@@ -93,8 +95,8 @@ export default function CollectPage() {
                 <p className="text-xl font-bold">{riders.filter(r => r.active).length - paidTodayCount}</p>
                 <p className="text-[0.6rem] uppercase font-semibold text-white/60">Pending</p>
             </div>
-            <div className="bg-white/10 rounded-lg p-2 border border-white/5">
-                <p className="text-xl font-bold">{(tzsToday / 1000).toFixed(0)}K</p>
+            <div className="bg-white/10 rounded-lg p-2 border border-primary/30 bg-primary/5">
+                <p className="text-xl font-bold text-primary">{(tzsToday / 1000).toFixed(0)}K</p>
                 <p className="text-[0.6rem] uppercase font-semibold text-white/60">Collected</p>
             </div>
         </div>
