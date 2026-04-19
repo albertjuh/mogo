@@ -18,8 +18,9 @@ export default function LoginPage() {
 
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 bg-muted/30">
-      {/* Desktop Left Side */}
+      {/* Desktop Left Side - High Contrast Brand Area */}
       <div className="hidden items-center justify-center bg-accent p-8 text-white lg:flex relative overflow-hidden">
+        {/* Subtle geometric background elements */}
         <div className="absolute top-[-10%] -left-20 w-[500px] h-[500px] border-[20px] border-primary/10 rounded-full" />
         <div className="absolute bottom-[-10%] -right-20 w-[300px] h-[300px] border-[15px] border-primary/5 rounded-full" />
         
@@ -30,7 +31,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Login Area */}
+      {/* Login Area - Clean, Focused Right Side */}
       <div className="flex items-center justify-center py-12 px-4 sm:px-8">
         <div className="mx-auto w-full max-w-[440px]">
           <Card className="border-none shadow-2xl bg-background">
@@ -54,6 +55,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {/* Refined Demo Access Section */}
               <Card className="bg-secondary/50 border-dashed border-2 border-primary/20">
                 <CardHeader className="p-4 pb-2">
                   <CardTitle className="font-headline text-sm font-bold uppercase text-primary">Akaunti za Majaribio</CardTitle>

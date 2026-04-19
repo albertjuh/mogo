@@ -99,7 +99,11 @@ export function AuthForm({ mode }: AuthFormProps) {
                 </FormItem>
             )}
             />
-            <Button type="submit" disabled={isLoading} className="w-full bg-[#0d1117] text-[#f5c842] hover:bg-[#0d1117]/90">
+            <Button 
+              type="submit" 
+              disabled={isLoading} 
+              className="w-full bg-accent text-white font-bold h-12 uppercase tracking-widest hover:bg-accent/90"
+            >
             {isLoading ? <Loader2 className="animate-spin" /> : "Log In"}
             </Button>
         </form>
