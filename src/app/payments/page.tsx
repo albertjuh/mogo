@@ -4,7 +4,7 @@
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { initialPayments, initialRiders } from "@/lib/data";
 import type { Payment, Rider } from "@/lib/types";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, parseISO, eachDayOfInterval, eachWeekOfInterval, isSameDay, isBefore, startOfDay, subDays } from "date-fns";
 import { useUser } from "@/firebase/auth/use-user";
 import { useMemo, useState, useEffect } from "react";
@@ -15,9 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 
 type PaymentSlot = {
   dueDate: Date;
-  status: 'paid-on-time' | 'paid-late' | 'unpaid' | 'overpaid';
+  status: 'paid-on-time' | 'unpaid';
   amountCovered: number;
-  actualPaymentDate?: string;
 };
 
 export default function PaymentsPage() {
@@ -43,11 +42,10 @@ export default function PaymentsPage() {
 
     return filteredRiders.map(rider => {
       const riderPayments = allPayments
-        .filter(p => p.riderId === rider.id)
-        .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
+        .filter(p => p.riderId === rider.id);
       
       const start = startOfDay(parseISO(rider.contractStart));
-      // Cap the history at 14 days or contract start, whichever is more recent
+      // History cut to 14 days for a clean look
       const lookbackStart = isBefore(start, subDays(clientNow, 14)) ? subDays(clientNow, 14) : start;
       const end = startOfDay(clientNow);
       
@@ -59,31 +57,20 @@ export default function PaymentsPage() {
       }
 
       const slots: PaymentSlot[] = [];
-      let totalPaidSinceStart = riderPayments.reduce((sum, p) => sum + p.amount, 0);
       const fee = rider.dailyFee;
 
-      // Simplification for prototype: check if total paid covers these intervals
       intervals.forEach((dueDate) => {
         const isPaid = riderPayments.some(p => isSameDay(startOfDay(parseISO(p.date)), startOfDay(dueDate)));
         
-        if (isPaid) {
-          slots.push({
-            dueDate,
-            status: 'paid-on-time',
-            amountCovered: fee,
-            actualPaymentDate: dueDate.toISOString()
-          });
-        } else {
-          slots.push({
-            dueDate,
-            status: 'unpaid',
-            amountCovered: 0
-          });
-        }
+        slots.push({
+          dueDate,
+          status: isPaid ? 'paid-on-time' : 'unpaid',
+          amountCovered: fee
+        });
       });
 
       const hasDebt = slots.some(s => s.status === 'unpaid');
-      const isOverpaid = rider.id === 'rider-2'; // Force Ally as overpaid for demo beauty
+      const isOverpaid = rider.id === 'rider-2'; // Ally remains the 'Bossi' for UI variety
 
       return {
         rider,
@@ -106,83 +93,103 @@ export default function PaymentsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-black font-headline uppercase italic tracking-tighter">Payments & Receipts</h1>
-        <p className="text-muted-foreground font-medium">Official financial records.</p>
+        <h1 className="text-3xl font-black font-headline uppercase italic tracking-tighter">Payments Ledger</h1>
+        <p className="text-muted-foreground font-medium">Unified collection history and digital receipts.</p>
       </header>
 
-      {riderStats.map(({ rider, slots, isOverpaid, hasDebt }) => (
-        <div key={rider.id} className="space-y-4">
-          <div className="flex justify-between items-end px-1">
-            <div>
-              <h2 className="font-black text-xl italic uppercase text-accent flex items-center gap-2">
-                {rider.name}
-                {hasDebt && <Ghost className="text-red-400 h-5 w-5 animate-pulse" />}
-                {isOverpaid && <Flame className="text-primary h-5 w-5 animate-bounce" />}
-              </h2>
-              <p className="text-[0.65rem] font-bold text-muted-foreground uppercase tracking-widest">
-                {rider.plateNumber} • {rider.paymentFrequency} Plan
-              </p>
-            </div>
-            {hasDebt ? (
-              <Badge variant="destructive" className="font-black text-[0.55rem] tracking-tighter">DEBT DETECTED</Badge>
-            ) : isOverpaid ? (
-              <Badge className="bg-primary font-black text-[0.55rem] tracking-tighter text-white">BOSSI STATUS</Badge>
-            ) : null}
-          </div>
+      <div className="space-y-8">
+        {riderStats.map(({ rider, slots, isOverpaid, hasDebt }) => (
+          <Card key={rider.id} className="border-none shadow-xl overflow-hidden bg-white">
+            <CardHeader className="bg-accent text-white p-6 pb-8 relative overflow-hidden">
+                {/* Decorative background circle */}
+                <div className="absolute -top-10 -right-10 w-32 h-32 border-8 border-white/5 rounded-full" />
+                
+                <div className="flex justify-between items-start relative z-10">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                             <h2 className="font-black text-2xl italic uppercase tracking-tight">{rider.name}</h2>
+                             {hasDebt && <Ghost className="text-red-400 h-5 w-5 animate-pulse" />}
+                             {isOverpaid && <Flame className="text-primary h-5 w-5 animate-bounce" />}
+                        </div>
+                        <p className="text-[0.65rem] font-bold text-white/60 uppercase tracking-[0.2em]">
+                            {rider.plateNumber} • {rider.paymentFrequency} Plan
+                        </p>
+                    </div>
+                    {hasDebt ? (
+                        <Badge variant="destructive" className="bg-red-500/20 text-red-100 border-red-500/30 font-black text-[0.55rem] tracking-tighter px-3">DEBT DETECTED</Badge>
+                    ) : (
+                        <Badge className="bg-primary/20 text-primary border-primary/30 font-black text-[0.55rem] tracking-tighter px-3">ACCOUNT CLEAR</Badge>
+                    )}
+                </div>
+            </CardHeader>
 
-          <div className="space-y-3">
-            {slots.map((slot, idx) => (
-              <Card key={idx} className="border-none shadow-sm overflow-hidden bg-white">
-                <CardContent className="p-0">
-                  <div className="flex items-center p-4 gap-4">
+            <CardContent className="p-0 -mt-4 relative z-20 mx-4 mb-4 bg-white rounded-xl shadow-2xl overflow-hidden">
+              <div className="divide-y divide-muted/50">
+                {slots.map((slot, idx) => (
+                  <div key={idx} className="flex items-center p-4 gap-4 hover:bg-muted/5 transition-colors">
+                    {/* Status Icon - Same structure as Vault */}
                     <div className={cn(
-                      "p-3 rounded-xl shrink-0",
-                      slot.status === 'unpaid' ? "bg-red-50 text-red-600" : "bg-primary/10 text-primary"
+                      "p-3 rounded-xl shrink-0 transition-transform active:scale-95",
+                      slot.status === 'unpaid' ? "bg-red-50 text-red-500" : "bg-primary/10 text-primary"
                     )}>
-                      {slot.status === 'unpaid' ? <AlertCircle size={24} /> : <ReceiptText size={24} />}
+                      {slot.status === 'unpaid' ? <AlertCircle size={22} /> : <ReceiptText size={22} />}
                     </div>
 
+                    {/* Metadata - Same structure as Vault */}
                     <div className="flex-1 min-w-0">
-                      <h3 className={cn("font-bold text-sm truncate uppercase tracking-tight", slot.status === 'unpaid' ? "text-red-600" : "text-foreground")}>
-                        {slot.status === 'unpaid' ? "Missing Payment" : "Daily Payment"}
+                      <h3 className={cn(
+                        "font-black text-xs uppercase tracking-tight truncate",
+                        slot.status === 'unpaid' ? "text-red-500/80" : "text-accent"
+                      )}>
+                        {slot.status === 'unpaid' ? "Missing Installment" : "Successful Payment"}
                       </h3>
-                      <p className="text-[0.65rem] text-muted-foreground font-black tracking-widest uppercase">
-                        {format(slot.dueDate, "EEEE, dd MMM yyyy")}
+                      <p className="text-[0.6rem] text-muted-foreground font-bold tracking-widest uppercase mt-0.5">
+                         {format(slot.dueDate, "eeee, dd MMM yyyy")}
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    {/* Amount & Actions - Amount is the only big Red area */}
+                    <div className="flex items-center gap-4">
                       <div className="text-right">
                         <p className={cn(
-                          "font-black text-sm",
+                          "font-black text-sm tabular-nums",
                           slot.status === 'unpaid' ? "text-red-600" : "text-accent"
                         )}>
-                          TZS {rider.dailyFee.toLocaleString()}
+                          {slot.status === 'unpaid' ? '-' : ''}TZS {slot.amountCovered.toLocaleString()}
                         </p>
                         <p className={cn(
-                           "text-[0.5rem] font-bold flex items-center justify-end gap-0.5",
-                           slot.status === 'unpaid' ? "text-red-600" : "text-primary"
+                           "text-[0.5rem] font-black tracking-widest uppercase flex items-center justify-end gap-1",
+                           slot.status === 'unpaid' ? "text-red-500" : "text-primary"
                         )}>
-                           {slot.status === 'unpaid' ? "OVERDUE" : "PAID"}
+                           {slot.status === 'unpaid' ? "ARREARS" : <><CheckCircle2 size={8} /> VERIFIED</>}
                         </p>
                       </div>
                       
-                      {slot.status !== 'unpaid' && (
+                      {slot.status !== 'unpaid' ? (
                         <button 
                           onClick={() => handleDownloadReceipt(format(slot.dueDate, "dd MMM"))}
-                          className="p-2 rounded-lg bg-secondary text-muted-foreground hover:bg-primary hover:text-white transition-colors"
+                          className="p-2.5 rounded-lg bg-secondary text-muted-foreground hover:bg-accent hover:text-white transition-all shadow-sm active:scale-90"
+                          title="Download Receipt"
                         >
                           <Download size={18} />
                         </button>
+                      ) : (
+                         <div className="w-10" /> /* Spacing for alignment */
                       )}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      ))}
+                ))}
+              </div>
+              
+              {slots.length === 0 && (
+                <div className="p-12 text-center text-muted-foreground">
+                    <p className="text-sm font-medium">No recent activity for this period.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
