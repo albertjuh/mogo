@@ -11,7 +11,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { AlertCircle, CheckCircle2, DollarSign } from "lucide-react";
+import { AlertCircle, CheckCircle2, DollarSign, User } from "lucide-react";
 
 export default function CollectPage() {
   const [riders] = useLocalStorage<Rider[]>("riders", initialRiders);
@@ -104,41 +104,54 @@ export default function CollectPage() {
 
       <div className="space-y-3">
         {ridersWithStatus.map(rider => (
-          <Card key={rider.id} className={cn(
-            "border-none shadow-sm transition-all duration-300",
-            rider.balance < 0 ? "bg-red-50 ring-1 ring-red-300" : rider.balance > 0 ? "bg-green-50 ring-1 ring-primary/30" : "bg-white"
-          )}>
-            <CardContent className="p-4 flex justify-between items-center">
-              <div className="space-y-1">
+          <Card key={rider.id} className="border-none shadow-sm transition-all duration-300 bg-white hover:shadow-md relative overflow-hidden">
+            {/* Status Indicator Bar */}
+            <div className={cn(
+                "absolute left-0 top-0 bottom-0 w-1.5",
+                rider.paidToday ? "bg-primary" : "bg-muted"
+            )} />
+            
+            <CardContent className="p-4 pl-6 flex justify-between items-center">
+              <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                    <p className="font-black italic uppercase text-sm">{rider.name}</p>
-                    <Badge variant="secondary" className="text-[0.5rem] font-black uppercase px-1.5 h-4">
+                    <div className="bg-secondary/50 p-1 rounded-md">
+                        <User size={14} className="text-muted-foreground" />
+                    </div>
+                    <p className="font-black italic uppercase text-sm tracking-tight text-accent">{rider.name}</p>
+                    <Badge variant="outline" className="text-[0.5rem] font-black uppercase px-1.5 h-4 border-muted-foreground/20">
                         {rider.paymentFrequency}
                     </Badge>
-                    {rider.balance < 0 && <AlertCircle className="h-4 w-4 text-red-600" />}
-                    {rider.balance > 0 && <CheckCircle2 className="h-4 w-4 text-primary" />}
                 </div>
-                <p className="text-[0.6rem] text-muted-foreground font-black tracking-widest uppercase">{rider.plateNumber}</p>
-                {rider.balance < 0 ? (
-                   <p className="text-[0.65rem] text-red-600 font-bold uppercase flex items-center gap-1">
-                       Owed: TZS {Math.abs(rider.balance).toLocaleString()}
-                   </p>
-                ) : rider.balance > 0 ? (
-                   <p className="text-[0.65rem] text-primary font-bold uppercase flex items-center gap-1">
-                       Credit: TZS {rider.balance.toLocaleString()}
-                   </p>
-                ) : (
-                   <p className="text-[0.65rem] text-muted-foreground font-bold uppercase flex items-center gap-1">
-                       ✓ Clear
-                   </p>
-                )}
+                
+                <div className="flex items-center gap-3">
+                    <p className="text-[0.6rem] text-muted-foreground font-black tracking-widest uppercase">{rider.plateNumber}</p>
+                    {rider.balance < 0 ? (
+                       <p className="text-[0.7rem] text-red-600 font-black uppercase flex items-center gap-1">
+                           Owed: TZS {Math.abs(rider.balance).toLocaleString()}
+                       </p>
+                    ) : rider.balance > 0 ? (
+                       <p className="text-[0.7rem] text-primary font-black uppercase flex items-center gap-1">
+                           Credit: TZS {rider.balance.toLocaleString()}
+                       </p>
+                    ) : (
+                       <p className="text-[0.7rem] text-muted-foreground font-bold uppercase flex items-center gap-1">
+                           <CheckCircle2 size={10} className="text-primary" /> Clear
+                       </p>
+                    )}
+                </div>
               </div>
+              
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                    <p className={cn("text-[0.6rem] font-black uppercase tracking-tighter", rider.paidToday ? 'text-primary' : 'text-muted-foreground')}>
-                        {rider.paidToday ? 'Recieved' : 'Pending'}
+                    <p className={cn(
+                        "text-[0.6rem] font-black uppercase tracking-tighter", 
+                        rider.paidToday ? 'text-primary' : 'text-muted-foreground'
+                    )}>
+                        {rider.paidToday ? 'Received' : 'Pending'}
                     </p>
-                    <p className="text-[0.6rem] text-muted-foreground font-bold">{rider.dailyFee.toLocaleString()}</p>
+                    <p className="text-[0.7rem] text-accent font-black">
+                        {rider.dailyFee.toLocaleString()}
+                    </p>
                 </div>
                 <Switch
                   className="data-[state=checked]:bg-primary"
