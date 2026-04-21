@@ -54,6 +54,8 @@ export function Sidebar() {
 
   if (!user) return null;
 
+  const displayName = user.name || user.email.split('@')[0];
+
   return (
     <aside className="hidden md:flex flex-col w-64 bg-background border-r">
         <div className="h-16 flex items-center px-6 border-b">
@@ -90,10 +92,10 @@ export function Sidebar() {
         <div className="p-4 border-t">
             <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-accent text-white flex items-center justify-center font-bold">
-                    {user.email.charAt(0).toUpperCase()}
+                    {displayName.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 overflow-hidden">
-                    <p className="text-sm font-medium truncate">{user.email.split('@')[0]}</p>
+                    <p className="text-sm font-medium truncate">{displayName}</p>
                     <p className="text-[0.6rem] text-muted-foreground uppercase font-black tracking-widest">{user.role}</p>
                 </div>
                 <Button variant="ghost" size="icon" onClick={logout} className="rounded-full">
