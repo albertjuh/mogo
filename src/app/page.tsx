@@ -241,13 +241,13 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {stats && stats.arrearsCount > 0 && (
+      {(stats?.arrearsCount ?? 0) > 0 && (
         <Card className="border-none shadow-md bg-red-50 ring-1 ring-red-200">
           <CardContent className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <AlertCircle className="text-red-600 h-6 w-6 shrink-0" />
               <div>
-                <p className="font-bold text-red-900">{stats.arrearsCount} Riders with Arrears</p>
+                <p className="font-bold text-red-900">{stats?.arrearsCount} Riders with Arrears</p>
                 <p className="text-xs text-red-700/80">Riders who have not paid today's fee.</p>
               </div>
             </div>

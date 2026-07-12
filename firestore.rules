@@ -52,7 +52,7 @@ service cloud.firestore {
       // Allow self-registration profile creation and management updates
       allow create: if isOwner(riderId) || isManager();
       allow update: if isManager() || isOwner(riderId);
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || isOwner(riderId);
     }
 
     match /payments/{paymentId} {
@@ -70,20 +70,20 @@ service cloud.firestore {
     // Role Registries - Allow users to create their own document during initial signup
     match /admins/{id} {
       allow read: if isSignedIn();
-      allow create: if isOwner(id) || isSystemAdmin();
-      allow update, delete: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin() || isOwner(id);
     }
 
     match /supervisors/{id} {
       allow read: if isSignedIn();
-      allow create: if isOwner(id) || isSystemAdmin();
-      allow update, delete: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin() || isOwner(id);
     }
 
     match /recruiters/{id} {
       allow read: if isSignedIn();
-      allow create: if isOwner(id) || isSystemAdmin();
-      allow update, delete: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin() || isOwner(id);
     }
   }
 }

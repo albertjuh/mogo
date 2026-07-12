@@ -59,7 +59,7 @@ export default function ReportsPage() {
     const data = weekDays.map(day => {
       const dayStr = format(day, 'yyyy-MM-dd');
       const total = payments
-        .filter(p => format(parseISO(p.date), 'yyyy-MM-dd') === dayStr)
+        .filter(p => format(parseISO(p.recordedAt), 'yyyy-MM-dd') === dayStr)
         .reduce((acc, curr) => acc + curr.amount, 0);
 
       return {

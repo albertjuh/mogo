@@ -7,7 +7,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { DashboardHeader } from "./dashboard-header";
 import { Sidebar } from "./sidebar";
 
-const publicPaths = ['/login', '/signup'];
+const publicPaths = ['/login', '/signup', '/privacy', '/terms'];
 
 export function AppClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

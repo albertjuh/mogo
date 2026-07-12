@@ -5,11 +5,12 @@ import { subDays, addDays, formatISO } from 'date-fns';
 const today = new Date();
 
 export const initialRiders: Rider[] = [
-  { 
-    id: "rider-1", 
-    name: "Juma Hassan", 
-    phone: "0712345678", 
-    plateNumber: "T 123 BCD", 
+  {
+    id: "rider-1",
+    name: "Juma Hassan",
+    phone: "0712345678",
+    email: "juma.hassan@example.com",
+    plateNumber: "T 123 BCD",
     vehicleType: "Boda Boda",
     chassisNumber: "MC-123456789-Z",
     engineNumber: "ENG-998877-X",
@@ -27,11 +28,12 @@ export const initialRiders: Rider[] = [
     witnessName: "Bakari Ally",
     witnessPhone: "0711000002"
   },
-  { 
-    id: "rider-2", 
-    name: "Ally Ramadhan", 
-    phone: "0788112233", 
-    plateNumber: "T 445 DEF", 
+  {
+    id: "rider-2",
+    name: "Ally Ramadhan",
+    phone: "0788112233",
+    email: "ally.ramadhan@example.com",
+    plateNumber: "T 445 DEF",
     vehicleType: "Boda Boda",
     chassisNumber: "MC-445566778-Y",
     engineNumber: "ENG-112233-W",
@@ -47,11 +49,12 @@ export const initialRiders: Rider[] = [
     guarantorName: "Ramadhan Juma",
     guarantorPhone: "0788000001"
   },
-  { 
-    id: "rider-3", 
-    name: "Sofia Said", 
-    phone: "0655443322", 
-    plateNumber: "T 789 GHI", 
+  {
+    id: "rider-3",
+    name: "Sofia Said",
+    phone: "0655443322",
+    email: "sofia.said@example.com",
+    plateNumber: "T 789 GHI",
     vehicleType: "Boda Boda",
     chassisNumber: "MC-789012345-V",
     engineNumber: "ENG-334455-S",
@@ -67,11 +70,12 @@ export const initialRiders: Rider[] = [
     guarantorName: "Said Ally",
     guarantorPhone: "0655000001"
   },
-  { 
-    id: "rider-4", 
-    name: "Baraka Mwangi", 
-    phone: "0711998877", 
-    plateNumber: "T 119 HJL", 
+  {
+    id: "rider-4",
+    name: "Baraka Mwangi",
+    phone: "0711998877",
+    email: "baraka.mwangi@example.com",
+    plateNumber: "T 119 HJL",
     vehicleType: "Boda Boda",
     chassisNumber: "MC-119228833-U",
     engineNumber: "ENG-776655-T",
@@ -87,11 +91,12 @@ export const initialRiders: Rider[] = [
     guarantorName: "Mwangi Karanja",
     guarantorPhone: "0711000004"
   },
-  { 
-    id: "rider-5", 
-    name: "Amina Saleh", 
-    phone: "0622334455", 
-    plateNumber: "T 042 GFK", 
+  {
+    id: "rider-5",
+    name: "Amina Saleh",
+    phone: "0622334455",
+    email: "amina.saleh@example.com",
+    plateNumber: "T 042 GFK",
     vehicleType: "Boda Boda",
     chassisNumber: "MC-042339944-R",
     engineNumber: "ENG-990011-Q",
@@ -118,9 +123,9 @@ export const initialBikes: Bike[] = [
 ];
 
 export const initialPayments: Payment[] = [
-  { id: "p1", riderId: "rider-1", amount: 10000, date: formatISO(subDays(today, 1)) },
-  { id: "p2", riderId: "rider-2", amount: 10000, date: formatISO(subDays(today, 1)) },
-  { id: "p3", riderId: "rider-3", amount: 10000, date: formatISO(today) },
+  { id: "p1", riderId: "rider-1", amount: 10000, selcomRef: "SC-P1", status: "verified", recordedAt: formatISO(subDays(today, 1)) },
+  { id: "p2", riderId: "rider-2", amount: 10000, selcomRef: "SC-P2", status: "verified", recordedAt: formatISO(subDays(today, 1)) },
+  { id: "p3", riderId: "rider-3", amount: 10000, selcomRef: "SC-P3", status: "verified", recordedAt: formatISO(today) },
 ];
 
 export const initialLoans: Loan[] = [

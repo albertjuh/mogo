@@ -1,19 +1,23 @@
 'use client';
 
 import React, { createContext, useContext, useState, type ReactNode, useEffect } from "react";
-import { 
-  onAuthStateChanged, 
-  User, 
-  signOut, 
-  getAuth, 
+import {
+  onAuthStateChanged,
+  User,
+  signOut,
+  getAuth,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
   sendEmailVerification,
-  reload
+  reload,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
+  EmailAuthProvider,
+  deleteUser
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 
 type AppUser = {
@@ -31,8 +35,16 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   signup: (email: string, password: string, name: string) => Promise<boolean>;
   reloadUser: () => Promise<void>;
+  deleteAccount: (password?: string) => Promise<{ success: boolean; error?: string }>;
   loading: boolean;
 }
+
+const ROLE_COLLECTIONS: Record<AppUser['role'], string> = {
+  admin: 'admins',
+  supervisor: 'supervisors',
+  recruiter: 'recruiters',
+  rider: 'riders',
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -172,8 +184,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signOut(auth);
   };
 
+  const deleteAccount = async (password?: string) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser || !user) {
+      return { success: false, error: "You must be signed in to delete your account." };
+    }
+
+    try {
+      const isGoogleUser = currentUser.providerData.some(p => p.providerId === 'google.com');
+
+      if (isGoogleUser) {
+        await reauthenticateWithPopup(currentUser, new GoogleAuthProvider());
+      } else {
+        if (!password) {
+          return { success: false, error: "Please enter your password to confirm." };
+        }
+        const credential = EmailAuthProvider.credential(currentUser.email || "", password);
+        await reauthenticateWithCredential(currentUser, credential);
+      }
+
+      await deleteDoc(doc(db, ROLE_COLLECTIONS[user.role], currentUser.uid));
+      await deleteUser(currentUser);
+
+      return { success: true };
+    } catch (e: any) {
+      console.error("Account deletion failed:", e);
+      let message = "Could not delete your account. Please try again.";
+      if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+        message = "Incorrect password.";
+      } else if (e.code === 'auth/popup-closed-by-user') {
+        message = "Confirmation was cancelled.";
+      } else if (e.code === 'auth/requires-recent-login') {
+        message = "Please sign out and sign in again before deleting your account.";
+      }
+      return { success: false, error: message };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, logout, login, signup, loginWithGoogle, reloadUser, loading }}>
+    <AuthContext.Provider value={{ user, firebaseUser, logout, login, signup, loginWithGoogle, reloadUser, deleteAccount, loading }}>
       {children}
     </AuthContext.Provider>
   );

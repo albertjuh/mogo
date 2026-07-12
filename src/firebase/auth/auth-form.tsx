@@ -217,12 +217,19 @@ export function AuthForm({ mode }: AuthFormProps) {
           </Button>
 
           {mode === "signup" && (
+            <>
               <div className="bg-white/5 p-3 rounded-lg border border-white/10 flex gap-2 items-start mt-4">
                   <ShieldCheck className="text-primary shrink-0 h-4 w-4 mt-0.5" />
                   <p className="text-[0.6rem] text-white/50 font-medium">
                       An activation link will be sent to your email. You must click it to enter the platform.
                   </p>
               </div>
+              <p className="text-[0.6rem] text-white/40 text-center">
+                By creating an account you agree to our{" "}
+                <Link href="/terms" className="underline">Terms of Service</Link> and{" "}
+                <Link href="/privacy" className="underline">Privacy Policy</Link>.
+              </p>
+            </>
           )}
         </form>
       </Form>

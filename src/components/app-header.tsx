@@ -1,10 +1,11 @@
 "use client";
-import { Bell, LogOut } from 'lucide-react';
+import { Bell, LogOut, UserCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUser } from '@/firebase/auth/use-user';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export function AppHeader() {
   const [clientNow, setClientNow] = useState<Date | null>(null);
@@ -69,6 +70,9 @@ export function AppHeader() {
           <button onClick={handleBellClick} className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
             <Bell className="h-5 w-5" />
           </button>
+          <Link href="/account" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
+            <UserCircle className="h-5 w-5" />
+          </Link>
         </div>
       </div>
     </header>

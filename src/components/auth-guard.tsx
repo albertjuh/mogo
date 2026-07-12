@@ -7,7 +7,7 @@ import { Loader2, Mail, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { sendEmailVerification } from 'firebase/auth';
 
-const publicPaths = ['/login', '/signup'];
+const publicPaths = ['/login', '/signup', '/privacy', '/terms'];
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, firebaseUser, loading, reloadUser, logout } = useUser();

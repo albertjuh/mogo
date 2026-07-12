@@ -44,13 +44,13 @@ export default function AlertsPage() {
         if (!rider.active) return;
         const lastPayment = payments
             .filter(p => p.riderId === rider.id)
-            .sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime())[0];
-        
-        if(!lastPayment || isBefore(parseISO(lastPayment.date), twoDaysAgo)) {
+            .sort((a,b) => parseISO(b.recordedAt).getTime() - parseISO(a.recordedAt).getTime())[0];
+
+        if(!lastPayment || isBefore(parseISO(lastPayment.recordedAt), twoDaysAgo)) {
             generatedAlerts.push({
                 id: `payment-${rider.id}`,
                 type: 'payment',
-                message: `${rider.name} may have a missed payment. Last payment was ${lastPayment ? format(parseISO(lastPayment.date), 'PPP') : 'never'}.`,
+                message: `${rider.name} may have a missed payment. Last payment was ${lastPayment ? format(parseISO(lastPayment.recordedAt), 'PPP') : 'never'}.`,
                 date: new Date().toISOString(),
                 riderId: rider.id,
             });

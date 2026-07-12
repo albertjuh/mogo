@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Home, Wallet, ShieldCheck, TrendingUp, Users, BarChart3, AlertCircle, UserPlus, ShieldAlert } from "lucide-react";
+import { LogOut, Home, Wallet, ShieldCheck, TrendingUp, Users, BarChart3, AlertCircle, UserPlus, ShieldAlert, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/firebase/auth/use-user";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,15 @@ export function Sidebar() {
   const navItems = useMemo(() => {
     if (!user) return [];
 
+    const accountItem = { href: "/account", label: "Account", icon: UserCircle };
+
     if (user.role === 'rider') {
       return [
         { href: "/", label: "My Dashboard", icon: Home },
         { href: "/vault", label: "Document Vault", icon: ShieldCheck },
         { href: "/savings", label: "Savings Tracker", icon: TrendingUp },
         { href: "/payments", label: "Payment History", icon: BarChart3 },
+        accountItem,
       ];
     }
 
@@ -31,6 +34,7 @@ export function Sidebar() {
         { href: "/", label: "Home", icon: Home },
         { href: "/onboard", label: "New Onboarding", icon: UserPlus },
         { href: "/fleet", label: "Fleet List", icon: Users },
+        accountItem,
       ];
     }
 
@@ -43,12 +47,13 @@ export function Sidebar() {
       { href: "/alerts", label: "Urgent Alerts", icon: AlertCircle },
     ];
 
-    if (user.role === 'supervisor') return supervisorItems;
+    if (user.role === 'supervisor') return [...supervisorItems, accountItem];
 
     return [
       ...supervisorItems,
       { href: "/users", label: "User Accounts", icon: ShieldAlert },
       { href: "/reports", label: "Business Insights", icon: TrendingUp },
+      accountItem,
     ];
   }, [user]);
 
