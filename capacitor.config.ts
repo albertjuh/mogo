@@ -5,10 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Boda Empire',
   webDir: 'www',
   server: {
-    // TODO: point this at the deployed app once it's live (Firebase App
-    // Hosting or Vercel). The AI features are Next.js server actions, so
-    // this must be a real server URL, not a static export.
-    url: 'https://REPLACE-WITH-YOUR-DEPLOYED-URL',
+    url: 'https://mogo-lovat.vercel.app',
     cleartext: false,
   },
 };
