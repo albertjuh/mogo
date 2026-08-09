@@ -4,6 +4,7 @@
 import { useUser } from "@/firebase/auth/use-user";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where, orderBy } from "firebase/firestore";
+import { checkPaymentStatus } from "@/app/actions/payments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, parseISO } from "date-fns";
 import { useMemo, useState, useEffect } from "react";
@@ -14,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 
 export default function PaymentsPage() {
-  const { user } = useUser();
+  const { user, firebaseUser } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
 
@@ -38,18 +39,29 @@ export default function PaymentsPage() {
   const ridersQuery = useMemoFirebase(() => collection(db, "riders"), [db]);
   const { data: riders } = useCollection(ridersQuery);
 
-  const handleReSync = (selcomRef: string) => {
+  const handleReSync = async (gatewayRef: string) => {
+    if (!firebaseUser) return;
+
     toast({
-      title: "Re-syncing with Selcom...",
-      description: `Checking status for Ref: ${selcomRef}`,
+      title: "Re-syncing with Snippe...",
+      description: `Checking status for Ref: ${gatewayRef}`,
     });
-    // Simulation of Webhook trigger
-    setTimeout(() => {
+
+    const idToken = await firebaseUser.getIdToken();
+    const result = await checkPaymentStatus(idToken, gatewayRef);
+
+    if (result.success) {
       toast({
         title: "Synchronization Complete",
-        description: "Payment status is up to date.",
+        description: `Status: ${result.status}`,
       });
-    }, 1500);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Sync Failed",
+        description: result.error,
+      });
+    }
   };
 
   const getRiderName = (riderId: string) => {
@@ -63,7 +75,7 @@ export default function PaymentsPage() {
       <header className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-black font-headline uppercase italic tracking-tighter">Payments Ledger</h1>
-          <p className="text-muted-foreground font-medium">Verified Selcom audit trail.</p>
+          <p className="text-muted-foreground font-medium">Verified Snippe audit trail.</p>
         </div>
       </header>
 
@@ -89,7 +101,7 @@ export default function PaymentsPage() {
                     </Badge>
                   </div>
                   <p className="text-[0.6rem] text-muted-foreground font-bold tracking-widest uppercase mt-0.5">
-                    Ref: {payment.selcomRef} • {format(parseISO(payment.recordedAt), "dd MMM, HH:mm")}
+                    Ref: {payment.gatewayRef} • {format(parseISO(payment.recordedAt), "dd MMM, HH:mm")}
                   </p>
                 </div>
 

@@ -59,8 +59,10 @@ service cloud.firestore {
       // Riders see their own payments (requires query filter); Managers see audit trail
       allow read, list: if isManager() || (isSignedIn() && (resource == null || resource.data.riderId == request.auth.uid));
       
-      // Payment recording
-      allow create: if isSignedIn() && (isManager() || request.resource.data.riderId == request.auth.uid);
+      // Payment recording: real rider-initiated payments go through the
+      // server-side Snippe integration (Admin SDK, bypasses these rules).
+      // Only managers write payment docs directly (e.g. manual cash entry).
+      allow create: if isManager();
       
       // Status verification
       allow update: if isManager();

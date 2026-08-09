@@ -45,7 +45,7 @@ export interface Payment {
   id: string;
   riderId: string;
   amount: number;
-  selcomRef: string;
+  gatewayRef: string;
   status: 'pending' | 'verified' | 'failed';
   recordedAt: string;
   verifiedBy?: string;

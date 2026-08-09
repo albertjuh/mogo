@@ -8,45 +8,38 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/firebase/auth/use-user";
-import { useFirestore } from "@/firebase";
-import { collection } from "firebase/firestore";
-import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { initiatePayment } from "@/app/actions/payments";
 import { Loader2, Smartphone, CheckCircle2 } from "lucide-react";
 
 export default function LipaPage() {
   const [amount, setAmount] = useState("10000");
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const { user } = useUser();
-  const db = useFirestore();
+  const { firebaseUser } = useUser();
   const { toast } = useToast();
 
   const handleLipa = async () => {
-    if (!amount || isNaN(Number(amount))) {
-      toast({ variant: "destructive", title: "Invalid amount" });
+    const amountNum = Number(amount);
+    if (!amount || isNaN(amountNum) || amountNum < 500) {
+      toast({ variant: "destructive", title: "Invalid amount", description: "Minimum payment is TZS 500." });
       return;
     }
+    if (!firebaseUser) return;
 
     setIsLoading(true);
-    
-    // Simulate STK Push and secure JWT-based recording
-    setTimeout(() => {
-      if (user) {
-        const selcomRef = `SEL-${Math.random().toString(36).substring(7).toUpperCase()}`;
-        
-        addDocumentNonBlocking(collection(db, "payments"), {
-          riderId: user.id, // UID from JWT context
-          amount: Number(amount),
-          selcomRef,
-          status: 'pending',
-          recordedAt: new Date().toISOString(),
-        });
+    try {
+      const idToken = await firebaseUser.getIdToken();
+      const result = await initiatePayment(idToken, amountNum);
 
-        setIsLoading(false);
+      if (result.success) {
         setIsSuccess(true);
         toast({ title: "STK Push Sent", description: "Muamala unashughulikiwa." });
+      } else {
+        toast({ variant: "destructive", title: "Payment Failed", description: result.error });
       }
-    }, 1500);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isSuccess) {
@@ -64,7 +57,7 @@ export default function LipaPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-3xl font-black font-headline">Lipa kwa Mogo</h1>
-        <p className="text-muted-foreground">Malipo salama kupitia JWT & Selcom</p>
+        <p className="text-muted-foreground">Malipo salama kupitia JWT & Snippe</p>
       </header>
 
       <Card className="border-none shadow-xl">

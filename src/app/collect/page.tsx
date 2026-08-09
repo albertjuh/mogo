@@ -39,20 +39,20 @@ export default function CollectPage() {
   const handlePaymentToggle = (riderId: string, dailyFee: number) => {
     if (!todayStr || !user) return;
 
-    const selcomRef = `SEL-${Math.random().toString(36).substring(7).toUpperCase()}`;
-    
+    const gatewayRef = `CASH-${Math.random().toString(36).substring(7).toUpperCase()}`;
+
     addDocumentNonBlocking(collection(db, "payments"), {
       riderId,
       amount: dailyFee,
-      selcomRef,
+      gatewayRef,
       status: 'verified',
       recordedAt: new Date().toISOString(),
       verifiedBy: user.id
     });
 
-    toast({ 
+    toast({
       title: "💰 Malipo Yamepokelewa!",
-      description: `Ref: ${selcomRef}`
+      description: `Ref: ${gatewayRef}`
     });
   };
 

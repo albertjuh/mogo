@@ -123,9 +123,9 @@ export const initialBikes: Bike[] = [
 ];
 
 export const initialPayments: Payment[] = [
-  { id: "p1", riderId: "rider-1", amount: 10000, selcomRef: "SC-P1", status: "verified", recordedAt: formatISO(subDays(today, 1)) },
-  { id: "p2", riderId: "rider-2", amount: 10000, selcomRef: "SC-P2", status: "verified", recordedAt: formatISO(subDays(today, 1)) },
-  { id: "p3", riderId: "rider-3", amount: 10000, selcomRef: "SC-P3", status: "verified", recordedAt: formatISO(today) },
+  { id: "p1", riderId: "rider-1", amount: 10000, gatewayRef: "SC-P1", status: "verified", recordedAt: formatISO(subDays(today, 1)) },
+  { id: "p2", riderId: "rider-2", amount: 10000, gatewayRef: "SC-P2", status: "verified", recordedAt: formatISO(subDays(today, 1)) },
+  { id: "p3", riderId: "rider-3", amount: 10000, gatewayRef: "SC-P3", status: "verified", recordedAt: formatISO(today) },
 ];
 
 export const initialLoans: Loan[] = [

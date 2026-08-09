@@ -22,7 +22,7 @@
       "properties": {
         "riderId": { "type": "string" },
         "amount": { "type": "number" },
-        "selcomRef": { "type": "string" },
+        "gatewayRef": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "verified", "failed"] },
         "recordedAt": { "type": "string", "format": "date-time" }
       },
