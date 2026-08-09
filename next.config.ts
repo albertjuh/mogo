@@ -2,6 +2,10 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // firebase-admin pulls in jwks-rsa -> jose, whose ESM/CJS boundary breaks
+  // when webpack bundles it into the serverless function. Keep it external
+  // so Node resolves it natively at runtime instead.
+  serverExternalPackages: ['firebase-admin'],
   typescript: {
     ignoreBuildErrors: true,
   },
