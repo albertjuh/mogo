@@ -81,6 +81,7 @@
     "react-day-picker": {
       "react": "$react",
       "react-dom": "$react-dom"
-    }
+    },
+    "jose": "^5.9.6"
   }
 }
