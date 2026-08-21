@@ -1,0 +1,6 @@
+# Native app shells and their source icons/splash assets -- not part of the
+# Next.js web deploy, and android/ios ballooned the upload size significantly.
+android
+ios
+www
+resources
