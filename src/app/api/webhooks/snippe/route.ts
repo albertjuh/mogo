@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyWebhook, SnippeWebhookVerificationError, type WebhookPaymentData } from "@snippe/sdk";
+import { verifyWebhook, SnippeWebhookVerificationError, type WebhookPaymentData, type WebhookPayoutData } from "@snippe/sdk";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { mapGatewayStatus } from "@/lib/snippe";
 
@@ -31,13 +31,23 @@ export async function POST(req: NextRequest) {
     throw e;
   }
 
+  const db = getAdminDb();
+
   if (event.type.startsWith("payment.")) {
     const data = event.data as WebhookPaymentData;
-    const db = getAdminDb();
     await db.collection("payments").doc(data.reference).set(
       {
         status: mapGatewayStatus(data.status),
         verifiedBy: "snippe-webhook",
+      },
+      { merge: true }
+    );
+  } else if (event.type.startsWith("payout.")) {
+    const data = event.data as WebhookPayoutData;
+    await db.collection("payouts").doc(data.reference).set(
+      {
+        status: data.status,
+        failureReason: data.failure_reason ?? null,
       },
       { merge: true }
     );

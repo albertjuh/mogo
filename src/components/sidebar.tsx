@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Home, Wallet, ShieldCheck, TrendingUp, Users, BarChart3, AlertCircle, UserPlus, ShieldAlert, UserCircle } from "lucide-react";
+import { LogOut, Home, Wallet, ShieldCheck, TrendingUp, Users, BarChart3, AlertCircle, UserPlus, ShieldAlert, UserCircle, Banknote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/firebase/auth/use-user";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,7 @@ export function Sidebar() {
     return [
       ...supervisorItems,
       { href: "/users", label: "User Accounts", icon: ShieldAlert },
+      { href: "/payouts", label: "Withdraw Funds", icon: Banknote },
       { href: "/reports", label: "Business Insights", icon: TrendingUp },
       accountItem,
     ];

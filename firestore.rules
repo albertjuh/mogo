@@ -69,6 +69,14 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /payouts/{payoutId} {
+      // Withdrawal audit trail: admin-only, and only ever written server-side
+      // via the Admin SDK (initiatePayout action + webhook), never directly
+      // from the client.
+      allow read, list: if isAdmin();
+      allow write: if false;
+    }
+
     // Role Registries - Allow users to create their own document during initial signup
     match /admins/{id} {
       allow read: if isSignedIn();
