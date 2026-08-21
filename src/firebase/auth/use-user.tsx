@@ -15,7 +15,8 @@ import {
   reauthenticateWithCredential,
   reauthenticateWithPopup,
   EmailAuthProvider,
-  deleteUser
+  deleteUser,
+  sendPasswordResetEmail
 } from "firebase/auth";
 import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
@@ -33,6 +34,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   login: (email: string, password: string) => Promise<boolean>;
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   signup: (email: string, password: string, name: string) => Promise<boolean>;
   reloadUser: () => Promise<void>;
   deleteAccount: (password?: string) => Promise<{ success: boolean; error?: string }>;
@@ -179,6 +181,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      return { success: true };
+    } catch (e: any) {
+      console.error("Password reset error:", e);
+      let message = "Could not send the reset email. Please try again.";
+      if (e.code === 'auth/user-not-found') message = "No account found with that email.";
+      if (e.code === 'auth/invalid-email') message = "Please enter a valid email address.";
+      return { success: false, error: message };
+    }
+  };
+
   const logout = async () => {
     setLoading(true);
     await signOut(auth);
@@ -222,7 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, logout, login, signup, loginWithGoogle, reloadUser, deleteAccount, loading }}>
+    <AuthContext.Provider value={{ user, firebaseUser, logout, login, signup, loginWithGoogle, resetPassword, reloadUser, deleteAccount, loading }}>
       {children}
     </AuthContext.Provider>
   );
