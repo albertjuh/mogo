@@ -8,11 +8,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserPlus, Info } from "lucide-react";
 import { Suspense } from "react";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 function OnboardContent() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
   
   const email = searchParams.get('email') || "";
   const uid = searchParams.get('uid') || "";
@@ -26,8 +28,8 @@ function OnboardContent() {
     });
 
     toast({
-        title: "Rider Onboarded Successfully", 
-        description: `${data.name} has been added to the fleet and linked to their account.` 
+        title: t("onboard.toast.title"),
+        description: t("onboard.toast.description", { name: data.name })
     });
     router.push("/fleet");
   };
@@ -39,17 +41,17 @@ function OnboardContent() {
             <UserPlus size={120} />
         </div>
         <h1 className="font-black text-3xl italic uppercase tracking-tighter">
-            New <span className="text-primary">Onboarding</span>
+            {t("onboard.title.new")} <span className="text-primary">{t("onboard.title.onboarding")}</span>
         </h1>
-        <p className="text-sm text-white/60 font-bold uppercase tracking-widest mt-1">Data Collection for Mkataba</p>
+        <p className="text-sm text-white/60 font-bold uppercase tracking-widest mt-1">{t("onboard.subtitle")}</p>
       </div>
 
       {uid && (
         <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl flex items-start gap-3">
           <Info className="text-primary shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-bold text-accent uppercase">Linking to Account</p>
-            <p className="text-sm text-muted-foreground">Completing profile for <span className="font-bold text-accent">{name || email}</span>.</p>
+            <p className="text-xs font-bold text-accent uppercase">{t("onboard.linkingToAccount")}</p>
+            <p className="text-sm text-muted-foreground">{t("onboard.completingProfileFor", { name: name || email })}</p>
           </div>
         </div>
       )}
@@ -67,12 +69,12 @@ function OnboardContent() {
       </Card>
 
       <div className="bg-secondary/50 p-6 rounded-2xl border border-dashed border-muted-foreground/20">
-        <h4 className="font-black text-xs uppercase tracking-widest text-muted-foreground mb-2 text-center">Recruitment Checklist</h4>
+        <h4 className="font-black text-xs uppercase tracking-widest text-muted-foreground mb-2 text-center">{t("onboard.checklist.title")}</h4>
         <ul className="grid grid-cols-2 gap-4 text-[0.65rem] font-bold uppercase text-muted-foreground/80">
-            <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 bg-primary rounded-full" /> Verify NIDA ID</li>
-            <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 bg-primary rounded-full" /> Check Guarantor</li>
-            <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 bg-primary rounded-full" /> Confirm Plate No.</li>
-            <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 bg-primary rounded-full" /> Collect Passport Pic</li>
+            <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 bg-primary rounded-full" /> {t("onboard.checklist.verifyNida")}</li>
+            <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 bg-primary rounded-full" /> {t("onboard.checklist.checkGuarantor")}</li>
+            <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 bg-primary rounded-full" /> {t("onboard.checklist.confirmPlate")}</li>
+            <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 bg-primary rounded-full" /> {t("onboard.checklist.collectPassport")}</li>
         </ul>
       </div>
     </div>
@@ -80,8 +82,9 @@ function OnboardContent() {
 }
 
 export default function OnboardPage() {
+    const { t } = useLanguage();
     return (
-        <Suspense fallback={<div className="p-12 text-center">Loading onboarding form...</div>}>
+        <Suspense fallback={<div className="p-12 text-center">{t("onboard.loading")}</div>}>
             <OnboardContent />
         </Suspense>
     )

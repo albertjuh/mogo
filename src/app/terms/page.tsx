@@ -1,57 +1,54 @@
-import Link from "next/link";
+"use client";
 
-export const metadata = {
-  title: "Terms of Service — King Bariki",
-};
+import Link from "next/link";
+import { useEffect } from "react";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 export default function TermsPage() {
+  const { t } = useLanguage();
+
+  useEffect(() => {
+    document.title = "Terms of Service — King Bariki";
+  }, []);
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-12 prose prose-sm">
-      <h1 className="text-3xl font-bold font-headline mb-2">Terms of Service</h1>
-      <p className="text-muted-foreground text-sm mb-8">Last updated: 11 July 2026</p>
+      <h1 className="text-3xl font-bold font-headline mb-2">{t("legal.terms.title")}</h1>
+      <p className="text-muted-foreground text-sm mb-8">{t("legal.lastUpdated")}</p>
 
       <p>
-        By creating an account or using King Bariki, you agree to these terms.
+        {t("legal.terms.intro")}
       </p>
 
-      <h2>Use of the app</h2>
+      <h2>{t("legal.terms.useOfApp.heading")}</h2>
       <p>
-        King Bariki is a fleet, payment and loan tracking tool. Records entered into the app
-        (contracts, payments, loan balances) are for operational management and do not by
-        themselves constitute a separate legal agreement between riders and the fleet operator —
-        the underlying written contract (Mkataba) governs that relationship.
+        {t("legal.terms.useOfApp.body")}
       </p>
 
-      <h2>Accounts</h2>
+      <h2>{t("legal.terms.accounts.heading")}</h2>
       <p>
-        You are responsible for keeping your login credentials secure. Fleet administrators are
-        responsible for assigning and revoking staff access (supervisor/recruiter roles) for their
-        organization.
+        {t("legal.terms.accounts.body")}
       </p>
 
-      <h2>Accuracy of records</h2>
+      <h2>{t("legal.terms.accuracy.heading")}</h2>
       <p>
-        Payment and contract data is entered by fleet staff or generated from device input. While
-        we aim to keep records accurate, King Bariki is a management tool, not a payment processor,
-        and does not itself move funds between parties.
+        {t("legal.terms.accuracy.body")}
       </p>
 
-      <h2>Account deletion</h2>
+      <h2>{t("legal.terms.deletion.heading")}</h2>
       <p>
-        You may delete your account at any time from the <Link href="/account">Account</Link> page.
-        Some payment records may be retained after deletion for financial audit or legal
-        record-keeping purposes, as described in our <Link href="/privacy">Privacy Policy</Link>.
+        {t("legal.terms.deletion.body1")} <Link href="/account">{t("nav.account")}</Link>{" "}
+        {t("legal.terms.deletion.body2")} <Link href="/privacy">{t("account.legal.privacy")}</Link>.
       </p>
 
-      <h2>Changes</h2>
+      <h2>{t("legal.terms.changes.heading")}</h2>
       <p>
-        We may update these terms as the app evolves. Continued use of the app after changes are
-        posted constitutes acceptance of the updated terms.
+        {t("legal.terms.changes.body")}
       </p>
 
-      <h2>Contact</h2>
+      <h2>{t("legal.terms.contact.heading")}</h2>
       <p>
-        Questions about these terms can be sent to <a href="mailto:berto.admin@bodaempire.com">berto.admin@bodaempire.com</a>.
+        {t("legal.terms.contact.body")} <a href="mailto:berto.admin@bodaempire.com">berto.admin@bodaempire.com</a>.
       </p>
     </div>
   );

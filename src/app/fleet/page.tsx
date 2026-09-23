@@ -43,10 +43,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { RiderForm, type RiderFormValues } from "@/components/rider-form";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/supabase/auth/use-user";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 export default function FleetPage() {
   const { user } = useUser();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const isManager = user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'recruiter';
 
@@ -90,8 +92,8 @@ export default function FleetPage() {
     if (selectedRider) {
       deleteRowNonBlocking("riders", selectedRider.id);
       toast({
-        title: "Rider Deleted",
-        description: `${selectedRider.name} has been removed from your fleet.`,
+        title: t("fleet.toast.riderDeleted.title"),
+        description: t("fleet.toast.riderDeleted.description", { name: selectedRider.name }),
       });
     }
     setIsDeleteAlertOpen(false);
@@ -101,10 +103,10 @@ export default function FleetPage() {
   const handleFormSubmit = (data: RiderFormValues) => {
     if (selectedRider) {
       updateRowNonBlocking("riders", selectedRider.id, riderToRow(data));
-      toast({ title: "Rider Updated", description: `${data.name}'s details have been saved.` });
+      toast({ title: t("fleet.toast.riderUpdated.title"), description: t("fleet.toast.riderUpdated.description", { name: data.name }) });
     } else {
       insertRowNonBlocking("riders", { ...riderToRow(data), active: true });
-      toast({ title: "Rider Added", description: `${data.name} is now part of your fleet.` });
+      toast({ title: t("fleet.toast.riderAdded.title"), description: t("fleet.toast.riderAdded.description", { name: data.name }) });
     }
     setIsFormOpen(false);
     setSelectedRider(null);
@@ -135,15 +137,15 @@ export default function FleetPage() {
   };
 
   if (!isManager) {
-    return <div className="p-12 text-center text-muted-foreground font-bold">Unauthorized Access</div>;
+    return <div className="p-12 text-center text-muted-foreground font-bold">{t("fleet.unauthorized")}</div>;
   }
 
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
-            <h1 className="text-3xl font-black font-headline italic uppercase tracking-tighter text-accent">Bajaji Fleet</h1>
-            <p className="text-muted-foreground font-medium">Manage riders and hire-purchase contracts.</p>
+            <h1 className="text-3xl font-black font-headline italic uppercase tracking-tighter text-accent">{t("fleet.title")}</h1>
+            <p className="text-muted-foreground font-medium">{t("fleet.subtitle")}</p>
         </div>
         <Button size="icon" className="rounded-full shadow-lg h-12 w-12" onClick={() => { setSelectedRider(null); setIsFormOpen(true); }}>
             <Plus />
@@ -155,12 +157,12 @@ export default function FleetPage() {
       ) : riders?.length === 0 ? (
         <Card className="text-center py-12 border-dashed">
             <CardHeader>
-                <CardTitle className="font-headline">Your fleet is empty!</CardTitle>
-                <CardDescription>Add your first rider to get started.</CardDescription>
+                <CardTitle className="font-headline">{t("fleet.empty.title")}</CardTitle>
+                <CardDescription>{t("fleet.empty.description")}</CardDescription>
             </CardHeader>
             <CardContent>
                 <Button onClick={() => { setSelectedRider(null); setIsFormOpen(true); }}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Rider
+                    <Plus className="mr-2 h-4 w-4" /> {t("fleet.empty.addRider")}
                 </Button>
             </CardContent>
         </Card>
@@ -188,13 +190,13 @@ export default function FleetPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleEdit(rider)}>
-                        <Edit className="mr-2 h-4 w-4" /> Edit Profile
+                        <Edit className="mr-2 h-4 w-4" /> {t("fleet.menu.editProfile")}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleViewContract(rider)}>
-                        <FileText className="mr-2 h-4 w-4 text-primary" /> View Contract
+                        <FileText className="mr-2 h-4 w-4 text-primary" /> {t("fleet.menu.viewContract")}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleDelete(rider)} className="text-destructive focus:text-destructive">
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        <Trash2 className="mr-2 h-4 w-4" /> {t("common.delete")}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -202,11 +204,11 @@ export default function FleetPage() {
                 <CardContent className="px-4 pb-4 space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="bg-secondary/30 p-2 rounded-lg">
-                        <p className="text-[0.6rem] uppercase font-black text-muted-foreground">Vehicle</p>
+                        <p className="text-[0.6rem] uppercase font-black text-muted-foreground">{t("fleet.card.vehicle")}</p>
                         <p className="text-xs font-bold truncate">{rider.plateNumber} • {rider.vehicleType}</p>
                     </div>
                     <div className="bg-secondary/30 p-2 rounded-lg">
-                        <p className="text-[0.6rem] uppercase font-black text-muted-foreground">Daily Fee</p>
+                        <p className="text-[0.6rem] uppercase font-black text-muted-foreground">{t("fleet.card.dailyFee")}</p>
                         <p className="text-xs font-bold">TZS {rider.dailyFee?.toLocaleString()}</p>
                     </div>
                   </div>
@@ -218,7 +220,7 @@ export default function FleetPage() {
                         'bg-secondary/30 text-muted-foreground'
                     }`}>
                         <span className="uppercase tracking-wider">
-                            {balance.status === 'debt' ? 'Deni (Debt)' : balance.status === 'credit' ? 'Overdraft/Credit' : 'Current'}
+                            {balance.status === 'debt' ? t("fleet.balance.debt") : balance.status === 'credit' ? t("fleet.balance.credit") : t("fleet.balance.current")}
                         </span>
                         <span>
                             {balance.status === 'debt' && `- TZS ${Math.abs(balance.balance).toLocaleString()}`}
@@ -229,9 +231,9 @@ export default function FleetPage() {
                   )}
 
                   <div className="flex items-center justify-between text-[0.6rem] font-bold uppercase tracking-widest text-muted-foreground pt-1 border-t border-muted/50">
-                    <span>Guarantor: {rider.guarantorName || 'N/A'}</span>
+                    <span>{t("fleet.card.guarantor", { name: rider.guarantorName || t("fleet.card.notAvailable") })}</span>
                     <Button variant="link" size="sm" className="h-auto p-0 text-[0.6rem] text-primary" onClick={() => handleViewContract(rider)}>
-                        View Mkataba <FileText size={10} className="ml-1" />
+                        {t("fleet.card.viewMkataba")} <FileText size={10} className="ml-1" />
                     </Button>
                   </div>
                 </CardContent>
@@ -246,9 +248,9 @@ export default function FleetPage() {
         <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden">
           <div className="bg-accent p-6 text-white">
             <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter">
-                {selectedRider ? "Edit Rider" : "New Onboarding"}
+                {selectedRider ? t("fleet.dialog.editRider") : t("fleet.dialog.newOnboarding")}
             </DialogTitle>
-            <p className="text-white/60 text-xs font-bold uppercase tracking-widest mt-1">Recruitment Data Collection</p>
+            <p className="text-white/60 text-xs font-bold uppercase tracking-widest mt-1">{t("fleet.dialog.recruitmentDataCollection")}</p>
           </div>
           <div className="p-6">
             <RiderForm
@@ -266,8 +268,8 @@ export default function FleetPage() {
         <DialogContent className="sm:max-w-[650px] h-[90vh] flex flex-col p-0 overflow-hidden">
              <div className="bg-accent p-4 text-white flex justify-between items-center">
                 <div>
-                    <DialogTitle className="text-lg font-black italic uppercase tracking-tighter">Mkataba wa Makabidhiano</DialogTitle>
-                    <p className="text-[0.6rem] font-bold text-white/50 uppercase tracking-widest">Legal Document Preview • {selectedRider?.name}</p>
+                    <DialogTitle className="text-lg font-black italic uppercase tracking-tighter">{t("fleet.contract.dialogTitle")}</DialogTitle>
+                    <p className="text-[0.6rem] font-bold text-white/50 uppercase tracking-widest">{t("fleet.contract.previewFor", { name: selectedRider?.name || "" })}</p>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="ghost" size="icon" className="h-8 w-8 bg-white/10 hover:bg-white/20">
@@ -280,49 +282,61 @@ export default function FleetPage() {
             </div>
             <ScrollArea className="flex-1 p-8 font-serif text-[0.8rem] leading-relaxed bg-white">
                 <div className="max-w-2xl mx-auto space-y-6 text-justify">
-                    <div className="text-center font-black underline text-lg uppercase">MKATABA WA MAKABIDHIANO YA BAJAJI</div>
-                    
+                    <div className="text-center font-black underline text-lg uppercase">{t("fleet.contract.docHeader")}</div>
+
                     <div className="grid grid-cols-1 gap-1 text-xs">
-                        <p><strong>JINA LA MMILIKI:</strong> KING BARIKI</p>
-                        <p><strong>JINA LA ANAEKABIDHIWA:</strong> {selectedRider?.name}</p>
-                        <p><strong>NAMBA YA USAJILI:</strong> {selectedRider?.plateNumber}</p>
-                        <p><strong>AINA YA CHOMBO:</strong> {selectedRider?.vehicleType}</p>
-                        <p><strong>MODEL NUMBER:</strong> {selectedRider?.modelNumber}</p>
-                        <p><strong>CHASSIS NUMBER:</strong> {selectedRider?.chassisNumber}</p>
-                        <p><strong>ENGINE NUMBER:</strong> {selectedRider?.engineNumber}</p>
-                        <p><strong>ENGINE CAPACITY:</strong> {selectedRider?.engineCapacity}</p>
+                        <p><strong>{t("fleet.contract.ownerNameLabel")}</strong> KING BARIKI</p>
+                        <p><strong>{t("fleet.contract.recipientNameLabel")}</strong> {selectedRider?.name}</p>
+                        <p><strong>{t("fleet.contract.registrationNoLabel")}</strong> {selectedRider?.plateNumber}</p>
+                        <p><strong>{t("fleet.contract.vehicleTypeLabel")}</strong> {selectedRider?.vehicleType}</p>
+                        <p><strong>{t("fleet.contract.modelNumberLabel")}</strong> {selectedRider?.modelNumber}</p>
+                        <p><strong>{t("fleet.contract.chassisNumberLabel")}</strong> {selectedRider?.chassisNumber}</p>
+                        <p><strong>{t("fleet.contract.engineNumberLabel")}</strong> {selectedRider?.engineNumber}</p>
+                        <p><strong>{t("fleet.contract.engineCapacityLabel")}</strong> {selectedRider?.engineCapacity}</p>
                     </div>
 
                     <div className="space-y-4">
-                        <p><strong>MMILIKI WA BAJAJI:</strong> Mimi King Bariki tarehe {safeFormatDate(selectedRider?.contractStart)} nimemkabidhi ndugu {selectedRider?.name} Mali iliyotajwa hapo juu kwa hiari yangu mwenyewe nikiwa na akili zangu timamu bila kushauriwa na mtu yeyote, na tumekubaliana atulipe kiasi cha shilingi 10,000 kwa siku [utaratibu wa malipo ni Tsh 100,000 kila siku ya 10] kwa mda wa miezi {selectedRider?.contractTermMonths || 18}. Mkataba huu ni kuanzia tarehe {safeFormatDate(selectedRider?.contractStart)} hadi tarehe {safeFormatDate(selectedRider?.contractEnd)} Itakuwa mwisho wa mkataba huu na bajaji itakuwa ni mali yake na atakabidhiwa kadi ya bajaji.</p>
-                        
-                        <p><strong>ANAEKABIDHIWA BAJAJI:</strong> Mimi {selectedRider?.name} nikiwa na akili zangu timamu na kwa hiari yangu mwenyewe bila kulazimishwa na mtu yeyote wala kushawishiwa nimekubali kupokea bajaji tajwa hapo juu kutoka kwa King Bariki leo tarehe {safeFormatDate(selectedRider?.contractStart)} hadi tarehe {safeFormatDate(selectedRider?.contractEnd)}. Na ninaambatanisha nakala ya kitambulisho changu cha mpiga kura/kitambulisho cha taifa/picha ya passport.</p>
+                        <p><strong>{t("fleet.contract.ownerClauseTitle")}</strong> {t("fleet.contract.ownerClause", {
+                            date: safeFormatDate(selectedRider?.contractStart),
+                            name: selectedRider?.name || "",
+                            term: String(selectedRider?.contractTermMonths || 18),
+                            endDate: safeFormatDate(selectedRider?.contractEnd),
+                        })}</p>
 
-                        <p><strong>MASHARTI YA MKATABA:</strong></p>
+                        <p><strong>{t("fleet.contract.recipientClauseTitle")}</strong> {t("fleet.contract.recipientClause", {
+                            name: selectedRider?.name || "",
+                            date: safeFormatDate(selectedRider?.contractStart),
+                            endDate: safeFormatDate(selectedRider?.contractEnd),
+                        })}</p>
+
+                        <p><strong>{t("fleet.contract.termsTitle")}</strong></p>
                         <ol className="list-decimal pl-5 space-y-2">
-                            <li>Ni lazima kuleta chombo kila mwisho wa mwezi kwa mwenye mali ili aione kuhakikisha usalama wa chombo chake.</li>
-                            <li>Ni lazima kuhakikisha chombo inafanyiwa matengenezo (service) kila wakati ili iendelee kubaki kwenye ubora.</li>
-                            <li>Ni marufuku kumwazima/kumpa mtu yoyote chombo hiki ndani ya kipindi chote cha mkataba.</li>
-                            <li>Ni lazima kurejesha kiasi cha shilingi 100,000/= kila siku ya 10.</li>
-                            <li>Kuvunja/kukiuka sharti lolote la mkataba huu utakuwa umevunja mkataba mwenyewe.</li>
-                            <li>Chombo lazima irudishwe kila siku ya Jumapili kwa ukaguzi wa wiki na kupatiwa kibali cha kuendelea kutumika.</li>
-                            <li>Ni marufuku kutumia chombo hiki nje ya mipaka ya wilaya iliyoruhusiwa bila ruhusa ya maandishi kutoka kwa mmiliki.</li>
-                            <li>Dereva ana wajibu wa kuhakikisha anafuata sheria zote za barabarani na kulipa faini zozote zitakazotokana na ukiukwaji wa sheria.</li>
+                            <li>{t("fleet.contract.term1")}</li>
+                            <li>{t("fleet.contract.term2")}</li>
+                            <li>{t("fleet.contract.term3")}</li>
+                            <li>{t("fleet.contract.term4")}</li>
+                            <li>{t("fleet.contract.term5")}</li>
+                            <li>{t("fleet.contract.term6")}</li>
+                            <li>{t("fleet.contract.term7")}</li>
+                            <li>{t("fleet.contract.term8")}</li>
                         </ol>
 
-                        <p><strong>KUVUNJA MKATABA (ANAEKABIDHIWA):</strong> Mimi {selectedRider?.name} endapo nitavunja makubaliano haya ikiwa ni pamoja na kushindwa kulipa kiasi cha shilingi 10,000 kwa siku kwa kupitiliza siku 3 (tatu) kwa sababu zisizo za msingi nitakuwa nimevunja mkataba wangu mwenyewe and nitakuwa tayari kuwalipa ela yao yote wanayonidai na kuwakabidhi chombo chao kikiwa katika hali nzuri.</p>
-                        
-                        <p><strong>MDHAMINI:</strong> Mimi {selectedRider?.guarantorName} nikiwa na akili zangu timamu bila kulazimishwa nakubali kumdhamini {selectedRider?.name} mbele ya mwenyekiti, mwenye mali na shahidi wake na nakubali kuwajibika na kulipa fidia endapo atapoteza/ataaribu/atakimbia na chombo hiki au atashindwa kulipa kiasi chochote atakachokuwa anadaiwa ndani ya siku 14 za tukio.</p>
+                        <p><strong>{t("fleet.contract.breachTitle")}</strong> {t("fleet.contract.breachClause", { name: selectedRider?.name || "" })}</p>
+
+                        <p><strong>{t("fleet.contract.guarantorTitle")}</strong> {t("fleet.contract.guarantorClause", {
+                            guarantorName: selectedRider?.guarantorName || "",
+                            name: selectedRider?.name || "",
+                        })}</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-8 pt-8 text-[0.6rem] border-t border-black/10">
                         <div className="space-y-4">
-                            <p><strong>Mmiliki wa bajaji</strong> <br/> Jina: KING BARIKI <br/> Sahihi: …………………………………</p>
-                            <p><strong>Shahidi wa mmiliki</strong> <br/> Jina: ………………………………… <br/> Sahihi: …………………………………</p>
+                            <p><strong>{t("fleet.contract.role.owner")}</strong> <br/> {t("fleet.contract.label.name")} KING BARIKI <br/> {t("fleet.contract.label.signature")} …………………………………</p>
+                            <p><strong>{t("fleet.contract.role.ownerWitness")}</strong> <br/> {t("fleet.contract.label.name")} ………………………………… <br/> {t("fleet.contract.label.signature")} …………………………………</p>
                         </div>
                         <div className="space-y-4">
-                            <p><strong>Aliekabidhiwa bajaji</strong> <br/> Jina: {selectedRider?.name} <br/> Sahihi: …………………………………</p>
-                            <p><strong>Mdhamini</strong> <br/> Jina: {selectedRider?.guarantorName} <br/> Sahihi: …………………………………</p>
+                            <p><strong>{t("fleet.contract.role.recipient")}</strong> <br/> {t("fleet.contract.label.name")} {selectedRider?.name} <br/> {t("fleet.contract.label.signature")} …………………………………</p>
+                            <p><strong>{t("fleet.contract.role.guarantor")}</strong> <br/> {t("fleet.contract.label.name")} {selectedRider?.guarantorName} <br/> {t("fleet.contract.label.signature")} …………………………………</p>
                         </div>
                     </div>
                 </div>
@@ -333,14 +347,14 @@ export default function FleetPage() {
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>{t("fleet.deleteDialog.title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently remove {selectedRider?.name} from the fleet.
+              {t("fleet.deleteDialog.description", { name: selectedRider?.name || "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-white hover:bg-destructive/90">{t("common.delete")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { fleetGrowthPlanner, FleetGrowthPlannerOutput } from "@/ai/flows/fleet-growth-planner";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 const formSchema = z.object({
   currentFleetSize: z.coerce.number().int().min(1, "Must have at least 1 bajaji."),
@@ -32,9 +33,10 @@ const formSchema = z.object({
 
 export default function GrowthPage() {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [plan, setPlan] = useState<FleetGrowthPlannerOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -54,8 +56,8 @@ export default function GrowthPage() {
       console.error("Error generating growth plan:", error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Could not generate a plan. Please try again.",
+        title: t("growth.error.title"),
+        description: t("growth.error.description"),
       });
     } finally {
       setIsLoading(false);
@@ -70,14 +72,14 @@ export default function GrowthPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-bold font-headline">Fleet Growth Planner</h1>
-        <p className="text-muted-foreground">Use AI to plan your King Bariki fleet expansion.</p>
+        <h1 className="text-3xl font-bold font-headline">{t("growth.title")}</h1>
+        <p className="text-muted-foreground">{t("growth.subtitle")}</p>
       </header>
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline">Your Goal</CardTitle>
-          <CardDescription>Enter your current stats and future goals.</CardDescription>
+          <CardTitle className="font-headline">{t("growth.goal.title")}</CardTitle>
+          <CardDescription>{t("growth.goal.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -88,7 +90,7 @@ export default function GrowthPage() {
                   name="currentFleetSize"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Current Fleet</FormLabel>
+                      <FormLabel>{t("growth.field.currentFleet")}</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} />
                       </FormControl>
@@ -101,7 +103,7 @@ export default function GrowthPage() {
                   name="desiredFleetSize"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Desired Fleet</FormLabel>
+                      <FormLabel>{t("growth.field.desiredFleet")}</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} />
                       </FormControl>
@@ -116,7 +118,7 @@ export default function GrowthPage() {
                 name="availableSavings"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Available Savings (TZS)</FormLabel>
+                    <FormLabel>{t("growth.field.availableSavings")}</FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="e.g., 5000" {...field} />
                     </FormControl>
@@ -128,11 +130,11 @@ export default function GrowthPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating Plan...
+                    {t("growth.button.generating")}
                   </>
                 ) : (
                   <>
-                    Generate Growth Plan <ArrowRight className="ml-2 h-4 w-4" />
+                    {t("growth.button.generate")} <ArrowRight className="ml-2 h-4 w-4" />
                   </>
                 )}
               </Button>
@@ -140,7 +142,7 @@ export default function GrowthPage() {
           </Form>
         </CardContent>
       </Card>
-      
+
       {isLoading && (
         <Card>
           <CardHeader>
@@ -161,29 +163,29 @@ export default function GrowthPage() {
       {plan && (
         <Card className="animate-in fade-in-50 duration-500">
             <CardHeader>
-                <CardTitle className="font-headline">Your AI-Generated Growth Plan</CardTitle>
-                <CardDescription>A strategic path to reach your goal of {currentValues.desiredFleetSize} bajajis.</CardDescription>
+                <CardTitle className="font-headline">{t("growth.result.title")}</CardTitle>
+                <CardDescription>{t("growth.result.description", { count: currentValues.desiredFleetSize })}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="grid grid-cols-2 gap-4 text-center">
                     <div className="p-4 bg-secondary rounded-lg">
-                        <p className="text-sm text-secondary-foreground font-medium">Time to Goal</p>
-                        <p className="text-2xl font-bold text-accent">{plan.timeToAchieveGoalMonths} months</p>
+                        <p className="text-sm text-secondary-foreground font-medium">{t("growth.result.timeToGoal")}</p>
+                        <p className="text-2xl font-bold text-accent">{t("growth.result.months", { count: plan.timeToAchieveGoalMonths })}</p>
                     </div>
                      <div className="p-4 bg-secondary rounded-lg">
-                        <p className="text-sm text-secondary-foreground font-medium">Total Investment</p>
-                        <p className="text-2xl font-bold text-accent">TZS {plan.totalInvestmentNeeded.toLocaleString()}</p>
+                        <p className="text-sm text-secondary-foreground font-medium">{t("growth.result.totalInvestment")}</p>
+                        <p className="text-2xl font-bold text-accent">{t("growth.result.investmentAmount", { amount: plan.totalInvestmentNeeded.toLocaleString() })}</p>
                     </div>
                 </div>
 
                 <div>
-                    <h4 className="font-semibold mb-2">Optimal Suggestions</h4>
+                    <h4 className="font-semibold mb-2">{t("growth.result.optimalSuggestions")}</h4>
                     <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
                        {plan.optimalSuggestions.map((s, i) => <li key={i}>{s}</li>)}
                     </ul>
                 </div>
                 <div>
-                    <h4 className="font-semibold mb-2">Growth Tips</h4>
+                    <h4 className="font-semibold mb-2">{t("growth.result.growthTips")}</h4>
                     <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
                         {plan.growthTips.map((tip, i) => <li key={i}>{tip}</li>)}
                     </ul>

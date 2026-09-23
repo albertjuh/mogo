@@ -9,9 +9,11 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useUser } from "@/supabase/auth/use-user";
 import { isSameDay, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 export function DashboardHeader() {
   const { user } = useUser();
+  const { t } = useLanguage();
 
   const [clientNow, setClientNow] = useState<Date | null>(null);
   const [isVisible, setIsVisible] = useState(true);
@@ -91,24 +93,27 @@ export function DashboardHeader() {
                 <div className="relative overflow-hidden">
                     <div className="absolute -top-10 -right-10 w-40 h-40 border-8 border-white/5 rounded-full" />
                     <p className="text-xs uppercase text-white/60 font-bold tracking-widest relative z-10">
-                        {user?.role === 'admin' ? 'Strategic Command' : 'Ground Operations'}
+                        {user?.role === 'admin' ? t("dashboard.admin.title") : t("dashboard.supervisor.title")}
                     </p>
                     <p className="font-black text-4xl text-white italic my-1 relative z-10 uppercase">
-                        {mngtStats?.activeFleet || 0} <span className="text-primary">Riders</span>
+                        {t("dashboard.admin.riders", { count: mngtStats?.activeFleet || 0 })}
                     </p>
                     <p className="text-sm text-white/80 font-semibold relative z-10 uppercase tracking-tighter">
-                        {mngtStats?.paidTodayCount || 0} {mngtStats?.paidTodayCount === 1 ? 'Collection' : 'Collections'} Today
+                        {t("dashboard.header.collectionsToday", {
+                            count: mngtStats?.paidTodayCount || 0,
+                            label: mngtStats?.paidTodayCount === 1 ? t("dashboard.header.collection") : t("dashboard.header.collections"),
+                        })}
                     </p>
                 </div>
             ) : (
                 <div className="relative overflow-hidden">
                     <div className="absolute -top-10 -right-10 w-40 h-40 border-8 border-primary/20 rounded-full" />
-                    <p className="text-xs uppercase text-white/60 font-bold tracking-widest relative z-10">Mkopo Wako</p>
+                    <p className="text-xs uppercase text-white/60 font-bold tracking-widest relative z-10">{t("dashboard.header.yourLoan")}</p>
                     <p className="font-black text-4xl text-primary italic my-1 relative z-10">
-                      {riderProfile?.vehicleType || "Huna Mkopo"}
+                      {riderProfile?.vehicleType || t("dashboard.header.noLoan")}
                     </p>
                     <p className="text-sm text-white/80 font-semibold relative z-10">
-                      {riderProfile?.plateNumber ? `Plate: ${riderProfile.plateNumber}` : "Omba mkopo leo"}
+                      {riderProfile?.plateNumber ? t("dashboard.header.plate", { plate: riderProfile.plateNumber }) : t("dashboard.header.applyToday")}
                     </p>
                 </div>
             )}

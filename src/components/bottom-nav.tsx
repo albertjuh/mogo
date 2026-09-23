@@ -7,39 +7,41 @@ import { cn } from "@/lib/utils";
 import { Home, Wallet, ShieldCheck, TrendingUp, Users, BarChart3, UserPlus } from "lucide-react";
 import { useUser } from "@/supabase/auth/use-user";
 import { useMemo } from "react";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 export function BottomNav() {
   const pathname = usePathname();
   const { user } = useUser();
+  const { t } = useLanguage();
 
   const navItems = useMemo(() => {
     if (!user) return [];
 
     if (user.role === 'rider') {
       return [
-        { href: "/", label: "Home", icon: Home },
-        { href: "/payments", label: "History", icon: BarChart3 },
-        { href: "/vault", label: "Docs", icon: ShieldCheck },
-        { href: "/savings", label: "Savings", icon: TrendingUp },
+        { href: "/", label: t("nav.home"), icon: Home },
+        { href: "/payments", label: t("nav.paymentHistory"), icon: BarChart3 },
+        { href: "/vault", label: t("nav.vault"), icon: ShieldCheck },
+        { href: "/savings", label: t("nav.savings"), icon: TrendingUp },
       ];
     }
 
     if (user.role === 'recruiter') {
       return [
-        { href: "/", label: "Home", icon: Home },
-        { href: "/onboard", label: "Onboard", icon: UserPlus },
-        { href: "/fleet", label: "Fleet", icon: Users },
+        { href: "/", label: t("nav.home"), icon: Home },
+        { href: "/onboard", label: t("nav.onboard"), icon: UserPlus },
+        { href: "/fleet", label: t("nav.fleetList"), icon: Users },
       ];
     }
 
     // Admin or Supervisor
     return [
-      { href: "/", label: "Stats", icon: Home },
-      { href: "/collect", label: "Collect", icon: Wallet },
-      { href: "/onboard", label: "Onboard", icon: UserPlus },
-      { href: "/fleet", label: "Fleet", icon: Users },
+      { href: "/", label: t("nav.dashboard"), icon: Home },
+      { href: "/collect", label: t("nav.collect"), icon: Wallet },
+      { href: "/onboard", label: t("nav.onboard"), icon: UserPlus },
+      { href: "/fleet", label: t("nav.fleet"), icon: Users },
     ];
-  }, [user]);
+  }, [user, t]);
 
   if (!user) return null;
 

@@ -6,8 +6,10 @@ import { useTable, type TableQuery } from "@/supabase/use-table";
 import { riderFromRow, type RiderRow } from "@/supabase/mappers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMemo } from 'react';
+import { useLanguage } from "@/lib/i18n/language-context";
 
 export default function MapPage() {
+    const { t } = useLanguage();
     const { user } = useUser();
     const isManager = user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'recruiter';
 
@@ -22,17 +24,17 @@ export default function MapPage() {
     }), []);
 
     if (!isManager) {
-        return <div className="p-12 text-center text-muted-foreground font-bold">Unauthorized Access</div>;
+        return <div className="p-12 text-center text-muted-foreground font-bold">{t("map.unauthorized")}</div>;
     }
 
     return (
         <div className="space-y-6 h-full flex flex-col">
              <header>
-                <h1 className="text-3xl font-bold font-headline">Fleet Map</h1>
+                <h1 className="text-3xl font-bold font-headline">{t("map.title")}</h1>
                 <p className="text-muted-foreground">
                     {ridersWithLocation.length > 0
-                        ? "Live rider locations."
-                        : "No GPS data yet -- riders will appear here once a location tracking provider is connected."}
+                        ? t("map.description.live")
+                        : t("map.description.noGps")}
                 </p>
             </header>
             <div className="flex-grow rounded-lg overflow-hidden border">

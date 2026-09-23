@@ -1,0 +1,33 @@
+// Strings for the Onboard page (src/app/onboard/page.tsx).
+export const onboard: { en: Record<string, string>; sw: Record<string, string> } = {
+  en: {
+    "onboard.loading": "Loading onboarding form...",
+    "onboard.title.new": "New",
+    "onboard.title.onboarding": "Onboarding",
+    "onboard.subtitle": "Data Collection for Mkataba",
+    "onboard.linkingToAccount": "Linking to Account",
+    "onboard.completingProfileFor": "Completing profile for {name}.",
+    "onboard.toast.title": "Rider Onboarded Successfully",
+    "onboard.toast.description": "{name} has been added to the fleet and linked to their account.",
+    "onboard.checklist.title": "Recruitment Checklist",
+    "onboard.checklist.verifyNida": "Verify NIDA ID",
+    "onboard.checklist.checkGuarantor": "Check Guarantor",
+    "onboard.checklist.confirmPlate": "Confirm Plate No.",
+    "onboard.checklist.collectPassport": "Collect Passport Pic",
+  },
+  sw: {
+    "onboard.loading": "Inapakia fomu ya usajili...",
+    "onboard.title.new": "Usajili",
+    "onboard.title.onboarding": "Mpya",
+    "onboard.subtitle": "Ukusanyaji wa Takwimu za Mkataba",
+    "onboard.linkingToAccount": "Inaunganisha na Akaunti",
+    "onboard.completingProfileFor": "Inakamilisha wasifu wa {name}.",
+    "onboard.toast.title": "Dereva Amesajiliwa kwa Ufanisi",
+    "onboard.toast.description": "{name} ameongezwa kwenye meli na kuunganishwa na akaunti yake.",
+    "onboard.checklist.title": "Orodha ya Ukaguzi wa Usajili",
+    "onboard.checklist.verifyNida": "Thibitisha Kitambulisho cha NIDA",
+    "onboard.checklist.checkGuarantor": "Kagua Mdhamini",
+    "onboard.checklist.confirmPlate": "Thibitisha Namba ya Usajili",
+    "onboard.checklist.collectPassport": "Kusanya Picha ya Passport",
+  },
+};

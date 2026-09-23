@@ -9,55 +9,58 @@ import { useUser } from "@/supabase/auth/use-user";
 import { Button } from "@/components/ui/button";
 import { useMemo } from "react";
 import { BrandLogo } from "@/components/brand-logo";
+import { LanguageToggle } from "@/components/language-toggle";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useUser();
+  const { t } = useLanguage();
 
   const navItems = useMemo(() => {
     if (!user) return [];
 
-    const accountItem = { href: "/account", label: "Account", icon: UserCircle };
+    const accountItem = { href: "/account", label: t("nav.account"), icon: UserCircle };
 
     if (user.role === 'rider') {
       return [
-        { href: "/", label: "My Dashboard", icon: Home },
-        { href: "/vault", label: "Document Vault", icon: ShieldCheck },
-        { href: "/savings", label: "Savings Tracker", icon: TrendingUp },
-        { href: "/payments", label: "Payment History", icon: BarChart3 },
+        { href: "/", label: t("nav.myDashboard"), icon: Home },
+        { href: "/vault", label: t("nav.vault"), icon: ShieldCheck },
+        { href: "/savings", label: t("nav.savings"), icon: TrendingUp },
+        { href: "/payments", label: t("nav.paymentHistory"), icon: BarChart3 },
         accountItem,
       ];
     }
 
     if (user.role === 'recruiter') {
       return [
-        { href: "/", label: "Home", icon: Home },
-        { href: "/onboard", label: "New Onboarding", icon: UserPlus },
-        { href: "/fleet", label: "Fleet List", icon: Users },
+        { href: "/", label: t("nav.home"), icon: Home },
+        { href: "/onboard", label: t("nav.onboard"), icon: UserPlus },
+        { href: "/fleet", label: t("nav.fleetList"), icon: Users },
         accountItem,
       ];
     }
 
     const supervisorItems = [
-      { href: "/", label: "Fleet Stats", icon: Home },
-      { href: "/collect", label: "Daily Collection", icon: Wallet },
-      { href: "/onboard", label: "New Onboarding", icon: UserPlus },
-      { href: "/fleet", label: "Manage Fleet", icon: Users },
-      { href: "/map", label: "Fleet Map", icon: MapPin },
-      { href: "/payments", label: "Payment Log", icon: BarChart3 },
-      { href: "/alerts", label: "Urgent Alerts", icon: AlertCircle },
+      { href: "/", label: t("nav.dashboard"), icon: Home },
+      { href: "/collect", label: t("nav.collect"), icon: Wallet },
+      { href: "/onboard", label: t("nav.onboard"), icon: UserPlus },
+      { href: "/fleet", label: t("nav.fleet"), icon: Users },
+      { href: "/map", label: t("nav.map"), icon: MapPin },
+      { href: "/payments", label: t("nav.payments"), icon: BarChart3 },
+      { href: "/alerts", label: t("nav.alerts"), icon: AlertCircle },
     ];
 
     if (user.role === 'supervisor') return [...supervisorItems, accountItem];
 
     return [
       ...supervisorItems,
-      { href: "/users", label: "User Accounts", icon: ShieldAlert },
-      { href: "/payouts", label: "Withdraw Funds", icon: Banknote },
-      { href: "/reports", label: "Business Insights", icon: TrendingUp },
+      { href: "/users", label: t("nav.users"), icon: ShieldAlert },
+      { href: "/payouts", label: t("nav.payouts"), icon: Banknote },
+      { href: "/reports", label: t("nav.reports"), icon: TrendingUp },
       accountItem,
     ];
-  }, [user]);
+  }, [user, t]);
 
   if (!user) return null;
 
@@ -89,16 +92,17 @@ export function Sidebar() {
             );
             })}
         </nav>
-        <div className="p-4 border-t">
+        <div className="p-4 border-t space-y-3">
+            <LanguageToggle className="bg-muted w-full justify-center" />
             <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-accent text-white flex items-center justify-center font-bold">
                     {displayName.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 overflow-hidden">
                     <p className="text-sm font-medium truncate">{displayName}</p>
-                    <p className="text-[0.6rem] text-muted-foreground uppercase font-black tracking-widest">{user.role}</p>
+                    <p className="text-[0.6rem] text-muted-foreground uppercase font-black tracking-widest">{t(`role.${user.role}`)}</p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={logout} className="rounded-full">
+                <Button variant="ghost" size="icon" onClick={logout} className="rounded-full" aria-label={t("nav.signOut")} title={t("nav.signOut")}>
                     <LogOut className="h-4 w-4" />
                 </Button>
             </div>

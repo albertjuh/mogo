@@ -13,10 +13,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DollarSign, User, CheckCircle2 } from "lucide-react";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 export default function CollectPage() {
   const { user } = useUser();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const isManager = user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'recruiter';
 
@@ -30,7 +32,7 @@ export default function CollectPage() {
   }, []);
 
   const todayStr = useMemo(() => clientNow ? format(clientNow, 'yyyy-MM-dd') : '', [clientNow]);
-  const headerDate = useMemo(() => clientNow ? format(clientNow, 'eeee, dd MMMM') : 'Loading...', [clientNow]);
+  const headerDate = useMemo(() => clientNow ? format(clientNow, 'eeee, dd MMMM') : t("collect.loading"), [clientNow, t]);
 
   const handlePaymentToggle = (riderId: string, dailyFee: number) => {
     if (!todayStr || !user) return;
@@ -47,8 +49,8 @@ export default function CollectPage() {
     }));
 
     toast({
-      title: "💰 Malipo Yamepokelewa!",
-      description: `Ref: ${gatewayRef}`
+      title: t("collect.toast.title"),
+      description: t("collect.toast.description", { ref: gatewayRef })
     });
   };
 
@@ -66,7 +68,7 @@ export default function CollectPage() {
         </div>
         <p className="text-sm uppercase text-white/60 font-bold tracking-widest">{headerDate}</p>
         <h1 className="font-black text-3xl my-1 italic uppercase tracking-tighter">
-            Daily <span className="text-primary">Collection</span>
+            {t("collect.title.daily")} <span className="text-primary">{t("collect.title.collection")}</span>
         </h1>
       </div>
 
@@ -81,7 +83,7 @@ export default function CollectPage() {
                     </div>
                     <p className="font-black italic uppercase text-sm tracking-tight text-accent">{rider.name}</p>
                     <Badge variant="outline" className="text-[0.5rem] font-black uppercase px-1.5 h-4 border-muted-foreground/20">
-                        {rider.paymentFrequency}
+                        {t(`collect.frequency.${rider.paymentFrequency}`)}
                     </Badge>
                 </div>
                 <p className="text-[0.6rem] text-muted-foreground font-black tracking-widest uppercase">{rider.plateNumber}</p>

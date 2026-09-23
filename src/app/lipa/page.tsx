@@ -13,6 +13,7 @@ import { initiatePayment } from "@/app/actions/payments";
 import { MOBILE_PROVIDERS, detectProvider, normaliseTzPhone, providerLabel, type MobileProvider } from "@/lib/payment-providers";
 import { cn } from "@/lib/utils";
 import { Loader2, Smartphone, CheckCircle2, ShieldCheck } from "lucide-react";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 export default function LipaPage() {
   const [amount, setAmount] = useState("10000");
@@ -22,6 +23,7 @@ export default function LipaPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const { user } = useUser();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const { data: rider } = useRow<RiderRow, ReturnType<typeof riderFromRow>>(
     user?.role === 'rider' ? "riders" : null,
@@ -48,15 +50,15 @@ export default function LipaPage() {
   const handleLipa = async () => {
     const amountNum = Number(amount);
     if (!amount || isNaN(amountNum) || amountNum < 500) {
-      toast({ variant: "destructive", title: "Kiasi si sahihi", description: "Kiwango cha chini ni TZS 500." });
+      toast({ variant: "destructive", title: t("lipa.invalidAmountTitle"), description: t("lipa.invalidAmountDescription") });
       return;
     }
     if (!normaliseTzPhone(phone)) {
-      toast({ variant: "destructive", title: "Namba si sahihi", description: "Weka namba sahihi ya simu, mfano 0754 123 456." });
+      toast({ variant: "destructive", title: t("lipa.invalidPhoneTitle"), description: t("lipa.invalidPhoneDescription") });
       return;
     }
     if (!provider) {
-      toast({ variant: "destructive", title: "Chagua mtandao", description: "Chagua njia ya malipo unayotumia." });
+      toast({ variant: "destructive", title: t("lipa.chooseNetworkTitle"), description: t("lipa.chooseNetworkDescription") });
       return;
     }
     if (!user) return;
@@ -67,9 +69,9 @@ export default function LipaPage() {
 
       if (result.success) {
         setIsSuccess(true);
-        toast({ title: "Ombi limetumwa", description: "Muamala unashughulikiwa." });
+        toast({ title: t("lipa.requestSentTitle"), description: t("lipa.requestSentDescription") });
       } else {
-        toast({ variant: "destructive", title: "Malipo hayakufanikiwa", description: result.error });
+        toast({ variant: "destructive", title: t("lipa.paymentFailedTitle"), description: result.error });
       }
     } finally {
       setIsLoading(false);
@@ -80,11 +82,11 @@ export default function LipaPage() {
     return (
         <div className="flex flex-col items-center justify-center h-full text-center p-6 animate-in fade-in duration-500">
             <CheckCircle2 size={80} className="text-primary mb-6" />
-            <h2 className="text-3xl font-black mb-2">Imetumwa!</h2>
+            <h2 className="text-3xl font-black mb-2">{t("lipa.successTitle")}</h2>
             <p className="text-muted-foreground mb-8">
-              Tafadhali angalia simu yako kwa ujumbe wa {providerLabel(provider ?? undefined)} na uweke PIN yako ili kukamilisha malipo.
+              {t("lipa.successDescription", { provider: providerLabel(provider ?? undefined) })}
             </p>
-            <Button onClick={() => setIsSuccess(false)} variant="outline" className="w-full">Lipa Kiasi Kingine</Button>
+            <Button onClick={() => setIsSuccess(false)} variant="outline" className="w-full">{t("lipa.payAnotherAmount")}</Button>
         </div>
     );
   }
@@ -92,8 +94,8 @@ export default function LipaPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-black font-headline">Lipa King Bariki</h1>
-        <p className="text-muted-foreground">Malipo salama ya simu kupitia AzamPay</p>
+        <h1 className="text-3xl font-black font-headline">{t("lipa.title")}</h1>
+        <p className="text-muted-foreground">{t("lipa.subtitle")}</p>
       </header>
 
       <Card className="border-none shadow-xl">
@@ -103,14 +105,14 @@ export default function LipaPage() {
                     <Smartphone className="text-accent" />
                 </div>
                 <div>
-                    <CardTitle className="text-lg">Lipa kwa Simu</CardTitle>
-                    <CardDescription className="text-white/60">M-Pesa, Mixx by Yas, Airtel Money, HaloPesa, AzamPesa</CardDescription>
+                    <CardTitle className="text-lg">{t("lipa.cardTitle")}</CardTitle>
+                    <CardDescription className="text-white/60">{t("lipa.cardDescription")}</CardDescription>
                 </div>
             </div>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="amount" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Kiasi cha Kulipa (TZS)</Label>
+            <Label htmlFor="amount" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">{t("lipa.amountLabel")}</Label>
             <Input
                 id="amount"
                 type="number"
@@ -121,7 +123,7 @@ export default function LipaPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Namba ya Simu ya Kulipia</Label>
+            <Label htmlFor="phone" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">{t("lipa.phoneLabel")}</Label>
             <Input
                 id="phone"
                 type="tel"
@@ -134,7 +136,7 @@ export default function LipaPage() {
           </div>
 
           <div className="space-y-2">
-            <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Njia ya Malipo</Label>
+            <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground">{t("lipa.networkLabel")}</Label>
             <div className="grid grid-cols-2 gap-2">
               {MOBILE_PROVIDERS.map((p) => (
                 <button
@@ -154,11 +156,11 @@ export default function LipaPage() {
           </div>
 
           <Button onClick={handleLipa} disabled={isLoading} className="w-full h-14 text-lg font-bold shadow-lg shadow-primary/20">
-            {isLoading ? <Loader2 className="mr-2 animate-spin" /> : `Lipa${provider ? ` kwa ${providerLabel(provider)}` : ""}`}
+            {isLoading ? <Loader2 className="mr-2 animate-spin" /> : (provider ? t("lipa.payButtonWithProvider", { provider: providerLabel(provider) }) : t("lipa.payButton"))}
           </Button>
 
           <p className="flex items-center justify-center gap-1.5 text-[0.65rem] text-muted-foreground font-bold uppercase tracking-widest">
-            <ShieldCheck className="h-3.5 w-3.5" /> Utaombwa kuweka PIN kwenye simu yako
+            <ShieldCheck className="h-3.5 w-3.5" /> {t("lipa.pinNotice")}
           </p>
         </CardContent>
       </Card>

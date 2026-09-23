@@ -12,9 +12,11 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { computeRiderBalance, periodDays } from "@/lib/balance";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 export default function DashboardPage() {
   const { user } = useUser();
+  const { t } = useLanguage();
 
   // --- Role-Aware Data Fetching ---
   const isManager = user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'recruiter';
@@ -108,8 +110,8 @@ export default function DashboardPage() {
       return (
           <div className="space-y-6">
             <header className="space-y-1">
-                <h1 className="text-3xl font-black tracking-tight font-headline italic uppercase">Recruitment Center</h1>
-                <p className="text-muted-foreground">Growing the King Bariki Bajaji fleet, one driver at a time.</p>
+                <h1 className="text-3xl font-black tracking-tight font-headline italic uppercase">{t("dashboard.recruiter.title")}</h1>
+                <p className="text-muted-foreground">{t("dashboard.recruiter.subtitle")}</p>
             </header>
 
             <div className="grid grid-cols-1 gap-4">
@@ -118,21 +120,21 @@ export default function DashboardPage() {
                         <UserPlus size={100} />
                     </div>
                     <CardHeader>
-                        <CardTitle className="text-sm font-bold uppercase tracking-wider opacity-80">Riders Recruited (Last 7 Days)</CardTitle>
-                        <div className="text-4xl font-black italic">{stats?.recruitedThisWeek || 0} New Drivers</div>
+                        <CardTitle className="text-sm font-bold uppercase tracking-wider opacity-80">{t("dashboard.recruiter.recruitedThisWeek")}</CardTitle>
+                        <div className="text-4xl font-black italic">{t("dashboard.recruiter.newDrivers", { count: stats?.recruitedThisWeek || 0 })}</div>
                     </CardHeader>
                     <CardContent>
-                         <p className="text-sm font-medium opacity-90">Great job! You are expanding the King Bariki fleet.</p>
+                         <p className="text-sm font-medium opacity-90">{t("dashboard.recruiter.encouragement")}</p>
                     </CardContent>
                 </Card>
             </div>
 
             <div className="space-y-4">
-                <h3 className="font-bold text-lg">Quick Actions</h3>
+                <h3 className="font-bold text-lg">{t("dashboard.quickActions")}</h3>
                 <div className="grid grid-cols-1 gap-4">
                     <Button asChild className="h-20 text-lg font-bold shadow-lg bg-accent hover:bg-accent/90">
                         <Link href="/onboard" className="flex items-center gap-3">
-                            <UserPlus className="h-6 w-6" /> Onboard New Driver
+                            <UserPlus className="h-6 w-6" /> {t("dashboard.recruiter.onboardButton")}
                         </Link>
                     </Button>
                 </div>
@@ -146,8 +148,8 @@ export default function DashboardPage() {
     return (
       <div className="space-y-6">
         <header className="space-y-1">
-          <h1 className="text-3xl font-black tracking-tight font-headline">Habari, {user.name || user.email.split('@')[0]}!</h1>
-          <p className="text-muted-foreground">Muhtasari wa Mkopo wako wa Bajaji</p>
+          <h1 className="text-3xl font-black tracking-tight font-headline">{t("dashboard.rider.greeting", { name: user.name || user.email.split('@')[0] })}</h1>
+          <p className="text-muted-foreground">{t("dashboard.rider.subtitle")}</p>
         </header>
 
         <Card className="bg-primary text-primary-foreground border-none shadow-xl overflow-hidden relative">
@@ -155,30 +157,30 @@ export default function DashboardPage() {
               <Wallet size={120} />
           </div>
           <CardHeader>
-            <CardTitle className="text-sm font-bold uppercase tracking-wider opacity-80">Jumla ya Malipo</CardTitle>
+            <CardTitle className="text-sm font-bold uppercase tracking-wider opacity-80">{t("dashboard.rider.totalPaid")}</CardTitle>
             <div className="text-4xl font-black italic">TZS {(stats?.totalPaid || 0).toLocaleString()}</div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm font-medium opacity-90">Asante kwa kulipa kwa wakati. Endelea kukuza historia yako ya mkopo.</p>
+            <p className="text-sm font-medium opacity-90">{t("dashboard.rider.thankYou")}</p>
           </CardContent>
         </Card>
 
         <Button asChild className="w-full h-14 text-lg font-bold shadow-lg" size="lg">
           <Link href="/lipa" className="flex items-center justify-center gap-2">
-              Lipa Sasa kwa Simu <ArrowUpRight />
+              {t("dashboard.rider.payNow")} <ArrowUpRight />
           </Link>
         </Button>
 
         <div className="space-y-4">
-          <h3 className="font-bold text-lg">Huduma za Haraka</h3>
+          <h3 className="font-bold text-lg">{t("dashboard.rider.quickServices")}</h3>
           <div className="grid grid-cols-3 gap-3">
                <Link href="/vault" className="flex flex-col items-center p-3 bg-secondary rounded-xl gap-2 hover:bg-primary/10 transition-colors">
                   <ShieldCheck className="text-primary" />
-                  <span className="text-[0.65rem] font-bold uppercase">Nyaraka</span>
+                  <span className="text-[0.65rem] font-bold uppercase">{t("dashboard.rider.docs")}</span>
               </Link>
                <Link href="/payments" className="flex flex-col items-center p-3 bg-secondary rounded-xl gap-2 hover:bg-primary/10 transition-colors">
                   <Calendar className="text-primary" />
-                  <span className="text-[0.65rem] font-bold uppercase">Historia</span>
+                  <span className="text-[0.65rem] font-bold uppercase">{t("dashboard.rider.history")}</span>
               </Link>
           </div>
         </div>
@@ -193,10 +195,10 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <header className="space-y-1">
         <h1 className="text-3xl font-black tracking-tight font-headline uppercase italic">
-          {user.role === 'admin' ? 'Strategic Command' : 'Ground Operations'}
+          {user.role === 'admin' ? t("dashboard.admin.title") : t("dashboard.supervisor.title")}
         </h1>
         <p className="text-muted-foreground">
-          {isSupervisor ? 'Analyzing driver activity and daily collection targets.' : 'Business operations and high-level trends.'}
+          {isSupervisor ? t("dashboard.supervisor.subtitle") : t("dashboard.admin.subtitle")}
         </p>
       </header>
 
@@ -207,13 +209,13 @@ export default function DashboardPage() {
           </div>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-bold uppercase tracking-widest opacity-70 flex items-center gap-2">
-              <DollarSign size={14} /> Collected Today
+              <DollarSign size={14} /> {t("dashboard.admin.collectedToday")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black italic">TZS {(stats?.collectedToday || 0).toLocaleString()}</div>
             <p className="text-[0.65rem] font-bold text-white/50 uppercase mt-2 tracking-widest">
-                Target: TZS {(stats?.dailyTarget || 0).toLocaleString()}
+                {t("dashboard.admin.target", { amount: (stats?.dailyTarget || 0).toLocaleString() })}
             </p>
           </CardContent>
         </Card>
@@ -221,7 +223,7 @@ export default function DashboardPage() {
         <Card className="bg-white border-none shadow-md">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <BarChart3 size={14} /> Weekly Target Progress
+              <BarChart3 size={14} /> {t("dashboard.admin.weeklyTargetProgress")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -239,17 +241,17 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 gap-4">
         <Card className="bg-white border-none shadow-md">
             <CardHeader className="p-4 pb-1">
-                <CardTitle className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">Active Fleet</CardTitle>
+                <CardTitle className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">{t("dashboard.admin.activeFleet")}</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4">
-                <div className="text-xl font-black text-accent">{stats?.activeRiders || 0} Riders</div>
+                <div className="text-xl font-black text-accent">{t("dashboard.admin.riders", { count: stats?.activeRiders || 0 })}</div>
             </CardContent>
         </Card>
-        
+
         {!isSupervisor && (
            <Card className="bg-white border-none shadow-md">
             <CardHeader className="p-4 pb-1">
-                <CardTitle className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">Total Portfolio</CardTitle>
+                <CardTitle className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">{t("dashboard.admin.totalPortfolio")}</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4">
                 <div className="text-xl font-black text-primary">TZS {(stats?.totalCollected || 0).toLocaleString()}</div>
@@ -262,12 +264,12 @@ export default function DashboardPage() {
         <Card className="border-none shadow-md bg-orange-50 ring-1 ring-orange-200">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="font-bold text-orange-900">TZS {(stats?.totalDebt ?? 0).toLocaleString()} in Fleet Debt</p>
-              <p className="text-xs text-orange-700/80">Total owed across all active riders vs. their contracts.</p>
+              <p className="font-bold text-orange-900">{t("dashboard.admin.fleetDebt", { amount: (stats?.totalDebt ?? 0).toLocaleString() })}</p>
+              <p className="text-xs text-orange-700/80">{t("dashboard.admin.fleetDebtSubtitle")}</p>
             </div>
             <Button asChild variant="ghost" size="sm" className="text-orange-600 hover:bg-orange-100 hover:text-orange-700 font-bold uppercase text-[0.65rem] tracking-widest">
               <Link href="/fleet" className="flex items-center gap-1">
-                View Fleet <ArrowUpRight size={14} />
+                {t("dashboard.admin.viewFleet")} <ArrowUpRight size={14} />
               </Link>
             </Button>
           </CardContent>
@@ -280,13 +282,13 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3">
               <AlertCircle className="text-red-600 h-6 w-6 shrink-0" />
               <div>
-                <p className="font-bold text-red-900">{stats?.arrearsCount} Riders with Arrears</p>
-                <p className="text-xs text-red-700/80">Riders who have not paid today's fee.</p>
+                <p className="font-bold text-red-900">{t("dashboard.admin.ridersWithArrears", { count: stats?.arrearsCount || 0 })}</p>
+                <p className="text-xs text-red-700/80">{t("dashboard.admin.arrearsSubtitle")}</p>
               </div>
             </div>
             <Button asChild variant="ghost" size="sm" className="text-red-600 hover:bg-red-100 hover:text-red-700 font-bold uppercase text-[0.65rem] tracking-widest">
               <Link href="/alerts" className="flex items-center gap-1">
-                Follow Up <ArrowUpRight size={14} />
+                {t("dashboard.admin.followUp")} <ArrowUpRight size={14} />
               </Link>
             </Button>
           </CardContent>
@@ -297,13 +299,13 @@ export default function DashboardPage() {
         <Button asChild variant="outline" className="h-20 flex flex-col gap-1 border-primary/20 hover:bg-primary/5 shadow-sm">
           <Link href="/onboard">
             <UserPlus className="h-5 w-5 text-primary" />
-            <span className="text-xs font-bold uppercase">Onboard New</span>
+            <span className="text-xs font-bold uppercase">{t("dashboard.admin.onboardNew")}</span>
           </Link>
         </Button>
         <Button asChild variant="outline" className="h-20 flex flex-col gap-1 border-primary/20 hover:bg-primary/5 shadow-sm">
           <Link href="/collect">
             <Wallet className="h-5 w-5 text-primary" />
-            <span className="text-xs font-bold uppercase">Verify Payments</span>
+            <span className="text-xs font-bold uppercase">{t("dashboard.admin.verifyPayments")}</span>
           </Link>
         </Button>
       </div>

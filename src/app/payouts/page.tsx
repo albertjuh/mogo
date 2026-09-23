@@ -15,10 +15,12 @@ import { lookupRecipient, initiatePayout } from "@/app/actions/payouts";
 import { MOBILE_PROVIDERS, detectProvider, providerLabel, type MobileProvider } from "@/lib/payment-providers";
 import { cn } from "@/lib/utils";
 import { Loader2, Send, Banknote, ReceiptText, BadgeCheck } from "lucide-react";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 export default function PayoutsPage() {
   const { user } = useUser();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const [amount, setAmount] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -44,11 +46,11 @@ export default function PayoutsPage() {
   const handleVerify = async () => {
     const amountNum = Number(amount);
     if (!user || !amount || isNaN(amountNum) || amountNum < 5000) {
-      toast({ variant: "destructive", title: "Invalid amount", description: "Minimum payout is TZS 5,000." });
+      toast({ variant: "destructive", title: t("payouts.invalidAmountTitle"), description: t("payouts.invalidAmountDescription") });
       return;
     }
     if (!provider) {
-      toast({ variant: "destructive", title: "Choose a network", description: "Select the recipient's mobile money network." });
+      toast({ variant: "destructive", title: t("payouts.chooseNetworkTitle"), description: t("payouts.chooseNetworkDescription") });
       return;
     }
 
@@ -60,7 +62,7 @@ export default function PayoutsPage() {
         setVerifiedName(result.name);
         if (!recipientName) setRecipientName(result.name);
       } else {
-        toast({ variant: "destructive", title: "Could not verify number", description: result.error });
+        toast({ variant: "destructive", title: t("payouts.verifyFailedTitle"), description: result.error });
       }
     } finally {
       setIsVerifying(false);
@@ -76,7 +78,7 @@ export default function PayoutsPage() {
       const result = await initiatePayout(amountNum, phoneNumber, provider, recipientName, narration || undefined);
 
       if (result.success) {
-        toast({ title: "Payout Sent", description: `Ref: ${result.reference}` });
+        toast({ title: t("payouts.sentTitle"), description: t("payouts.sentDescription", { reference: result.reference ?? "" }) });
         setAmount("");
         setPhoneNumber("");
         setRecipientName("");
@@ -84,7 +86,7 @@ export default function PayoutsPage() {
         setProvider(null);
         setVerifiedName(null);
       } else {
-        toast({ variant: "destructive", title: "Payout Failed", description: result.error });
+        toast({ variant: "destructive", title: t("payouts.failedTitle"), description: result.error });
       }
     } finally {
       setIsSending(false);
@@ -98,8 +100,8 @@ export default function PayoutsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-black font-headline italic uppercase tracking-tighter">Withdraw Funds</h1>
-        <p className="text-muted-foreground">Send money from the AzamPay balance to a mobile money wallet.</p>
+        <h1 className="text-3xl font-black font-headline italic uppercase tracking-tighter">{t("payouts.title")}</h1>
+        <p className="text-muted-foreground">{t("payouts.subtitle")}</p>
       </header>
 
       <Card className="border-none shadow-xl">
@@ -109,15 +111,15 @@ export default function PayoutsPage() {
               <Banknote className="text-accent" />
             </div>
             <div>
-              <CardTitle className="text-lg">Mobile Money Payout</CardTitle>
-              <CardDescription className="text-white/60">Funds settle to the recipient's wallet.</CardDescription>
+              <CardTitle className="text-lg">{t("payouts.cardTitle")}</CardTitle>
+              <CardDescription className="text-white/60">{t("payouts.cardDescription")}</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
           <div className="space-y-2">
             <Label htmlFor="amount" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">
-              Amount (TZS)
+              {t("payouts.amountLabel")}
             </Label>
             <Input
               id="amount"
@@ -131,7 +133,7 @@ export default function PayoutsPage() {
 
           <div className="space-y-2">
             <Label htmlFor="phoneNumber" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">
-              Recipient Phone Number
+              {t("payouts.phoneLabel")}
             </Label>
             <Input
               id="phoneNumber"
@@ -143,7 +145,7 @@ export default function PayoutsPage() {
 
           <div className="space-y-2">
             <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground">
-              Recipient Network
+              {t("payouts.networkLabel")}
             </Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {MOBILE_PROVIDERS.map((p) => (
@@ -167,7 +169,7 @@ export default function PayoutsPage() {
 
           <div className="space-y-2">
             <Label htmlFor="recipientName" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">
-              Recipient Name
+              {t("payouts.nameLabel")}
             </Label>
             <Input
               id="recipientName"
@@ -179,7 +181,7 @@ export default function PayoutsPage() {
 
           <div className="space-y-2">
             <Label htmlFor="narration" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">
-              Narration (Optional)
+              {t("payouts.narrationLabel")}
             </Label>
             <Input
               id="narration"
@@ -192,10 +194,10 @@ export default function PayoutsPage() {
           {verifiedName && (
             <div className="bg-secondary/30 p-4 rounded-xl border border-dashed space-y-1 text-sm">
               <div className="flex items-center gap-2 font-bold text-primary">
-                <BadgeCheck className="h-4 w-4" /> Registered to {verifiedName}
+                <BadgeCheck className="h-4 w-4" /> {t("payouts.registeredTo", { name: verifiedName ?? "" })}
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Sending</span>
+                <span className="text-muted-foreground">{t("payouts.sending")}</span>
                 <span className="font-black">
                   TZS {Number(amount).toLocaleString()} via {providerLabel(provider ?? undefined)}
                 </span>
@@ -210,7 +212,7 @@ export default function PayoutsPage() {
               disabled={isVerifying || isSending || !phoneNumber}
               className="flex-1 h-12 font-bold"
             >
-              {isVerifying ? <Loader2 className="animate-spin" /> : "Verify Name"}
+              {isVerifying ? <Loader2 className="animate-spin" /> : t("payouts.verifyButton")}
             </Button>
             <Button
               onClick={handleSend}
@@ -218,14 +220,14 @@ export default function PayoutsPage() {
               className="flex-1 h-12 font-bold shadow-lg shadow-primary/20"
             >
               {isSending ? <Loader2 className="animate-spin mr-2" /> : <Send className="mr-2 h-4 w-4" />}
-              Send Payout
+              {t("payouts.sendButton")}
             </Button>
           </div>
         </CardContent>
       </Card>
 
       <div className="space-y-3">
-        <h2 className="text-lg font-black uppercase tracking-tight">Recent Withdrawals</h2>
+        <h2 className="text-lg font-black uppercase tracking-tight">{t("payouts.recentTitle")}</h2>
         {payouts?.map((payout) => (
           <Card key={payout.id} className="border-none shadow-sm bg-white">
             <CardContent className="p-4 flex items-center justify-between">
@@ -248,7 +250,7 @@ export default function PayoutsPage() {
         {payouts?.length === 0 && (
           <div className="text-center py-16 bg-secondary/20 rounded-3xl border-2 border-dashed">
             <ReceiptText className="mx-auto h-10 w-10 text-muted-foreground/30 mb-3" />
-            <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">No withdrawals yet</p>
+            <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">{t("payouts.empty")}</p>
           </div>
         )}
       </div>

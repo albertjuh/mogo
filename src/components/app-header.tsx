@@ -1,19 +1,12 @@
 "use client";
 import { Bell, LogOut, UserCircle } from 'lucide-react';
-import { format } from 'date-fns';
-import { useState, useEffect } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useUser } from '@/supabase/auth/use-user';
 import { BrandLogo } from '@/components/brand-logo';
+import { LanguageToggle } from '@/components/language-toggle';
 import Link from 'next/link';
 
 export function AppHeader() {
-  const [clientNow, setClientNow] = useState<Date | null>(null);
   const { user, logout } = useUser();
-
-  useEffect(() => {
-    setClientNow(new Date());
-  }, []);
 
   const handleBellClick = () => {
     if ('Notification' in window && Notification.permission !== 'denied') {
@@ -28,8 +21,6 @@ export function AppHeader() {
   const handleSignOut = async () => {
     logout();
   }
-
-  const currentDateString = clientNow ? format(clientNow, 'dd MMM') : null;
 
   const Logo = () => <BrandLogo size={38} tone="light" showTagline={false} priority />;
 
@@ -50,14 +41,8 @@ export function AppHeader() {
             <LogOut className="h-5 w-5" />
         </button>
         <Logo />
-        <div className="flex items-center gap-3">
-          {currentDateString === null ? (
-            <Skeleton className="h-4 w-12 bg-white/20" />
-          ) : (
-            <span className="text-[0.6rem] font-bold uppercase text-white/60 tracking-tighter">
-              {currentDateString}
-            </span>
-          )}
+        <div className="flex items-center gap-2">
+          <LanguageToggle className="bg-white/10 [&_button.bg-primary]:bg-primary" />
           <button onClick={handleBellClick} className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
             <Bell className="h-5 w-5" />
           </button>

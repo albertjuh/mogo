@@ -8,6 +8,7 @@ import { BrandShield } from '@/components/brand-logo';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/lib/i18n/language-context';
 
 const publicPaths = ['/login', '/signup', '/privacy', '/terms'];
 
@@ -16,6 +17,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
@@ -57,8 +59,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         const supabase = createClient();
         const { error } = await supabase.auth.resend({ type: 'signup', email: supabaseUser.email! });
         toast(error
-          ? { variant: 'destructive', title: 'Could not resend', description: error.message }
-          : { title: 'Activation link sent' });
+          ? { variant: 'destructive', title: t("auth.guard.resendFailedTitle"), description: error.message }
+          : { title: t("auth.guard.resendSentTitle") });
       } finally {
         setIsResending(false);
       }
@@ -72,16 +74,16 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
             <Mail className="h-16 w-16 text-primary animate-pulse" />
         </div>
 
-        <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-4">Activate Your Account</h2>
+        <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-4">{t("auth.guard.activateTitle")}</h2>
         <p className="text-white/70 max-w-sm mb-10 leading-relaxed font-medium">
-            We've sent an activation link to:<br/>
+            {t("auth.guard.activateSentTo")}<br/>
             <span className="text-primary font-black text-lg">{supabaseUser.email}</span><br/><br/>
-            Please check your inbox (and spam folder) to verify your identity.
+            {t("auth.guard.activateCheckInbox")}
         </p>
 
         <div className="flex flex-col w-full max-w-xs gap-4 relative z-10">
             <Button onClick={() => reloadUser()} className="h-14 font-black uppercase italic tracking-wider shadow-lg bg-primary text-accent hover:bg-primary/90">
-                I have verified my email
+                {t("auth.guard.verifiedButton")}
             </Button>
             <Button
                 variant="outline"
@@ -89,15 +91,15 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
                 disabled={isResending}
                 className="h-12 text-xs font-bold uppercase tracking-widest border-white/20 text-white hover:bg-white/5"
             >
-                Resend activation link
+                {t("auth.guard.resendButton")}
             </Button>
             <Button variant="ghost" onClick={() => logout()} className="text-white/40 text-xs uppercase font-bold tracking-widest hover:text-white">
-                Sign Out & Start Over
+                {t("auth.guard.signOutButton")}
             </Button>
         </div>
 
         <div className="mt-12 flex items-center gap-2 text-white/30 text-[0.6rem] font-bold uppercase tracking-[0.2em]">
-            <ShieldAlert size={14} /> Security Protocol Active
+            <ShieldAlert size={14} /> {t("auth.guard.securityProtocol")}
         </div>
       </div>
     );

@@ -33,28 +33,32 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Rider, Bike as BikeType } from "@/lib/types";
 import { parseISO, addMonths, isValid } from "date-fns";
 import { useEffect } from "react";
+import { useLanguage } from "@/lib/i18n/language-context";
 
+// NOTE: Zod schemas are defined outside the React component, so they can't
+// call the t() hook. These validation messages are kept as plain English
+// strings (a deliberate simplification -- see i18n translation notes).
 const riderFormSchema = z.object({
-  name: z.string().min(2, "Jina kamili linahitajika."),
-  email: z.string().email("Barua pepe sahihi inahitajika."),
-  phone: z.string().regex(/^(?:\+255|0)\d{9}$/, "Namba ya simu ya Tanzania inahitajika."),
+  name: z.string().min(2, "Full name is required."),
+  email: z.string().email("A valid email address is required."),
+  phone: z.string().regex(/^(?:\+255|0)\d{9}$/, "A valid Tanzanian phone number is required."),
   vehicleType: z.literal('Bajaji'),
-  plateNumber: z.string().min(3, "Namba ya usajili inahitajika."),
-  chassisNumber: z.string().min(5, "Chassis number inahitajika kwa mkataba."),
-  engineNumber: z.string().min(5, "Engine number inahitajika kwa mkataba."),
-  engineCapacity: z.string().min(2, "Engine capacity inahitajika."),
-  modelNumber: z.string().min(2, "Model number inahitajika."),
-  shahidiNumber: z.string().min(3, "Namba ya NIDA au kitambulisho inahitajika."),
-  dailyFee: z.coerce.number().min(1000, "Kiasi cha malipo ni kidogo sana."),
+  plateNumber: z.string().min(3, "Registration number is required."),
+  chassisNumber: z.string().min(5, "Chassis number is required for the contract."),
+  engineNumber: z.string().min(5, "Engine number is required for the contract."),
+  engineCapacity: z.string().min(2, "Engine capacity is required."),
+  modelNumber: z.string().min(2, "Model number is required."),
+  shahidiNumber: z.string().min(3, "NIDA or ID number is required."),
+  dailyFee: z.coerce.number().min(1000, "Payment amount is too small."),
   paymentFrequency: z.enum(['Daily', 'Weekly', '10-Day']),
   contractStart: z.date({
-    required_error: "Tarehe ya kuanza mkataba inahitajika.",
+    required_error: "Contract start date is required.",
   }),
-  contractTermMonths: z.coerce.number().min(1, "Muda wa mkataba unahitajika."),
-  guarantorName: z.string().min(2, "Jina la mdhamini linahitajika."),
-  guarantorPhone: z.string().regex(/^(?:\+255|0)\d{9}$/, "Namba ya mdhamini inahitajika."),
-  witnessName: z.string().min(2, "Jina la shahidi linahitajika."),
-  witnessPhone: z.string().regex(/^(?:\+255|0)\d{9}$/, "Namba ya shahidi inahitajika."),
+  contractTermMonths: z.coerce.number().min(1, "Contract term is required."),
+  guarantorName: z.string().min(2, "Guarantor's name is required."),
+  guarantorPhone: z.string().regex(/^(?:\+255|0)\d{9}$/, "Guarantor's phone number is required."),
+  witnessName: z.string().min(2, "Witness's name is required."),
+  witnessPhone: z.string().regex(/^(?:\+255|0)\d{9}$/, "Witness's phone number is required."),
   notes: z.string().optional(),
 });
 
@@ -71,6 +75,7 @@ interface RiderFormProps {
 }
 
 export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, onCancel, className }: RiderFormProps) {
+  const { t } = useLanguage();
   const form = useForm<z.infer<typeof riderFormSchema>>({
     resolver: zodResolver(riderFormSchema),
     mode: "onChange",
@@ -143,13 +148,13 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
         <Tabs defaultValue="personal" className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-secondary/50">
             <TabsTrigger value="personal" className="data-[state=active]:bg-accent data-[state=active]:text-white">
-                <User size={14} className="mr-2" /> Basic
+                <User size={14} className="mr-2" /> {t("fleet.form.tab.basic")}
             </TabsTrigger>
             <TabsTrigger value="vehicle" className="data-[state=active]:bg-accent data-[state=active]:text-white">
-                <CarFront size={14} className="mr-2" /> Bajaji
+                <CarFront size={14} className="mr-2" /> {t("fleet.form.tab.bajaji")}
             </TabsTrigger>
             <TabsTrigger value="legal" className="data-[state=active]:bg-accent data-[state=active]:text-white">
-                <Shield size={14} className="mr-2" /> Legal
+                <Shield size={14} className="mr-2" /> {t("fleet.form.tab.legal")}
             </TabsTrigger>
           </TabsList>
 
@@ -159,9 +164,9 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name (Jina la Mpangaji)</FormLabel>
+                  <FormLabel>{t("fleet.form.label.fullName")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Juma Hassan" {...field} />
+                    <Input placeholder={t("fleet.form.placeholder.name")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -172,11 +177,11 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email Address (Barua Pepe)</FormLabel>
+                  <FormLabel>{t("fleet.form.label.email")}</FormLabel>
                   <FormControl>
                     <div className="relative">
                         <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="rider@email.com" {...field} className="pl-9" readOnly={!!initialEmail} />
+                        <Input placeholder={t("fleet.form.placeholder.email")} {...field} className="pl-9" readOnly={!!initialEmail} />
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -188,9 +193,9 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
               name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Phone (Namba ya Simu)</FormLabel>
+                  <FormLabel>{t("fleet.form.label.phone")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="0712345678" {...field} />
+                    <Input placeholder={t("fleet.form.placeholder.phone")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -201,9 +206,9 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
               name="shahidiNumber"
               render={({ field }) => (
                   <FormItem>
-                  <FormLabel>ID / Shahidi Number</FormLabel>
+                  <FormLabel>{t("fleet.form.label.idNumber")}</FormLabel>
                   <FormControl>
-                      <Input placeholder="NIDA / Voter ID" {...field} />
+                      <Input placeholder={t("fleet.form.placeholder.idNumber")} {...field} />
                   </FormControl>
                   <FormMessage />
                   </FormItem>
@@ -218,15 +223,15 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
                   name="vehicleType"
                   render={({ field }) => (
                       <FormItem>
-                      <FormLabel>Vehicle Type (Chombo)</FormLabel>
+                      <FormLabel>{t("fleet.form.label.vehicleType")}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                           <SelectTrigger>
-                              <SelectValue placeholder="Select type" />
+                              <SelectValue placeholder={t("fleet.form.placeholder.selectType")} />
                           </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                          <SelectItem value="Bajaji">Bajaji</SelectItem>
+                          <SelectItem value="Bajaji">{t("fleet.form.select.bajaji")}</SelectItem>
                           </SelectContent>
                       </Select>
                       <FormMessage />
@@ -238,9 +243,9 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
                   name="plateNumber"
                   render={({ field }) => (
                       <FormItem>
-                      <FormLabel>Plate Number (Usajili)</FormLabel>
+                      <FormLabel>{t("fleet.form.label.plateNumber")}</FormLabel>
                       <FormControl>
-                          <Input placeholder="T 123 BCD" {...field} className="uppercase font-black"/>
+                          <Input placeholder={t("fleet.form.placeholder.plateNumber")} {...field} className="uppercase font-black"/>
                       </FormControl>
                       <FormMessage />
                       </FormItem>
@@ -253,9 +258,9 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
                     name="modelNumber"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Model / Type</FormLabel>
+                        <FormLabel>{t("fleet.form.label.model")}</FormLabel>
                         <FormControl>
-                        <Input placeholder="Boxer 150" {...field} />
+                        <Input placeholder={t("fleet.form.placeholder.model")} {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -266,9 +271,9 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
                     name="engineCapacity"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Capacity (CC)</FormLabel>
+                        <FormLabel>{t("fleet.form.label.capacity")}</FormLabel>
                         <FormControl>
-                        <Input placeholder="150cc" {...field} />
+                        <Input placeholder={t("fleet.form.placeholder.capacity")} {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -281,9 +286,9 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
                 name="chassisNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Chassis No.</FormLabel>
+                    <FormLabel>{t("fleet.form.label.chassisNo")}</FormLabel>
                     <FormControl>
-                      <Input placeholder="MC..." {...field} />
+                      <Input placeholder={t("fleet.form.placeholder.chassis")} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -294,9 +299,9 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
                 name="engineNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Engine No.</FormLabel>
+                    <FormLabel>{t("fleet.form.label.engineNo")}</FormLabel>
                     <FormControl>
-                      <Input placeholder="ENG..." {...field} />
+                      <Input placeholder={t("fleet.form.placeholder.engine")} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -309,7 +314,7 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
                 name="dailyFee"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Daily Fee (TZS)</FormLabel>
+                    <FormLabel>{t("fleet.form.label.dailyFee")}</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -322,17 +327,17 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
                 name="paymentFrequency"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Frequency</FormLabel>
+                    <FormLabel>{t("fleet.form.label.frequency")}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Frequency" />
+                          <SelectValue placeholder={t("fleet.form.placeholder.frequency")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Daily">Daily</SelectItem>
-                        <SelectItem value="Weekly">Weekly</SelectItem>
-                        <SelectItem value="10-Day">Every 10 Days</SelectItem>
+                        <SelectItem value="Daily">{t("fleet.form.select.daily")}</SelectItem>
+                        <SelectItem value="Weekly">{t("fleet.form.select.weekly")}</SelectItem>
+                        <SelectItem value="10-Day">{t("fleet.form.select.every10Days")}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -349,12 +354,12 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
                 name="contractStart"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Start Date</FormLabel>
+                    <FormLabel>{t("fleet.form.label.startDate")}</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                            {field.value ? format(field.value, "dd MMM yy") : "Pick"}
+                            {field.value ? format(field.value, "dd MMM yy") : t("fleet.form.placeholder.pickDate")}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
                         </FormControl>
@@ -372,7 +377,7 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
                 name="contractTermMonths"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Term (Months)</FormLabel>
+                    <FormLabel>{t("fleet.form.label.termMonths")}</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -381,18 +386,18 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
                 )}
               />
             </div>
-            
+
             <div className="border-t pt-4 space-y-4">
-              <h4 className="text-[0.65rem] font-black uppercase tracking-widest text-muted-foreground">Guarantor (Mdhamini)</h4>
+              <h4 className="text-[0.65rem] font-black uppercase tracking-widest text-muted-foreground">{t("fleet.form.section.guarantor")}</h4>
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
                     name="guarantorName"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Full Name</FormLabel>
+                        <FormLabel>{t("fleet.form.label.guarantorName")}</FormLabel>
                         <FormControl>
-                        <Input placeholder="Mdhamini Name" {...field} />
+                        <Input placeholder={t("fleet.form.placeholder.guarantorName")} {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -403,9 +408,9 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
                     name="guarantorPhone"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Phone</FormLabel>
+                        <FormLabel>{t("common.phone")}</FormLabel>
                         <FormControl>
-                        <Input placeholder="07..." {...field} />
+                        <Input placeholder={t("fleet.form.placeholder.genericPhone")} {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -415,16 +420,16 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
             </div>
 
             <div className="border-t pt-4 space-y-4">
-              <h4 className="text-[0.65rem] font-black uppercase tracking-widest text-muted-foreground">Witness (Shahidi)</h4>
+              <h4 className="text-[0.65rem] font-black uppercase tracking-widest text-muted-foreground">{t("fleet.form.section.witness")}</h4>
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
                     name="witnessName"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Witness Name</FormLabel>
+                        <FormLabel>{t("fleet.form.label.witnessName")}</FormLabel>
                         <FormControl>
-                        <Input placeholder="Jina la Shahidi" {...field} />
+                        <Input placeholder={t("fleet.form.placeholder.witnessName")} {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -435,9 +440,9 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
                     name="witnessPhone"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Witness Phone</FormLabel>
+                        <FormLabel>{t("fleet.form.label.witnessPhone")}</FormLabel>
                         <FormControl>
-                        <Input placeholder="07..." {...field} />
+                        <Input placeholder={t("fleet.form.placeholder.genericPhone")} {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -449,16 +454,16 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
         </Tabs>
 
         <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onCancel} className="uppercase font-bold text-xs tracking-widest">Cancel</Button>
-            <Button 
-                type="submit" 
+            <Button type="button" variant="outline" onClick={onCancel} className="uppercase font-bold text-xs tracking-widest">{t("common.cancel")}</Button>
+            <Button
+                type="submit"
                 disabled={!isValid}
                 className={cn(
                     "uppercase font-bold text-xs tracking-widest px-8 transition-all",
                     isValid ? "bg-accent text-white hover:bg-accent/90" : "bg-muted text-muted-foreground cursor-not-allowed"
                 )}
             >
-                {rider ? "Save Changes" : "Confirm Onboarding"}
+                {rider ? t("fleet.form.button.saveChanges") : t("fleet.form.button.confirmOnboarding")}
             </Button>
         </div>
       </form>

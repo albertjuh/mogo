@@ -12,8 +12,9 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import { initialPayments } from "@/lib/data";
 import type { Payment } from "@/lib/types";
 import { eachDayOfInterval, endOfWeek, format, parseISO, startOfWeek } from "date-fns";
+import { useLanguage } from "@/lib/i18n/language-context";
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label, t }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="rounded-lg border bg-background p-2 shadow-sm">
@@ -23,7 +24,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
               {label}
             </span>
             <span className="font-bold text-muted-foreground">
-              TZS {payload[0].value.toLocaleString()}
+              {t("reports.chart.tzsValue", { amount: payload[0].value.toLocaleString() })}
             </span>
           </div>
         </div>
@@ -36,6 +37,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function ReportsPage() {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [insights, setInsights] = useState<ReportInsightsGeneratorOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [payments] = useLocalStorage<Payment[]>("payments", initialPayments);
@@ -88,8 +90,8 @@ export default function ReportsPage() {
       console.error("Error generating insights:", error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Could not generate insights. Please try again.",
+        title: t("reports.insights.errorTitle"),
+        description: t("reports.insights.error"),
       });
     } finally {
       setIsLoading(false);
@@ -101,14 +103,14 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-bold font-headline">Reports</h1>
-        <p className="text-muted-foreground">Analyze your business performance.</p>
+        <h1 className="text-3xl font-bold font-headline">{t("reports.title")}</h1>
+        <p className="text-muted-foreground">{t("reports.subtitle")}</p>
       </header>
-      
+
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline">Weekly Revenue</CardTitle>
-          <CardDescription>Total for this week: TZS {totalRevenue.toLocaleString()}</CardDescription>
+          <CardTitle className="font-headline">{t("reports.weeklyRevenue.title")}</CardTitle>
+          <CardDescription>{t("reports.weeklyRevenue.total", { amount: totalRevenue.toLocaleString() })}</CardDescription>
         </CardHeader>
         <CardContent className="pl-2">
             {isChartLoading ? <Skeleton className="w-full h-[300px]" /> :
@@ -116,7 +118,7 @@ export default function ReportsPage() {
             <BarChart data={weeklyData}>
               <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
               <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `TZS ${value / 1000}k`} />
-               <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(var(--secondary))" }} />
+               <Tooltip content={<CustomTooltip t={t} />} cursor={{ fill: "hsl(var(--secondary))" }} />
               <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -127,17 +129,17 @@ export default function ReportsPage() {
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle className="font-headline">AI-Powered Insights</CardTitle>
+            <CardTitle className="font-headline">{t("reports.insights.title")}</CardTitle>
             <Button onClick={generateInsights} disabled={isLoading} size="sm">
               {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Wand2 className="mr-2 h-4 w-4" />
               )}
-              Generate
+              {t("reports.insights.generate")}
             </Button>
           </div>
-          <CardDescription>Get a summary and recommendations from our AI.</CardDescription>
+          <CardDescription>{t("reports.insights.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading && (
@@ -155,13 +157,13 @@ export default function ReportsPage() {
             <div className="space-y-4 text-sm animate-in fade-in-50 duration-500">
                 <p className="italic text-muted-foreground">{insights.summary}</p>
                 <div>
-                    <h4 className="font-semibold mb-2">Key Insights:</h4>
+                    <h4 className="font-semibold mb-2">{t("reports.insights.keyInsights")}</h4>
                     <ul className="list-disc pl-5 space-y-1 text-foreground/80">
                         {insights.keyInsights.map((insight, i) => <li key={i}>{insight}</li>)}
                     </ul>
                 </div>
                  <div>
-                    <h4 className="font-semibold mb-2">Recommendations:</h4>
+                    <h4 className="font-semibold mb-2">{t("reports.insights.recommendations")}</h4>
                     <ul className="list-disc pl-5 space-y-1 text-foreground/80">
                         {insights.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
                     </ul>
@@ -169,7 +171,7 @@ export default function ReportsPage() {
             </div>
           )}
           {!isLoading && !insights && (
-            <p className="text-muted-foreground text-center py-6">Click "Generate" to get your report analysis.</p>
+            <p className="text-muted-foreground text-center py-6">{t("reports.insights.placeholder")}</p>
           )}
         </CardContent>
       </Card>

@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/supabase/auth/use-user';
 import { AppClientLayout } from '@/components/app-client-layout';
 import { DbErrorListener } from '@/components/DbErrorListener';
+import { LanguageProvider } from '@/lib/i18n/language-context';
 
 export const metadata: Metadata = {
   title: 'King Bariki',
@@ -30,13 +31,15 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="King Bariki" />
       </head>
       <body className="font-body antialiased">
-        <AuthProvider>
-            <AppClientLayout>
-                {children}
-            </AppClientLayout>
-            <Toaster />
-            <DbErrorListener />
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+              <AppClientLayout>
+                  {children}
+              </AppClientLayout>
+              <Toaster />
+              <DbErrorListener />
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

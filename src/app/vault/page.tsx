@@ -6,15 +6,17 @@ import type { Document } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Download, ExternalLink, ShieldCheck } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 export default function VaultPage() {
+  const { t } = useLanguage();
   const [documents] = useLocalStorage<Document[]>("documents", initialDocuments);
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-black font-headline">Document Vault</h1>
-        <p className="text-muted-foreground">Secure access to your loan records</p>
+        <h1 className="text-3xl font-black font-headline">{t("vault.title")}</h1>
+        <p className="text-muted-foreground">{t("vault.subtitle")}</p>
       </header>
 
       <div className="space-y-4">
@@ -49,8 +51,8 @@ export default function VaultPage() {
         <CardContent className="p-6 flex gap-4 items-center">
             <ShieldCheck className="h-10 w-10 text-primary shrink-0" />
             <div>
-                <h4 className="font-bold">Offline Access</h4>
-                <p className="text-xs opacity-80">These documents are cached on your device for viewing even without an internet connection.</p>
+                <h4 className="font-bold">{t("vault.offline.title")}</h4>
+                <p className="text-xs opacity-80">{t("vault.offline.description")}</p>
             </div>
         </CardContent>
       </Card>

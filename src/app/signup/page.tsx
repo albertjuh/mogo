@@ -2,8 +2,10 @@
 
 import { AuthForm } from "@/supabase/auth/auth-form";
 import { BrandShield, BRAND_TAGLINE } from "@/components/brand-logo";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 export default function SignupPage() {
+  const { t } = useLanguage();
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
        <div className="hidden items-center justify-center bg-accent p-8 text-white lg:flex border-r-4 border-gold">
@@ -13,7 +15,7 @@ export default function SignupPage() {
               King <span className="text-gold">Bariki</span>
             </h1>
             <p className="mt-2 text-xs font-bold uppercase tracking-[0.3em] text-primary">{BRAND_TAGLINE}</p>
-            <p className="mt-6 text-lg text-white/70 italic">Your Fleet, Your Fortune. Simplified.</p>
+            <p className="mt-6 text-lg text-white/70 italic">{t("auth.signup.tagline")}</p>
         </div>
       </div>
       <div className="flex items-center justify-center py-12 px-4 sm:px-8">
@@ -22,8 +24,8 @@ export default function SignupPage() {
              <div className="lg:hidden mb-4 flex justify-center">
                 <BrandShield size={120} priority />
              </div>
-             <h1 className="text-3xl font-bold font-headline">Create Your Account</h1>
-             <p className="text-muted-foreground">Join the King Bariki Bajaji fleet.</p>
+             <h1 className="text-3xl font-bold font-headline">{t("auth.signup.title")}</h1>
+             <p className="text-muted-foreground">{t("auth.signup.subtitle")}</p>
           </div>
           <AuthForm mode="signup" />
         </div>

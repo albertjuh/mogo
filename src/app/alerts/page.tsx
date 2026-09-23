@@ -8,8 +8,10 @@ import { AlertCircle, CalendarClock } from "lucide-react";
 import { differenceInDays, isBefore, parseISO, format } from "date-fns";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 export default function AlertsPage() {
+  const { t } = useLanguage();
   const [riders] = useLocalStorage<Rider[]>("riders", initialRiders);
   const [payments] = useLocalStorage<Payment[]>("payments", initialPayments);
   const [alerts, setAlerts] = useState<AlertType[]>([]);
@@ -28,7 +30,7 @@ export default function AlertsPage() {
         generatedAlerts.push({
           id: `contract-${rider.id}`,
           type: 'contract',
-          message: `${rider.name}'s contract is expiring in ${daysUntilExpiry} days on ${format(contractEndDate, 'PPP')}.`,
+          message: t("alerts.message.contract", { name: rider.name, days: daysUntilExpiry, date: format(contractEndDate, 'PPP') }),
           date: new Date().toISOString(),
           riderId: rider.id,
         });
@@ -50,22 +52,22 @@ export default function AlertsPage() {
             generatedAlerts.push({
                 id: `payment-${rider.id}`,
                 type: 'payment',
-                message: `${rider.name} may have a missed payment. Last payment was ${lastPayment ? format(parseISO(lastPayment.recordedAt), 'PPP') : 'never'}.`,
+                message: t("alerts.message.payment", { name: rider.name, date: lastPayment ? format(parseISO(lastPayment.recordedAt), 'PPP') : t("alerts.message.never") }),
                 date: new Date().toISOString(),
                 riderId: rider.id,
             });
         }
     });
-    
+
     setAlerts(generatedAlerts.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()));
-  }, [riders, payments]);
+  }, [riders, payments, t]);
 
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-bold font-headline">Alerts</h1>
-        <p className="text-muted-foreground">Stay on top of important events.</p>
+        <h1 className="text-3xl font-bold font-headline">{t("alerts.title")}</h1>
+        <p className="text-muted-foreground">{t("alerts.subtitle")}</p>
       </header>
 
       {alerts.length > 0 ? (
@@ -73,7 +75,7 @@ export default function AlertsPage() {
             {alerts.map(alert => (
                  <Alert key={alert.id} variant={alert.type === 'payment' ? 'destructive' : 'default'}>
                     {alert.type === 'payment' ? <AlertCircle className="h-4 w-4" /> : <CalendarClock className="h-4 w-4" />}
-                    <AlertTitle>{alert.type === 'payment' ? 'Potential Missed Payment' : 'Contract Expiration'}</AlertTitle>
+                    <AlertTitle>{alert.type === 'payment' ? t("alerts.type.payment") : t("alerts.type.contract")}</AlertTitle>
                     <AlertDescription>
                         {alert.message}
                     </AlertDescription>
@@ -83,8 +85,8 @@ export default function AlertsPage() {
       ) : (
          <Card className="text-center py-12 border-dashed">
             <CardHeader>
-                <CardTitle className="font-headline">All Clear!</CardTitle>
-                <p className="text-muted-foreground">No alerts right now. Everything looks good.</p>
+                <CardTitle className="font-headline">{t("alerts.empty.title")}</CardTitle>
+                <p className="text-muted-foreground">{t("alerts.empty.description")}</p>
             </CardHeader>
         </Card>
       )}

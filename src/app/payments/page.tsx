@@ -14,10 +14,25 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { providerLabel } from "@/lib/payment-providers";
+import { useLanguage } from "@/lib/i18n/language-context";
+
+const paymentStatusKey = (status: string) => {
+  switch (status) {
+    case "pending":
+      return "payments.status.pending";
+    case "verified":
+      return "payments.status.verified";
+    case "failed":
+      return "payments.status.failed";
+    default:
+      return null;
+  }
+};
 
 export default function PaymentsPage() {
   const { user } = useUser();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const [clientNow, setClientNow] = useState<Date | null>(null);
 
@@ -41,21 +56,21 @@ export default function PaymentsPage() {
 
   const handleReSync = async (gatewayRef: string) => {
     toast({
-      title: "Re-syncing with AzamPay...",
-      description: `Checking status for Ref: ${gatewayRef}`,
+      title: t("payments.resyncTitle"),
+      description: t("payments.resyncDescription", { ref: gatewayRef }),
     });
 
     const result = await checkPaymentStatus(gatewayRef);
 
     if (result.success) {
       toast({
-        title: "Synchronization Complete",
-        description: `Status: ${result.status}`,
+        title: t("payments.syncCompleteTitle"),
+        description: t("payments.syncCompleteDescription", { status: result.status ?? "" }),
       });
     } else {
       toast({
         variant: "destructive",
-        title: "Sync Failed",
+        title: t("payments.syncFailedTitle"),
         description: result.error,
       });
     }
@@ -71,8 +86,8 @@ export default function PaymentsPage() {
     <div className="space-y-6">
       <header className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-black font-headline uppercase italic tracking-tighter">Payments Ledger</h1>
-          <p className="text-muted-foreground font-medium">Verified AzamPay audit trail.</p>
+          <h1 className="text-3xl font-black font-headline uppercase italic tracking-tighter">{t("payments.title")}</h1>
+          <p className="text-muted-foreground font-medium">{t("payments.subtitle")}</p>
         </div>
       </header>
 
@@ -91,10 +106,13 @@ export default function PaymentsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-black text-xs uppercase tracking-tight truncate text-accent">
-                      {user?.role !== 'rider' ? getRiderName(payment.riderId) : "Installment Payment"}
+                      {user?.role !== 'rider' ? getRiderName(payment.riderId) : t("payments.installmentPayment")}
                     </h3>
                     <Badge variant="outline" className="text-[0.5rem] px-1 h-3.5 uppercase font-black">
-                      {payment.status}
+                      {(() => {
+                        const key = paymentStatusKey(payment.status);
+                        return key ? t(key) : payment.status;
+                      })()}
                     </Badge>
                   </div>
                   <p className="text-[0.6rem] text-muted-foreground font-bold tracking-widest uppercase mt-0.5">
@@ -128,7 +146,7 @@ export default function PaymentsPage() {
         {payments?.length === 0 && (
           <div className="text-center py-20 bg-secondary/20 rounded-3xl border-2 border-dashed">
             <ReceiptText className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
-            <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">No payments found</p>
+            <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">{t("payments.empty")}</p>
           </div>
         )}
       </div>

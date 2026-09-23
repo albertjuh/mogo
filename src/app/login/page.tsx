@@ -4,8 +4,10 @@
 import { AuthForm } from "@/supabase/auth/auth-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandShield, BRAND_NAME, BRAND_TAGLINE } from "@/components/brand-logo";
+import { useLanguage } from "@/lib/i18n/language-context";
 
 export default function LoginPage() {
+  const { t } = useLanguage();
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 bg-muted/30">
       {/* Desktop Left Side - High Contrast Brand Area */}
@@ -20,7 +22,7 @@ export default function LoginPage() {
               King <span className="text-gold">Bariki</span>
             </h1>
             <p className="mt-2 text-xs font-bold uppercase tracking-[0.3em] text-primary">{BRAND_TAGLINE}</p>
-            <p className="mt-6 text-xl text-white/70 italic">Bajaji Yako, Maisha Yako. Rahisi.</p>
+            <p className="mt-6 text-xl text-white/70 italic">{t("auth.login.tagline")}</p>
         </div>
       </div>
 
@@ -42,9 +44,9 @@ export default function LoginPage() {
 
               <div className="space-y-1 relative z-10">
                 <CardTitle className="text-3xl font-black font-headline italic uppercase tracking-tighter">
-                  Karibu <span className="text-gold">Tena</span>
+                  {t("auth.login.welcomeBack")}
                 </CardTitle>
-                <p className="text-white/60 text-xs font-bold uppercase tracking-widest">Strategic Command Center</p>
+                <p className="text-white/60 text-xs font-bold uppercase tracking-widest">{t("auth.login.commandCenter")}</p>
               </div>
             </CardHeader>
 
