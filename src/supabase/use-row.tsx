@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { errorEmitter, DbPermissionError } from "./error-emitter";
 
+// See use-table.tsx: the shared Supabase client's Realtime channel registry
+// needs a unique topic per subscription, even across Strict Mode's
+// mount/cleanup/mount on the same hook instance.
+let channelCounter = 0;
+
 /**
  * Loads a single row by id and keeps it live via realtime -- the Supabase
  * equivalent of the old Firestore useDoc()/onSnapshot(docRef) hook.
@@ -47,7 +52,7 @@ export function useRow<Row, Out>(
     run();
 
     const channel = supabase
-      .channel(`row:${table}:${idColumn}:${id}`)
+      .channel(`row:${table}:${idColumn}:${id}:${channelCounter++}`)
       .on("postgres_changes", { event: "*", schema: "public", table, filter: `${idColumn}=eq.${id}` }, () => run())
       .subscribe();
 

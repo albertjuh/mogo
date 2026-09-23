@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, type ReactNode, useEffect, useCallback } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
@@ -34,7 +35,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  // Stable across re-renders -- creating a fresh client every render (the
+  // previous bug here) spins up a new GoTrueClient each time, which
+  // thrashes the auth listener effect below and can wedge Supabase's
+  // internal session lock so sign-in requests silently never fire.
+  const [supabase] = useState<SupabaseClient>(() => createClient());
 
   const resolveProfile = useCallback(async (sbUser: SupabaseUser) => {
     const isSystemAdminEmail = SYSTEM_ADMIN_EMAILS.includes(sbUser.email?.toLowerCase() || "");

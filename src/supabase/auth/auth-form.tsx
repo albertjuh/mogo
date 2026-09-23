@@ -25,7 +25,11 @@ interface AuthFormProps {
 }
 
 const formSchema = z.object({
-  name: z.string().min(2, "Full name is required.").optional(),
+  // The name field is only rendered in signup mode, so login submits it as
+  // "" (the defaultValue) -- .optional() alone only skips undefined, not "",
+  // so an empty string must be allowed explicitly or every login is silently
+  // rejected by validation.
+  name: z.union([z.literal(""), z.string().min(2, "Full name is required.")]).optional(),
   email: z.string().email("Please enter a valid email address."),
   password: z.string().min(6, "Password must be at least 6 characters."),
 });
@@ -79,7 +83,15 @@ export function AuthForm({ mode }: AuthFormProps) {
             });
           }
         } else {
-          const success = await signup(values.email, values.password, values.name || "");
+          if (!values.name || values.name.trim().length < 2) {
+            toast({
+              variant: "destructive",
+              title: "Full name required",
+              description: "Please enter your full name to sign up.",
+            });
+            return;
+          }
+          const success = await signup(values.email, values.password, values.name);
           if (success) {
             toast({
                 title: "Account Created",

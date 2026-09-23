@@ -4,6 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { errorEmitter, DbPermissionError } from "./error-emitter";
 
+// Supabase's browser client (and its Realtime channel registry) is a
+// singleton, so two hook instances -- or two runs of the same effect under
+// React Strict Mode's mount/cleanup/mount -- querying the same table would
+// otherwise collide on the same channel topic name. A module-level counter
+// guarantees every subscription gets a unique topic, no matter what.
+let channelCounter = 0;
+
 export interface TableFilter {
   column: string;
   op: "eq" | "neq" | "gt" | "gte" | "lt" | "lte";
@@ -66,7 +73,7 @@ export function useTable<Row, Out>(
     run();
 
     const channel = supabase
-      .channel(`table:${query.table}:${key}`)
+      .channel(`table:${query.table}:${channelCounter++}`)
       .on("postgres_changes", { event: "*", schema: "public", table: query.table }, () => run())
       .subscribe();
 
