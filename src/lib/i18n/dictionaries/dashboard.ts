@@ -30,7 +30,7 @@ export const dashboard: { en: Record<string, string>; sw: Record<string, string>
     "dashboard.admin.activeFleet": "Active Fleet",
     "dashboard.admin.riders": "{count} Riders",
     "dashboard.admin.totalPortfolio": "Total Portfolio",
-    "dashboard.admin.fleetDebt": "TZS {amount} in Fleet Debt",
+    "dashboard.admin.fleetDebt": "Fleet Debt: TZS {amount}",
     "dashboard.admin.fleetDebtSubtitle": "Total owed across all active riders vs. their contracts.",
     "dashboard.admin.viewFleet": "View Fleet",
     "dashboard.admin.ridersWithArrears": "{count} Riders with Arrears",
@@ -79,7 +79,7 @@ export const dashboard: { en: Record<string, string>; sw: Record<string, string>
     "dashboard.admin.activeFleet": "Meli Hai",
     "dashboard.admin.riders": "Madereva {count}",
     "dashboard.admin.totalPortfolio": "Jumla ya Mtaji",
-    "dashboard.admin.fleetDebt": "TZS {amount} Deni la Meli",
+    "dashboard.admin.fleetDebt": "Deni la Meli: TZS {amount}",
     "dashboard.admin.fleetDebtSubtitle": "Jumla ya madeni ya madereva hai dhidi ya mikataba yao.",
     "dashboard.admin.viewFleet": "Angalia Meli",
     "dashboard.admin.ridersWithArrears": "Madereva {count} wenye Madeni",
@@ -89,7 +89,7 @@ export const dashboard: { en: Record<string, string>; sw: Record<string, string>
     "dashboard.admin.verifyPayments": "Thibitisha Malipo",
 
     // DashboardHeader banner (top strip on the dashboard)
-    "dashboard.header.collectionsToday": "{label} {count} Leo",
+    "dashboard.header.collectionsToday": "{label} {count} ya Leo",
     "dashboard.header.collection": "Malipo",
     "dashboard.header.collections": "Malipo",
     "dashboard.header.yourLoan": "Mkopo Wako",

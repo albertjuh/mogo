@@ -65,8 +65,8 @@ export function BottomNav() {
 
   return (
     <>
-      <nav className="md:hidden fixed bottom-0 z-10 w-full border-t border-t-muted bg-white pb-safe">
-        <div className="flex h-16 items-center justify-around">
+      <nav className="md:hidden fixed inset-x-0 bottom-0 z-10 pb-safe">
+        <div className="mx-3 mb-3 flex items-center gap-1 rounded-full border border-black/5 bg-white/90 p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.12)] backdrop-blur-xl">
           {primaryItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
@@ -75,12 +75,19 @@ export function BottomNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 text-muted-foreground transition-colors",
-                  active && "text-primary"
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-muted-foreground transition-all duration-300 ease-out",
+                  active ? "bg-primary text-primary-foreground shadow-sm px-3" : "px-1 hover:text-primary"
                 )}
               >
-                <Icon size={20} className={cn(active && "fill-current/10")} />
-                <span className="text-[0.60rem] font-bold uppercase tracking-wider">{item.label}</span>
+                <Icon size={19} strokeWidth={active ? 2.4 : 2} className="shrink-0" />
+                <span
+                  className={cn(
+                    "overflow-hidden whitespace-nowrap text-[0.62rem] font-bold uppercase tracking-wide transition-all duration-300 ease-out",
+                    active ? "max-w-[80px] opacity-100" : "max-w-0 opacity-0"
+                  )}
+                >
+                  {item.label}
+                </span>
               </Link>
             );
           })}
@@ -88,17 +95,18 @@ export function BottomNav() {
             <button
               type="button"
               onClick={() => setMoreOpen(true)}
-              className="flex flex-col items-center justify-center gap-1 text-muted-foreground transition-colors"
+              className="flex flex-1 items-center justify-center rounded-full py-2.5 px-1 text-muted-foreground transition-colors hover:text-primary"
+              aria-label={t("nav.more")}
             >
-              <Menu size={20} />
-              <span className="text-[0.60rem] font-bold uppercase tracking-wider">{t("nav.more")}</span>
+              <Menu size={19} />
             </button>
           )}
         </div>
       </nav>
 
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-        <SheetContent side="bottom" className="md:hidden rounded-t-2xl pb-safe max-h-[80vh] overflow-y-auto">
+        <SheetContent side="bottom" className="md:hidden rounded-t-3xl pb-safe max-h-[80vh] overflow-y-auto border-t-0 shadow-[0_-8px_30px_rgba(0,0,0,0.12)]">
+          <div className="mx-auto mb-1 h-1 w-10 rounded-full bg-muted" />
           <SheetHeader>
             <SheetTitle>{t("nav.more")}</SheetTitle>
           </SheetHeader>
@@ -112,8 +120,8 @@ export function BottomNav() {
                   href={item.href}
                   onClick={() => setMoreOpen(false)}
                   className={cn(
-                    "flex flex-col items-center justify-center gap-2 rounded-xl border p-4 text-muted-foreground transition-colors",
-                    active ? "border-primary text-primary bg-primary/5" : "border-transparent bg-secondary/40 hover:text-primary"
+                    "flex flex-col items-center justify-center gap-2 rounded-2xl p-4 text-muted-foreground transition-all",
+                    active ? "bg-primary text-primary-foreground shadow-sm" : "bg-secondary/40 hover:bg-secondary/70 hover:text-primary"
                   )}
                 >
                   <Icon size={22} />
