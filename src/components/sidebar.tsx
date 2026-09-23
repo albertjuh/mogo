@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Home, Wallet, ShieldCheck, TrendingUp, Users, BarChart3, AlertCircle, UserPlus, ShieldAlert, UserCircle, Banknote } from "lucide-react";
+import { LogOut, Home, Wallet, ShieldCheck, TrendingUp, Users, BarChart3, AlertCircle, UserPlus, ShieldAlert, UserCircle, Banknote, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/supabase/auth/use-user";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ export function Sidebar() {
       { href: "/collect", label: "Daily Collection", icon: Wallet },
       { href: "/onboard", label: "New Onboarding", icon: UserPlus },
       { href: "/fleet", label: "Manage Fleet", icon: Users },
+      { href: "/map", label: "Fleet Map", icon: MapPin },
       { href: "/payments", label: "Payment Log", icon: BarChart3 },
       { href: "/alerts", label: "Urgent Alerts", icon: AlertCircle },
     ];

@@ -1,29 +1,42 @@
 "use client";
 
 import dynamic from 'next/dynamic';
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import { initialRiders } from "@/lib/data";
-import type { Rider } from "@/lib/types";
+import { useUser } from "@/supabase/auth/use-user";
+import { useTable, type TableQuery } from "@/supabase/use-table";
+import { riderFromRow, type RiderRow } from "@/supabase/mappers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMemo } from 'react';
 
 export default function MapPage() {
-    const [riders] = useLocalStorage<Rider[]>("riders", initialRiders);
-    const ridersWithLocation = riders.filter(r => r.active && r.location);
+    const { user } = useUser();
+    const isManager = user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'recruiter';
 
-    const Map = useMemo(() => dynamic(() => import('@/components/map'), { 
+    const ridersQuery: TableQuery | null = user && isManager ? { table: "riders" } : null;
+    const { data: riders, isLoading } = useTable<RiderRow, ReturnType<typeof riderFromRow>>(ridersQuery, riderFromRow);
+
+    const ridersWithLocation = (riders || []).filter(r => r.active && r.location);
+
+    const Map = useMemo(() => dynamic(() => import('@/components/map'), {
         ssr: false,
         loading: () => <Skeleton className="w-full h-full" />
     }), []);
 
+    if (!isManager) {
+        return <div className="p-12 text-center text-muted-foreground font-bold">Unauthorized Access</div>;
+    }
+
     return (
         <div className="space-y-6 h-full flex flex-col">
              <header>
-                <h1 className="text-3xl font-bold font-headline">Rider Location Preview</h1>
-                <p className="text-muted-foreground">This map is for preview purposes only using sample data.</p>
+                <h1 className="text-3xl font-bold font-headline">Fleet Map</h1>
+                <p className="text-muted-foreground">
+                    {ridersWithLocation.length > 0
+                        ? "Live rider locations."
+                        : "No GPS data yet -- riders will appear here once a location tracking provider is connected."}
+                </p>
             </header>
             <div className="flex-grow rounded-lg overflow-hidden border">
-                <Map riders={ridersWithLocation} />
+                {isLoading ? <Skeleton className="w-full h-full" /> : <Map riders={ridersWithLocation} />}
             </div>
         </div>
     )
