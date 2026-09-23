@@ -1,18 +1,18 @@
 
 "use client";
 
-import { useFirestore, useCollection, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, query, where, doc } from "firebase/firestore";
+import { useTable, type TableQuery } from "@/supabase/use-table";
+import { useRow } from "@/supabase/use-row";
+import { riderFromRow, paymentFromRow, type RiderRow, type PaymentRow } from "@/supabase/mappers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useUser } from "@/firebase/auth/use-user";
+import { useUser } from "@/supabase/auth/use-user";
 import { isSameDay, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 
 export function DashboardHeader() {
   const { user } = useUser();
-  const db = useFirestore();
-  
+
   const [clientNow, setClientNow] = useState<Date | null>(null);
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
@@ -41,28 +41,27 @@ export function DashboardHeader() {
     return () => mainEl.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Real-time Firestore data for the header
-  const riderDocRef = useMemoFirebase(() => user ? doc(db, "riders", user.id) : null, [db, user]);
-  const { data: riderProfile } = useDoc(riderDocRef);
+  // Real-time Supabase data for the header
+  const { data: riderProfile } = useRow<RiderRow, ReturnType<typeof riderFromRow>>(
+    user?.role === 'rider' ? "riders" : null,
+    user?.id,
+    riderFromRow,
+    "*",
+    "profile_id"
+  );
 
-  const ridersQuery = useMemoFirebase(() => {
-    if (!user || user.role === 'rider') return null;
-    return collection(db, "riders");
-  }, [db, user]);
-  const { data: riders } = useCollection(ridersQuery);
+  const ridersQuery: TableQuery | null = user && user.role !== 'rider' ? { table: "riders" } : null;
+  const { data: riders } = useTable<RiderRow, ReturnType<typeof riderFromRow>>(ridersQuery, riderFromRow);
 
-  const paymentsQuery = useMemoFirebase(() => {
-    if (!user || user.role === 'rider' || !clientNow) return null;
-    return collection(db, "payments");
-  }, [db, user, clientNow]);
-  const { data: payments } = useCollection(paymentsQuery);
+  const paymentsQuery: TableQuery | null = user && user.role !== 'rider' && clientNow ? { table: "payments" } : null;
+  const { data: payments } = useTable<PaymentRow, ReturnType<typeof paymentFromRow>>(paymentsQuery, paymentFromRow);
 
   const mngtStats = useMemo(() => {
     if (!clientNow || !riders || !payments) return null;
     const activeFleet = riders.filter(r => r.active).length;
     const paidTodayCount = new Set(
       payments
-        .filter(p => isSameDay(parseISO(p.recordedAt || p.date), clientNow))
+        .filter(p => isSameDay(parseISO(p.recordedAt), clientNow))
         .map(p => p.riderId)
     ).size;
     return { activeFleet, paidTodayCount };

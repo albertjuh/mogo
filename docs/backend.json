@@ -1,58 +1,70 @@
 {
-  "entities": {
-    "Rider": {
-      "title": "Rider",
-      "description": "Verified bajaji driver profile linked to Auth identity.",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "email": { "type": "string" },
-        "phone": { "type": "string" },
-        "plateNumber": { "type": "string" },
-        "vehicleType": { "enum": ["Bajaji"] },
-        "active": { "type": "boolean" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["email", "active"]
+  "database": "Postgres (Supabase)",
+  "auth": {
+    "provider": "Supabase Auth",
+    "methods": ["password", "google"],
+    "note": "Every authenticated user gets a `profiles` row; role determines what they can see (see RLS policies in supabase/migrations)."
+  },
+  "tables": {
+    "profiles": {
+      "description": "One row per login account (mirrors auth.users). Source of truth for role.",
+      "columns": {
+        "id": "uuid, PK, = auth.users.id",
+        "email": "text",
+        "name": "text",
+        "role": "text: admin | supervisor | recruiter | rider",
+        "created_at": "timestamptz"
+      }
     },
-    "Payment": {
-      "title": "Payment",
-      "description": "Financial ledger record for lease installments.",
-      "type": "object",
-      "properties": {
-        "riderId": { "type": "string" },
-        "amount": { "type": "number" },
-        "gatewayRef": { "type": "string" },
-        "status": { "type": "string", "enum": ["pending", "verified", "failed"] },
-        "recordedAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["riderId", "amount", "status", "recordedAt"]
+    "riders": {
+      "description": "Fleet business record for a Bajaji driver -- contract, fee, vehicle. Independent of login: the admin can add a driver here before they ever sign up. `profile_id` links to `profiles` once/if that driver has a login account.",
+      "columns": {
+        "id": "uuid, PK",
+        "profile_id": "uuid, nullable, FK -> profiles.id, unique",
+        "name": "text",
+        "email": "text, nullable",
+        "phone, plate_number, vehicle_type, chassis_number, engine_number, engine_capacity, model_number, shahidi_number": "text fields, contract/vehicle details",
+        "daily_fee": "numeric -- amount due per billing period (see payment_frequency)",
+        "payment_frequency": "text: Daily | Weekly | 10-Day",
+        "contract_start, contract_end": "date",
+        "contract_term_months": "int",
+        "guarantor_name, guarantor_phone, witness_name, witness_phone": "text",
+        "active": "boolean",
+        "bike_id": "text",
+        "notes": "text, nullable",
+        "location": "jsonb {lat, lng}, nullable -- for the future GPS map integration",
+        "created_at": "timestamptz"
+      }
     },
-    "Staff": {
-      "title": "Staff Member",
-      "description": "Management account with operational privileges.",
-      "type": "object",
-      "properties": {
-        "email": { "type": "string" },
-        "name": { "type": "string" },
-        "role": { "type": "string", "enum": ["admin", "supervisor", "recruiter"] }
+    "payments": {
+      "description": "Ledger of collections from riders (cash entries by a manager, or real AzamPay mobile-money collections).",
+      "columns": {
+        "id": "text, PK -- our AzamPay externalId / gatewayRef",
+        "rider_id": "uuid, FK -> riders.id",
+        "amount": "numeric",
+        "transaction_id, provider, msisdn": "AzamPay transaction details",
+        "status": "text: pending | verified | failed",
+        "recorded_at": "timestamptz",
+        "verified_by": "uuid, nullable, FK -> profiles.id",
+        "operator_reference, fsp_reference_id, gateway_message": "text, nullable -- set by the AzamPay webhook"
+      }
+    },
+    "payouts": {
+      "description": "Admin-only audit trail of AzamPay disbursements out of the business account.",
+      "columns": {
+        "id": "text, PK -- AzamPay disbursement reference",
+        "amount": "numeric",
+        "phone_number, provider, recipient_name, narration": "text",
+        "status": "text",
+        "initiated_by": "uuid, nullable, FK -> profiles.id",
+        "gateway_message, operator_reference, fsp_reference_id": "text, nullable",
+        "recorded_at": "timestamptz"
       }
     }
   },
-  "auth": {
-    "providers": ["password", "google"]
-  },
-  "firestore": {
-    "/riders/{riderId}": {
-      "schema": { "$ref": "#/backend/entities/Rider" },
-      "description": "Profiles for bajaji drivers."
-    },
-    "/payments/{paymentId}": {
-      "schema": { "$ref": "#/backend/entities/Payment" },
-      "description": "Financial records for the fleet."
-    },
-    "/admins/{id}": { "schema": { "$ref": "#/backend/entities/Staff" }, "description": "Registry for strategic owners." },
-    "/supervisors/{id}": { "schema": { "$ref": "#/backend/entities/Staff" }, "description": "Registry for ground operations." },
-    "/recruiters/{id}": { "schema": { "$ref": "#/backend/entities/Staff" }, "description": "Registry for onboarding team." }
-  }
+  "notes": [
+    "Row Level Security is enabled on every table; see supabase/migrations for the exact policies.",
+    "computeRiderBalance() in src/lib/balance.ts derives each rider's debt/overdraft purely from riders + payments -- no separate balance column to keep in sync.",
+    "src/supabase/mappers.ts is the single place that translates Postgres snake_case columns to the app's camelCase TypeScript types."
+  ]
 }

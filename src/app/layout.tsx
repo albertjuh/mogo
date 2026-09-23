@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
-import { AuthProvider } from '@/firebase/auth/use-user';
+import { AuthProvider } from '@/supabase/auth/use-user';
 import { AppClientLayout } from '@/components/app-client-layout';
-import { FirebaseClientProvider } from '@/firebase';
+import { DbErrorListener } from '@/components/DbErrorListener';
 
 export const metadata: Metadata = {
   title: 'King Bariki',
@@ -30,14 +30,13 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="King Bariki" />
       </head>
       <body className="font-body antialiased">
-        <FirebaseClientProvider>
-          <AuthProvider>
-              <AppClientLayout>
-                  {children}
-              </AppClientLayout>
-              <Toaster />
-          </AuthProvider>
-        </FirebaseClientProvider>
+        <AuthProvider>
+            <AppClientLayout>
+                {children}
+            </AppClientLayout>
+            <Toaster />
+            <DbErrorListener />
+        </AuthProvider>
       </body>
     </html>
   );

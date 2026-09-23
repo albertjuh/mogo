@@ -3,7 +3,7 @@ import { Bell, LogOut, UserCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useUser } from '@/firebase/auth/use-user';
+import { useUser } from '@/supabase/auth/use-user';
 import { BrandLogo } from '@/components/brand-logo';
 import Link from 'next/link';
 

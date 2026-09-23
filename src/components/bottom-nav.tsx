@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Home, Wallet, ShieldCheck, TrendingUp, Users, BarChart3, UserPlus } from "lucide-react";
-import { useUser } from "@/firebase/auth/use-user";
+import { useUser } from "@/supabase/auth/use-user";
 import { useMemo } from "react";
 
 export function BottomNav() {

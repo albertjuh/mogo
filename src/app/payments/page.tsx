@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useUser } from "@/firebase/auth/use-user";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy } from "firebase/firestore";
+import { useUser } from "@/supabase/auth/use-user";
+import { useTable, type TableQuery } from "@/supabase/use-table";
+import { riderFromRow, paymentFromRow, type RiderRow, type PaymentRow } from "@/supabase/mappers";
 import { checkPaymentStatus } from "@/app/actions/payments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, parseISO } from "date-fns";
@@ -16,8 +16,7 @@ import { Button } from "@/components/ui/button";
 import { providerLabel } from "@/lib/payment-providers";
 
 export default function PaymentsPage() {
-  const { user, firebaseUser } = useUser();
-  const db = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
 
   const [clientNow, setClientNow] = useState<Date | null>(null);
@@ -27,29 +26,26 @@ export default function PaymentsPage() {
   }, []);
 
   // Fetch all payments for admins, or just my payments for riders
-  const paymentsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    if (user.role === 'admin' || user.role === 'supervisor') {
-      return query(collection(db, "payments"), orderBy("recordedAt", "desc"));
-    }
-    return query(collection(db, "payments"), where("riderId", "==", user.id), orderBy("recordedAt", "desc"));
-  }, [db, user]);
+  const paymentsQuery: TableQuery | null = !user
+    ? null
+    : (user.role === 'admin' || user.role === 'supervisor')
+      ? { table: "payments", order: { column: "recorded_at", ascending: false } }
+      : user.riderId
+        ? { table: "payments", filters: [{ column: "rider_id", op: "eq", value: user.riderId }], order: { column: "recorded_at", ascending: false } }
+        : null;
 
-  const { data: payments, isLoading } = useCollection(paymentsQuery);
+  const { data: payments, isLoading } = useTable<PaymentRow, ReturnType<typeof paymentFromRow>>(paymentsQuery, paymentFromRow);
 
-  const ridersQuery = useMemoFirebase(() => collection(db, "riders"), [db]);
-  const { data: riders } = useCollection(ridersQuery);
+  const ridersQuery: TableQuery = { table: "riders" };
+  const { data: riders } = useTable<RiderRow, ReturnType<typeof riderFromRow>>(ridersQuery, riderFromRow);
 
   const handleReSync = async (gatewayRef: string) => {
-    if (!firebaseUser) return;
-
     toast({
       title: "Re-syncing with AzamPay...",
       description: `Checking status for Ref: ${gatewayRef}`,
     });
 
-    const idToken = await firebaseUser.getIdToken();
-    const result = await checkPaymentStatus(idToken, gatewayRef);
+    const result = await checkPaymentStatus(gatewayRef);
 
     if (result.success) {
       toast({

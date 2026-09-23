@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
-import { getAdminDb } from "@/lib/firebase-admin";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { mapGatewayStatus } from "@/lib/azampay";
 
-// Needs the Node.js runtime (crypto, firebase-admin) — not the Edge runtime.
 export const runtime = "nodejs";
 
 /** Shape of AzamPay's checkout callback. `utilityref` echoes our externalId. */
@@ -43,42 +42,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing utilityref" }, { status: 400 });
   }
 
-  const db = getAdminDb();
+  const admin = getSupabaseAdmin();
   const status = mapGatewayStatus(event.transactionstatus);
 
-  const paymentRef = db.collection("payments").doc(ref);
-  const paymentSnap = await paymentRef.get();
-  if (paymentSnap.exists) {
-    const payment = paymentSnap.data()!;
+  const { data: payment } = await admin.from("payments").select("status, amount").eq("id", ref).maybeSingle();
+  if (payment) {
     // Only settle pending payments, and only for the amount we asked for.
     if (payment.status === "pending" && status !== "pending") {
       if (Number(event.amount) !== Number(payment.amount)) {
         console.error(`AzamPay callback amount mismatch for ${ref}: got ${event.amount}, expected ${payment.amount}`);
         return NextResponse.json({ error: "Amount mismatch" }, { status: 400 });
       }
-      await paymentRef.set(
-        {
+      await admin
+        .from("payments")
+        .update({
           status,
-          verifiedBy: "azampay-callback",
-          operatorReference: event.reference ?? null,
-          fspReferenceId: event.fspReferenceId ?? null,
-          gatewayMessage: event.message ?? null,
-        },
-        { merge: true }
-      );
+          operator_reference: event.reference ?? null,
+          fsp_reference_id: event.fspReferenceId ?? null,
+          gateway_message: event.message ?? null,
+        })
+        .eq("id", ref);
     }
     return NextResponse.json({ received: true });
   }
 
-  const payoutRef = db.collection("payouts").doc(ref);
-  if ((await payoutRef.get()).exists) {
-    await payoutRef.set(
-      {
+  const { data: payout } = await admin.from("payouts").select("id").eq("id", ref).maybeSingle();
+  if (payout) {
+    await admin
+      .from("payouts")
+      .update({
         status: status === "verified" ? "completed" : status,
-        gatewayMessage: event.message ?? null,
-      },
-      { merge: true }
-    );
+        gateway_message: event.message ?? null,
+      })
+      .eq("id", ref);
   }
 
   return NextResponse.json({ received: true });

@@ -1,13 +1,16 @@
 "use client";
 
-import { useUser } from "@/firebase/auth/use-user";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, doc, deleteDoc, setDoc } from "firebase/firestore";
+import { useUser } from "@/supabase/auth/use-user";
+import { useTable, type TableQuery } from "@/supabase/use-table";
+import { updateRowNonBlocking } from "@/supabase/non-blocking-updates";
+import { riderFromRow, type RiderRow } from "@/supabase/mappers";
+import type { ProfileRow } from "@/supabase/mappers";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ShieldCheck, UserCheck, UserPlus, Info, MoreHorizontal, UserCog } from "lucide-react";
 import Link from "next/link";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,62 +22,33 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 
+const identity = (row: ProfileRow) => row;
+
 export default function UserRegistryPage() {
   const { user } = useUser();
-  const db = useFirestore();
   const { toast } = useToast();
 
-  const adminsQuery = useMemoFirebase(() => collection(db, "admins"), [db]);
-  const supervisorsQuery = useMemoFirebase(() => collection(db, "supervisors"), [db]);
-  const recruitersQuery = useMemoFirebase(() => collection(db, "recruiters"), [db]);
-  const ridersQuery = useMemoFirebase(() => collection(db, "riders"), [db]);
+  const profilesQuery: TableQuery = { table: "profiles" };
+  const { data: profiles } = useTable<ProfileRow, ProfileRow>(profilesQuery, identity);
 
-  const { data: admins } = useCollection(adminsQuery);
-  const { data: supervisors } = useCollection(supervisorsQuery);
-  const { data: recruiters } = useCollection(recruitersQuery);
-  const { data: riders } = useCollection(ridersQuery);
+  const ridersQuery: TableQuery = { table: "riders" };
+  const { data: riders } = useTable<RiderRow, ReturnType<typeof riderFromRow>>(ridersQuery, riderFromRow);
 
-  const allStaff = [
-    ...(admins || []).map(u => ({ ...u, role: 'admin' as const })),
-    ...(supervisors || []).map(u => ({ ...u, role: 'supervisor' as const })),
-    ...(recruiters || []).map(u => ({ ...u, role: 'recruiter' as const })),
-  ];
+  const staff = (profiles || []).filter((p) => p.role !== "rider");
+  const riderProfiles = (profiles || []).filter((p) => p.role === "rider");
 
-  const handleRoleChange = async (targetUser: any, currentRole: string, newRole: string) => {
-    if (currentRole === newRole) return;
-    
-    const collections: Record<string, string> = {
-      'admin': 'admins',
-      'supervisor': 'supervisors',
-      'recruiter': 'recruiters',
-      'rider': 'riders'
-    };
+  // Which of those rider profiles already have a linked fleet record?
+  const linkedProfileIds = useMemo(
+    () => new Set((riders || []).map((r) => r.profileId).filter(Boolean)),
+    [riders]
+  );
 
-    try {
-      // 1. Move doc to new role collection
-      const newRef = doc(db, collections[newRole], targetUser.id);
-      await setDoc(newRef, {
-        ...targetUser,
-        role: newRole,
-        updatedAt: new Date().toISOString()
-      });
-
-      // 2. Remove from old role collection
-      const oldRef = doc(db, collections[currentRole], targetUser.id);
-      await deleteDoc(oldRef);
-
-      toast({ 
-        title: "Staff Status Updated", 
-        description: `${targetUser.name} is now authorized as a ${newRole}.` 
-      });
-    } catch (e) {
-      console.error(e);
-      toast({ 
-        variant: "destructive", 
-        title: "Operation Failed", 
-        description: "Insufficient permissions to change system roles." 
-      });
-    }
+  const handleRoleChange = (profileId: string, name: string, newRole: string) => {
+    updateRowNonBlocking("profiles", profileId, { role: newRole });
+    toast({
+      title: "Staff Status Updated",
+      description: `${name || "This user"} is now authorized as a ${newRole}.`,
+    });
   };
 
   if (user?.role !== 'admin') {
@@ -105,15 +79,15 @@ export default function UserRegistryPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allStaff.map((staff) => (
-                <TableRow key={staff.id} className="hover:bg-muted/30">
+              {staff.map((s) => (
+                <TableRow key={s.id} className="hover:bg-muted/30">
                   <TableCell className="py-4">
-                    <p className="font-black text-sm uppercase italic">{staff.name || "Pending Name"}</p>
-                    <p className="text-[0.65rem] text-muted-foreground font-bold">{staff.email}</p>
+                    <p className="font-black text-sm uppercase italic">{s.name || "Pending Name"}</p>
+                    <p className="text-[0.65rem] text-muted-foreground font-bold">{s.email}</p>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="text-[0.6rem] font-black uppercase tracking-tighter">
-                      {staff.role}
+                      {s.role}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -126,13 +100,16 @@ export default function UserRegistryPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Modify Access</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleRoleChange(staff, staff.role, 'supervisor')}>
+                        <DropdownMenuItem onClick={() => handleRoleChange(s.id, s.name || "", 'supervisor')}>
                           Promote to Supervisor
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleRoleChange(staff, staff.role, 'recruiter')}>
+                        <DropdownMenuItem onClick={() => handleRoleChange(s.id, s.name || "", 'recruiter')}>
                           Promote to Recruiter
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleRoleChange(staff, staff.role, 'rider')} className="text-destructive">
+                        <DropdownMenuItem onClick={() => handleRoleChange(s.id, s.name || "", 'admin')}>
+                          Promote to Admin
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleRoleChange(s.id, s.name || "", 'rider')} className="text-destructive">
                           Revoke Staff Access
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -150,7 +127,7 @@ export default function UserRegistryPage() {
           <CardTitle className="text-lg flex items-center gap-2">
             <UserCheck size={20} /> Registered Riders
           </CardTitle>
-          <CardDescription className="text-white/80">Riders waiting for contract onboarding.</CardDescription>
+          <CardDescription className="text-white/80">Logged-in drivers waiting for contract onboarding.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -162,54 +139,57 @@ export default function UserRegistryPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(riders || []).map((rider) => (
-                <TableRow key={rider.id} className="hover:bg-muted/30">
-                  <TableCell className="py-4">
-                    <p className="font-black text-sm uppercase italic">{rider.name || "Incomplete Profile"}</p>
-                    <p className="text-[0.65rem] text-muted-foreground font-bold">{rider.email}</p>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={rider.plateNumber ? "default" : "secondary"} className="text-[0.6rem] font-black uppercase">
-                      {rider.plateNumber ? "Verified" : "Pending Onboarding"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right flex justify-end gap-2">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <UserCog size={14} />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Authorize as Staff</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleRoleChange(rider, 'rider', 'supervisor')}>
-                          Make Supervisor
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleRoleChange(rider, 'rider', 'recruiter')}>
-                          Make Recruiter
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+              {riderProfiles.map((profile) => {
+                const isOnboarded = linkedProfileIds.has(profile.id);
+                return (
+                  <TableRow key={profile.id} className="hover:bg-muted/30">
+                    <TableCell className="py-4">
+                      <p className="font-black text-sm uppercase italic">{profile.name || "Incomplete Profile"}</p>
+                      <p className="text-[0.65rem] text-muted-foreground font-bold">{profile.email}</p>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={isOnboarded ? "default" : "secondary"} className="text-[0.6rem] font-black uppercase">
+                        {isOnboarded ? "Verified" : "Pending Onboarding"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right flex justify-end gap-2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <UserCog size={14} />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Authorize as Staff</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleRoleChange(profile.id, profile.name || "", 'supervisor')}>
+                            Make Supervisor
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleRoleChange(profile.id, profile.name || "", 'recruiter')}>
+                            Make Recruiter
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
 
-                    {!rider.plateNumber ? (
-                      <Button asChild size="sm" variant="ghost" className="text-primary hover:text-primary font-bold text-[0.6rem] uppercase h-8">
-                        <Link href={`/onboard?email=${rider.email}&uid=${rider.id}&name=${encodeURIComponent(rider.name || '')}`}>
-                           <UserPlus size={12} className="mr-1" /> Onboard Profile
-                        </Link>
-                      </Button>
-                    ) : (
-                      <Button asChild size="sm" variant="ghost" className="text-muted-foreground text-[0.6rem] uppercase h-8">
-                         <Link href="/fleet">View Contract</Link>
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+                      {!isOnboarded ? (
+                        <Button asChild size="sm" variant="ghost" className="text-primary hover:text-primary font-bold text-[0.6rem] uppercase h-8">
+                          <Link href={`/onboard?email=${profile.email}&uid=${profile.id}&name=${encodeURIComponent(profile.name || '')}`}>
+                             <UserPlus size={12} className="mr-1" /> Onboard Profile
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button asChild size="sm" variant="ghost" className="text-muted-foreground text-[0.6rem] uppercase h-8">
+                           <Link href="/fleet">View Contract</Link>
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
-      
+
       <div className="bg-secondary/30 p-6 rounded-2xl border border-dashed border-muted-foreground/20">
         <h4 className="font-black text-xs uppercase tracking-widest text-muted-foreground mb-4 flex items-center justify-center gap-2">
             <Info size={14} /> Standard Operational Workflow
@@ -217,7 +197,7 @@ export default function UserRegistryPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-[0.7rem] font-medium leading-relaxed">
             <div className="space-y-3">
                 <p className="font-bold uppercase text-accent border-b border-accent/20 pb-1">Safety First:</p>
-                <p>1. Everyone registers at `/signup` with their verified email.</p>
+                <p>1. Everyone registers at `/signup` with their verified email, or via Google.</p>
                 <p>2. They stay locked in the Activation Gate until email is clicked.</p>
                 <p>3. Once verified, they appear here. Use the **cog icon** to promote trusted staff.</p>
             </div>

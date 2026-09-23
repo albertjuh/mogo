@@ -1,6 +1,7 @@
 "use server";
 
-import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
+import { getServerUser } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { AzamPayError, getTransactionStatus, mapGatewayStatus, mnoCheckout, newReference } from "@/lib/azampay";
 import { isMobileProvider, normaliseTzPhone } from "@/lib/payment-providers";
 
@@ -14,13 +15,12 @@ export interface InitiatePaymentResult {
 
 /**
  * Called by a signed-in rider to start a real mobile-money collection.
- * Runs server-side only: verifies the caller's Firebase ID token and calls
- * AzamPay's MNO checkout, which pushes a PIN prompt to the payer's phone.
- * The resulting Firestore payment doc is written with the Admin SDK, so
- * it's never trusted from the client.
+ * Runs server-side only: reads the caller from the Supabase session cookie
+ * and calls AzamPay's MNO checkout, which pushes a PIN prompt to the payer's
+ * phone. The resulting payment row is written with the service-role client,
+ * so it's never trusted from the client.
  */
 export async function initiatePayment(
-  idToken: string,
   amount: number,
   provider: string,
   phone?: string
@@ -32,20 +32,16 @@ export async function initiatePayment(
     return { success: false, error: "Please choose a mobile money network." };
   }
 
-  let uid: string;
-  try {
-    const decoded = await getAdminAuth().verifyIdToken(idToken);
-    uid = decoded.uid;
-  } catch {
+  const user = await getServerUser();
+  if (!user) {
     return { success: false, error: "Your session has expired. Please sign in again." };
   }
 
-  const db = getAdminDb();
-  const riderSnap = await db.collection("riders").doc(uid).get();
-  if (!riderSnap.exists) {
+  const admin = getSupabaseAdmin();
+  const { data: rider } = await admin.from("riders").select("id, phone").eq("profile_id", user.id).maybeSingle();
+  if (!rider) {
     return { success: false, error: "Rider profile not found." };
   }
-  const rider = riderSnap.data()!;
 
   const msisdn = normaliseTzPhone(phone || rider.phone || "");
   if (!msisdn) {
@@ -57,15 +53,15 @@ export async function initiatePayment(
   try {
     const checkout = await mnoCheckout({ accountNumber: msisdn, amount, externalId: reference, provider });
 
-    await db.collection("payments").doc(reference).set({
-      riderId: uid,
+    await admin.from("payments").insert({
+      id: reference,
+      rider_id: rider.id,
       amount,
-      gatewayRef: reference,
-      transactionId: checkout.transactionId ?? null,
+      transaction_id: checkout.transactionId ?? null,
       provider,
       msisdn,
       status: "pending",
-      recordedAt: new Date().toISOString(),
+      recorded_at: new Date().toISOString(),
     });
 
     return { success: true, gatewayRef: reference };
@@ -86,45 +82,36 @@ export interface CheckPaymentStatusResult {
  * Called by a manager to re-poll AzamPay for a pending payment's status,
  * for cases where the callback hasn't landed yet.
  */
-export async function checkPaymentStatus(idToken: string, gatewayRef: string): Promise<CheckPaymentStatusResult> {
-  let uid: string;
-  try {
-    const decoded = await getAdminAuth().verifyIdToken(idToken);
-    uid = decoded.uid;
-  } catch {
+export async function checkPaymentStatus(gatewayRef: string): Promise<CheckPaymentStatusResult> {
+  const user = await getServerUser();
+  if (!user) {
     return { success: false, error: "Your session has expired. Please sign in again." };
   }
 
-  const db = getAdminDb();
-  const [adminDoc, supervisorDoc, recruiterDoc] = await Promise.all([
-    db.collection("admins").doc(uid).get(),
-    db.collection("supervisors").doc(uid).get(),
-    db.collection("recruiters").doc(uid).get(),
-  ]);
-  const isManager = adminDoc.exists || supervisorDoc.exists || recruiterDoc.exists;
+  const admin = getSupabaseAdmin();
+  const { data: profile } = await admin.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  const isManager = profile?.role === "admin" || profile?.role === "supervisor" || profile?.role === "recruiter";
   if (!isManager) {
     return { success: false, error: "Unauthorized." };
   }
 
-  const paymentRef = db.collection("payments").doc(gatewayRef);
-  const paymentSnap = await paymentRef.get();
-  const payment = paymentSnap.data();
+  const { data: payment } = await admin.from("payments").select("*").eq("id", gatewayRef).maybeSingle();
   if (!payment) {
     return { success: false, error: "Payment not found." };
   }
   if (payment.status !== "pending") {
     return { success: true, status: payment.status };
   }
-  if (!payment.transactionId || !payment.provider) {
+  if (!payment.transaction_id || !payment.provider) {
     return { success: false, error: "This payment has no AzamPay transaction to check." };
   }
 
   try {
-    const result = await getTransactionStatus(payment.transactionId, payment.provider);
+    const result = await getTransactionStatus(payment.transaction_id, payment.provider);
     const status = mapGatewayStatus(result.data);
 
     if (status !== "pending") {
-      await paymentRef.set({ status, verifiedBy: "azampay-status-check" }, { merge: true });
+      await admin.from("payments").update({ status, verified_by: null }).eq("id", gatewayRef);
     }
 
     return { success: true, status };

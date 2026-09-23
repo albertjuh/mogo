@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, Home, Wallet, ShieldCheck, TrendingUp, Users, BarChart3, AlertCircle, UserPlus, ShieldAlert, UserCircle, Banknote } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useUser } from "@/firebase/auth/use-user";
+import { useUser } from "@/supabase/auth/use-user";
 import { Button } from "@/components/ui/button";
 import { useMemo } from "react";
 import { BrandLogo } from "@/components/brand-logo";

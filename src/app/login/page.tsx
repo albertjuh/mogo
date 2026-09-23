@@ -1,7 +1,7 @@
 
 "use client";
 
-import { AuthForm } from "@/firebase/auth/auth-form";
+import { AuthForm } from "@/supabase/auth/auth-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandShield, BRAND_NAME, BRAND_TAGLINE } from "@/components/brand-logo";
 

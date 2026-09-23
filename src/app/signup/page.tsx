@@ -1,6 +1,6 @@
 "use client";
 
-import { AuthForm } from "@/firebase/auth/auth-form";
+import { AuthForm } from "@/supabase/auth/auth-form";
 import { BrandShield, BRAND_TAGLINE } from "@/components/brand-logo";
 
 export default function SignupPage() {

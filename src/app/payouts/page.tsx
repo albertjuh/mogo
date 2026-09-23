@@ -7,9 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useUser } from "@/firebase/auth/use-user";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, orderBy, query } from "firebase/firestore";
+import { useUser } from "@/supabase/auth/use-user";
+import { useTable, type TableQuery } from "@/supabase/use-table";
+import { payoutFromRow, type PayoutRow } from "@/supabase/mappers";
 import { format, parseISO } from "date-fns";
 import { lookupRecipient, initiatePayout } from "@/app/actions/payouts";
 import { MOBILE_PROVIDERS, detectProvider, providerLabel, type MobileProvider } from "@/lib/payment-providers";
@@ -17,8 +17,7 @@ import { cn } from "@/lib/utils";
 import { Loader2, Send, Banknote, ReceiptText, BadgeCheck } from "lucide-react";
 
 export default function PayoutsPage() {
-  const { user, firebaseUser } = useUser();
-  const db = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
 
   const [amount, setAmount] = useState("");
@@ -30,11 +29,10 @@ export default function PayoutsPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
-  const payoutsQuery = useMemoFirebase(() => {
-    if (!user || user.role !== "admin") return null;
-    return query(collection(db, "payouts"), orderBy("recordedAt", "desc"));
-  }, [db, user]);
-  const { data: payouts } = useCollection(payoutsQuery);
+  const payoutsQuery: TableQuery | null = user && user.role === "admin"
+    ? { table: "payouts", order: { column: "recorded_at", ascending: false } }
+    : null;
+  const { data: payouts } = useTable<PayoutRow, ReturnType<typeof payoutFromRow>>(payoutsQuery, payoutFromRow);
 
   const handlePhoneChange = (value: string) => {
     setPhoneNumber(value);
@@ -45,7 +43,7 @@ export default function PayoutsPage() {
 
   const handleVerify = async () => {
     const amountNum = Number(amount);
-    if (!firebaseUser || !amount || isNaN(amountNum) || amountNum < 5000) {
+    if (!user || !amount || isNaN(amountNum) || amountNum < 5000) {
       toast({ variant: "destructive", title: "Invalid amount", description: "Minimum payout is TZS 5,000." });
       return;
     }
@@ -57,8 +55,7 @@ export default function PayoutsPage() {
     setIsVerifying(true);
     setVerifiedName(null);
     try {
-      const idToken = await firebaseUser.getIdToken();
-      const result = await lookupRecipient(idToken, phoneNumber, provider);
+      const result = await lookupRecipient(phoneNumber, provider);
       if (result.success && result.name) {
         setVerifiedName(result.name);
         if (!recipientName) setRecipientName(result.name);
@@ -71,13 +68,12 @@ export default function PayoutsPage() {
   };
 
   const handleSend = async () => {
-    if (!firebaseUser || !provider) return;
+    if (!user || !provider) return;
     const amountNum = Number(amount);
 
     setIsSending(true);
     try {
-      const idToken = await firebaseUser.getIdToken();
-      const result = await initiatePayout(idToken, amountNum, phoneNumber, provider, recipientName, narration || undefined);
+      const result = await initiatePayout(amountNum, phoneNumber, provider, recipientName, narration || undefined);
 
       if (result.success) {
         toast({ title: "Payout Sent", description: `Ref: ${result.reference}` });

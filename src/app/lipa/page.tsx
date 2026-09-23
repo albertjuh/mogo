@@ -1,17 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { doc } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useUser } from "@/firebase/auth/use-user";
-import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { useUser } from "@/supabase/auth/use-user";
+import { useRow } from "@/supabase/use-row";
+import { riderFromRow, type RiderRow } from "@/supabase/mappers";
 import { initiatePayment } from "@/app/actions/payments";
 import { MOBILE_PROVIDERS, detectProvider, normaliseTzPhone, providerLabel, type MobileProvider } from "@/lib/payment-providers";
-import type { Rider } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Loader2, Smartphone, CheckCircle2, ShieldCheck } from "lucide-react";
 
@@ -21,12 +20,16 @@ export default function LipaPage() {
   const [provider, setProvider] = useState<MobileProvider | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const { user, firebaseUser } = useUser();
-  const db = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
 
-  const riderRef = useMemoFirebase(() => (user ? doc(db, "riders", user.id) : null), [db, user]);
-  const { data: rider } = useDoc<Rider>(riderRef);
+  const { data: rider } = useRow<RiderRow, ReturnType<typeof riderFromRow>>(
+    user?.role === 'rider' ? "riders" : null,
+    user?.id,
+    riderFromRow,
+    "*",
+    "profile_id"
+  );
 
   // Pre-fill the rider's registered number once, and guess their network from it.
   useEffect(() => {
@@ -56,12 +59,11 @@ export default function LipaPage() {
       toast({ variant: "destructive", title: "Chagua mtandao", description: "Chagua njia ya malipo unayotumia." });
       return;
     }
-    if (!firebaseUser) return;
+    if (!user) return;
 
     setIsLoading(true);
     try {
-      const idToken = await firebaseUser.getIdToken();
-      const result = await initiatePayment(idToken, amountNum, provider, phone);
+      const result = await initiatePayment(amountNum, provider, phone);
 
       if (result.success) {
         setIsSuccess(true);

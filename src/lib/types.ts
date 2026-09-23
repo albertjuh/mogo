@@ -7,7 +7,8 @@ export interface UserProfile {
 }
 
 export interface Rider {
-  id: string; // This matches the Firebase Auth UID
+  id: string; // Fleet record id -- independent of any login account
+  profileId?: string; // Set once this driver has signed up / been linked to a login
   name: string;
   phone: string;
   email: string;

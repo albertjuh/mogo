@@ -3,12 +3,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { Plus, MoreVertical, Edit, Trash2, FileText, Download, Printer, Loader2 } from "lucide-react";
 import { format, parseISO, isValid } from "date-fns";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, deleteDoc, doc, setDoc } from "firebase/firestore";
-import { updateDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useTable, type TableQuery } from "@/supabase/use-table";
+import { updateRowNonBlocking, deleteRowNonBlocking, insertRowNonBlocking } from "@/supabase/non-blocking-updates";
+import { riderFromRow, paymentFromRow, riderToRow, type RiderRow, type PaymentRow } from "@/supabase/mappers";
 
-import type { Rider, Bike } from "@/lib/types";
-import { initialBikes } from "@/lib/data";
+import type { Rider } from "@/lib/types";
 import { computeRiderBalance } from "@/lib/balance";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,26 +42,19 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RiderForm, type RiderFormValues } from "@/components/rider-form";
 import { useToast } from "@/hooks/use-toast";
-import { useUser } from "@/firebase/auth/use-user";
+import { useUser } from "@/supabase/auth/use-user";
 
 export default function FleetPage() {
   const { user } = useUser();
-  const db = useFirestore();
   const { toast } = useToast();
 
   const isManager = user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'recruiter';
-  
-  const ridersQuery = useMemoFirebase(() => {
-    if (!user || !isManager) return null;
-    return collection(db, "riders");
-  }, [db, user, isManager]);
-  const { data: riders, isLoading } = useCollection(ridersQuery);
 
-  const paymentsQuery = useMemoFirebase(() => {
-    if (!user || !isManager) return null;
-    return collection(db, "payments");
-  }, [db, user, isManager]);
-  const { data: allPayments } = useCollection(paymentsQuery);
+  const ridersQuery: TableQuery | null = user && isManager ? { table: "riders" } : null;
+  const { data: riders, isLoading } = useTable<RiderRow, ReturnType<typeof riderFromRow>>(ridersQuery, riderFromRow);
+
+  const paymentsQuery: TableQuery | null = user && isManager ? { table: "payments" } : null;
+  const { data: allPayments } = useTable<PaymentRow, ReturnType<typeof paymentFromRow>>(paymentsQuery, paymentFromRow);
 
   const paymentsByRider = useMemo(() => {
     const map = new Map<string, typeof allPayments>();
@@ -96,7 +88,7 @@ export default function FleetPage() {
 
   const confirmDelete = () => {
     if (selectedRider) {
-      deleteDocumentNonBlocking(doc(db, "riders", selectedRider.id));
+      deleteRowNonBlocking("riders", selectedRider.id);
       toast({
         title: "Rider Deleted",
         description: `${selectedRider.name} has been removed from your fleet.`,
@@ -108,14 +100,10 @@ export default function FleetPage() {
 
   const handleFormSubmit = (data: RiderFormValues) => {
     if (selectedRider) {
-      updateDocumentNonBlocking(doc(db, "riders", selectedRider.id), data);
+      updateRowNonBlocking("riders", selectedRider.id, riderToRow(data));
       toast({ title: "Rider Updated", description: `${data.name}'s details have been saved.` });
     } else {
-      addDocumentNonBlocking(collection(db, "riders"), {
-        ...data,
-        active: true,
-        createdAt: new Date().toISOString(),
-      });
+      insertRowNonBlocking("riders", { ...riderToRow(data), active: true });
       toast({ title: "Rider Added", description: `${data.name} is now part of your fleet.` });
     }
     setIsFormOpen(false);

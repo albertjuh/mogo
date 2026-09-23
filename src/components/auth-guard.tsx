@@ -1,19 +1,22 @@
 'use client';
 
-import { useUser } from '@/firebase/auth/use-user';
+import { useUser } from '@/supabase/auth/use-user';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Mail, ShieldAlert } from 'lucide-react';
 import { BrandShield } from '@/components/brand-logo';
 import { Button } from '@/components/ui/button';
-import { sendEmailVerification } from 'firebase/auth';
+import { createClient } from '@/lib/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const publicPaths = ['/login', '/signup', '/privacy', '/terms'];
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, firebaseUser, loading, reloadUser, logout } = useUser();
+  const { user, supabaseUser, loading, reloadUser, logout } = useUser();
   const router = useRouter();
   const pathname = usePathname();
+  const { toast } = useToast();
+  const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
     if (!loading) {
@@ -41,10 +44,26 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   // --- EMAIL ACTIVATION GATE ---
-  // Everyone except the master admin must verify their email to see data
-  const isSystemAdmin = firebaseUser?.email?.toLowerCase() === 'berto.admin@bodaempire.com';
+  // Everyone except the master admin must verify their email to see data.
+  // Google sign-ins arrive already verified, so this only ever blocks
+  // fresh email/password signups.
+  const isSystemAdmin = supabaseUser?.email?.toLowerCase() === 'berto.admin@bodaempire.com';
+  const isVerified = !!supabaseUser?.email_confirmed_at;
 
-  if (firebaseUser && !firebaseUser.emailVerified && !isSystemAdmin && !publicPaths.includes(pathname)) {
+  if (supabaseUser && !isVerified && !isSystemAdmin && !publicPaths.includes(pathname)) {
+    const resend = async () => {
+      setIsResending(true);
+      try {
+        const supabase = createClient();
+        const { error } = await supabase.auth.resend({ type: 'signup', email: supabaseUser.email! });
+        toast(error
+          ? { variant: 'destructive', title: 'Could not resend', description: error.message }
+          : { title: 'Activation link sent' });
+      } finally {
+        setIsResending(false);
+      }
+    };
+
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center p-6 text-center bg-accent text-white overflow-hidden">
         <div className="absolute top-[-10%] -left-20 w-[400px] h-[400px] border-[20px] border-primary/10 rounded-full" />
@@ -56,7 +75,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-4">Activate Your Account</h2>
         <p className="text-white/70 max-w-sm mb-10 leading-relaxed font-medium">
             We've sent an activation link to:<br/>
-            <span className="text-primary font-black text-lg">{firebaseUser.email}</span><br/><br/>
+            <span className="text-primary font-black text-lg">{supabaseUser.email}</span><br/><br/>
             Please check your inbox (and spam folder) to verify your identity.
         </p>
 
@@ -66,7 +85,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
             </Button>
             <Button
                 variant="outline"
-                onClick={() => sendEmailVerification(firebaseUser)}
+                onClick={resend}
+                disabled={isResending}
                 className="h-12 text-xs font-bold uppercase tracking-widest border-white/20 text-white hover:bg-white/5"
             >
                 Resend activation link

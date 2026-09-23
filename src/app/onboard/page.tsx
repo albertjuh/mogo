@@ -1,8 +1,8 @@
 "use client";
 
 import { RiderForm, type RiderFormValues } from "@/components/rider-form";
-import { useFirestore } from "@/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { insertRowNonBlocking } from "@/supabase/non-blocking-updates";
+import { riderToRow } from "@/supabase/mappers";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,7 +10,6 @@ import { UserPlus, Info } from "lucide-react";
 import { Suspense } from "react";
 
 function OnboardContent() {
-  const db = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -20,16 +19,13 @@ function OnboardContent() {
   const name = searchParams.get('name') || "";
 
   const handleFormSubmit = (data: RiderFormValues) => {
-    // If we have a UID, we use it as the document ID to link the profile to the Auth account
-    const docId = uid || `rider-${Date.now()}`;
-    
-    setDoc(doc(db, "riders", docId), {
-      ...data,
+    // If we have a uid, link this new fleet record to that existing auth account.
+    insertRowNonBlocking("riders", {
+      ...riderToRow({ ...data, profileId: uid || undefined }),
       active: true,
-      createdAt: new Date().toISOString(),
-    }, { merge: true });
-    
-    toast({ 
+    });
+
+    toast({
         title: "Rider Onboarded Successfully", 
         description: `${data.name} has been added to the fleet and linked to their account.` 
     });

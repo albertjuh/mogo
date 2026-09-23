@@ -3,11 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useUser } from "@/firebase/auth/use-user";
+import { useUser } from "@/supabase/auth/use-user";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -20,18 +18,15 @@ import { useToast } from "@/hooks/use-toast";
 import { LogOut, Loader2, ShieldAlert, FileText } from "lucide-react";
 
 export default function AccountPage() {
-  const { user, firebaseUser, logout, deleteAccount } = useUser();
+  const { user, logout, deleteAccount } = useUser();
   const { toast } = useToast();
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [password, setPassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const isGoogleUser = firebaseUser?.providerData.some(p => p.providerId === "google.com");
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    const result = await deleteAccount(password);
+    const result = await deleteAccount();
     setIsDeleting(false);
 
     if (result.success) {
@@ -110,19 +105,6 @@ export default function AccountPage() {
               account is retained for financial audit purposes as required by law.
             </DialogDescription>
           </DialogHeader>
-
-          {!isGoogleUser && (
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm your password</Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-              />
-            </div>
-          )}
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={isDeleting}>

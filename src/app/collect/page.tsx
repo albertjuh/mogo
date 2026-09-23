@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
-import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { useUser } from "@/firebase/auth/use-user";
+import { useTable, type TableQuery } from "@/supabase/use-table";
+import { insertRowNonBlocking } from "@/supabase/non-blocking-updates";
+import { riderFromRow, paymentToRow, type RiderRow } from "@/supabase/mappers";
+import { useUser } from "@/supabase/auth/use-user";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { format, parseISO, startOfDay } from "date-fns";
@@ -16,16 +16,12 @@ import { DollarSign, User, CheckCircle2 } from "lucide-react";
 
 export default function CollectPage() {
   const { user } = useUser();
-  const db = useFirestore();
   const { toast } = useToast();
-  
+
   const isManager = user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'recruiter';
 
-  const ridersQuery = useMemoFirebase(() => {
-    if (!user || !isManager) return null;
-    return collection(db, "riders");
-  }, [db, user, isManager]);
-  const { data: riders } = useCollection(ridersQuery);
+  const ridersQuery: TableQuery | null = user && isManager ? { table: "riders", filters: [{ column: "active", op: "eq", value: true }] } : null;
+  const { data: riders } = useTable<RiderRow, ReturnType<typeof riderFromRow>>(ridersQuery, riderFromRow);
 
   const [clientNow, setClientNow] = useState<Date | null>(null);
 
@@ -41,14 +37,14 @@ export default function CollectPage() {
 
     const gatewayRef = `CASH-${Math.random().toString(36).substring(7).toUpperCase()}`;
 
-    addDocumentNonBlocking(collection(db, "payments"), {
+    insertRowNonBlocking("payments", paymentToRow({
       riderId,
       amount: dailyFee,
       gatewayRef,
       status: 'verified',
       recordedAt: new Date().toISOString(),
-      verifiedBy: user.id
-    });
+      verifiedBy: user.id,
+    }));
 
     toast({
       title: "💰 Malipo Yamepokelewa!",

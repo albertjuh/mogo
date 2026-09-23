@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useUser } from "@/firebase/auth/use-user";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy } from "firebase/firestore";
+import { useUser } from "@/supabase/auth/use-user";
+import { useTable, type TableQuery } from "@/supabase/use-table";
+import { riderFromRow, paymentFromRow, type RiderRow, type PaymentRow } from "@/supabase/mappers";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet, Calendar, ArrowUpRight, ShieldCheck, TrendingUp, DollarSign, UserPlus, CheckCircle, AlertCircle, Loader2, Target, BarChart3 } from "lucide-react";
@@ -15,26 +15,24 @@ import { computeRiderBalance, periodDays } from "@/lib/balance";
 
 export default function DashboardPage() {
   const { user } = useUser();
-  const db = useFirestore();
 
   // --- Role-Aware Data Fetching ---
   const isManager = user?.role === 'admin' || user?.role === 'supervisor' || user?.role === 'recruiter';
 
-  const ridersQuery = useMemoFirebase(() => {
-    if (!user || !isManager) return null;
-    return collection(db, "riders");
-  }, [db, user, isManager]);
-  const { data: riders } = useCollection(ridersQuery);
+  const ridersQuery: TableQuery | null = user && isManager
+    ? { table: "riders" }
+    : null;
+  const { data: riders } = useTable<RiderRow, ReturnType<typeof riderFromRow>>(ridersQuery, riderFromRow);
 
-  const paymentsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    if (user.role === 'rider') {
-      // Isolation: Only fetch payments belonging to this specific Rider UID
-      return query(collection(db, "payments"), where("riderId", "==", user.id));
-    }
-    return collection(db, "payments");
-  }, [db, user]);
-  const { data: allPayments } = useCollection(paymentsQuery);
+  // Isolation: riders only ever get their own payments (enforced by RLS too).
+  const paymentsQuery: TableQuery | null = !user
+    ? null
+    : user.role === 'rider'
+      ? user.riderId
+        ? { table: "payments", filters: [{ column: "rider_id", op: "eq", value: user.riderId }] }
+        : null
+      : { table: "payments" };
+  const { data: allPayments } = useTable<PaymentRow, ReturnType<typeof paymentFromRow>>(paymentsQuery, paymentFromRow);
 
   // --- Statistics Logic ---
   const stats = useMemo(() => {
@@ -54,14 +52,14 @@ export default function DashboardPage() {
     const today = new Date();
     
     // Daily Stats
-    const todayPayments = allPayments.filter(p => isSameDay(parseISO(p.recordedAt || p.date), today));
+    const todayPayments = allPayments.filter(p => isSameDay(parseISO(p.recordedAt), today));
     const collectedToday = todayPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
     // Prorate each rider's contracted fee to a daily-equivalent rate (handles Weekly/10-Day terms).
     const dailyTarget = activeRidersList.reduce((sum, r) => sum + (r.dailyFee || 0) / periodDays(r.paymentFrequency), 0);
     
     // Weekly Stats
     const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 });
-    const weekPayments = allPayments.filter(p => isAfter(parseISO(p.recordedAt || p.date), startOfCurrentWeek));
+    const weekPayments = allPayments.filter(p => isAfter(parseISO(p.recordedAt), startOfCurrentWeek));
     const collectedThisWeek = weekPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
     const weeklyTarget = dailyTarget * 7;
     const weeklyProgress = weeklyTarget > 0 ? (collectedThisWeek / weeklyTarget) * 100 : 0;

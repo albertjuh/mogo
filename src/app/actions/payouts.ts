@@ -1,26 +1,24 @@
 "use server";
 
-import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
+import { getServerUser } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { AzamPayError, disburse, nameLookup, newReference } from "@/lib/azampay";
 import { isMobileProvider, normaliseTzPhone } from "@/lib/payment-providers";
 
 const MIN_PAYOUT_TZS = 5000;
 
-async function requireAdmin(idToken: string): Promise<{ uid: string } | { error: string }> {
-  let uid: string;
-  try {
-    const decoded = await getAdminAuth().verifyIdToken(idToken);
-    uid = decoded.uid;
-  } catch {
+async function requireAdmin(): Promise<{ uid: string } | { error: string }> {
+  const user = await getServerUser();
+  if (!user) {
     return { error: "Your session has expired. Please sign in again." };
   }
 
-  const adminDoc = await getAdminDb().collection("admins").doc(uid).get();
-  if (!adminDoc.exists) {
+  const { data: profile } = await getSupabaseAdmin().from("profiles").select("role").eq("id", user.id).maybeSingle();
+  if (profile?.role !== "admin") {
     return { error: "Unauthorized. Only admins can move funds out of the account." };
   }
 
-  return { uid };
+  return { uid: user.id };
 }
 
 export interface RecipientLookupResult {
@@ -33,8 +31,8 @@ export interface RecipientLookupResult {
  * Confirms who owns a mobile money number before sending money to it, so an
  * admin can catch a mistyped number before the funds leave.
  */
-export async function lookupRecipient(idToken: string, phoneNumber: string, provider: string): Promise<RecipientLookupResult> {
-  const auth = await requireAdmin(idToken);
+export async function lookupRecipient(phoneNumber: string, provider: string): Promise<RecipientLookupResult> {
+  const auth = await requireAdmin();
   if ("error" in auth) return { success: false, error: auth.error };
 
   const msisdn = normaliseTzPhone(phoneNumber);
@@ -64,14 +62,13 @@ export interface InitiatePayoutResult {
  * used for payment collection.
  */
 export async function initiatePayout(
-  idToken: string,
   amount: number,
   phoneNumber: string,
   provider: string,
   recipientName: string,
   narration?: string
 ): Promise<InitiatePayoutResult> {
-  const auth = await requireAdmin(idToken);
+  const auth = await requireAdmin();
   if ("error" in auth) return { success: false, error: auth.error };
 
   if (!Number.isFinite(amount) || amount < MIN_PAYOUT_TZS) {
@@ -88,7 +85,7 @@ export async function initiatePayout(
     return { success: false, error: "A recipient name is required." };
   }
 
-  const db = getAdminDb();
+  const admin = getSupabaseAdmin();
   const reference = newReference("KBW");
 
   try {
@@ -101,17 +98,19 @@ export async function initiatePayout(
       remarks: narration?.trim() || "King Bariki withdrawal",
     });
 
-    await db.collection("payouts").doc(reference).set({
-      reference,
+    const gatewayMessage = result.message ?? (result.data ? JSON.stringify(result.data) : null);
+
+    await admin.from("payouts").insert({
+      id: reference,
       amount,
-      phoneNumber: msisdn,
+      phone_number: msisdn,
       provider,
-      recipientName: recipientName.trim(),
+      recipient_name: recipientName.trim(),
       narration: narration || null,
       status: "submitted",
-      gatewayMessage: result.message ?? result.data ?? null,
-      initiatedBy: auth.uid,
-      recordedAt: new Date().toISOString(),
+      gateway_message: gatewayMessage,
+      initiated_by: auth.uid,
+      recorded_at: new Date().toISOString(),
     });
 
     return { success: true, reference };
