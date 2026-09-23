@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, User, Shield, Bike, Mail } from "lucide-react";
+import { Calendar as CalendarIcon, User, Shield, CarFront, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -38,7 +38,7 @@ const riderFormSchema = z.object({
   name: z.string().min(2, "Jina kamili linahitajika."),
   email: z.string().email("Barua pepe sahihi inahitajika."),
   phone: z.string().regex(/^(?:\+255|0)\d{9}$/, "Namba ya simu ya Tanzania inahitajika."),
-  vehicleType: z.enum(['Boda Boda', 'Bajaji']),
+  vehicleType: z.literal('Bajaji'),
   plateNumber: z.string().min(3, "Namba ya usajili inahitajika."),
   chassisNumber: z.string().min(5, "Chassis number inahitajika kwa mkataba."),
   engineNumber: z.string().min(5, "Engine number inahitajika kwa mkataba."),
@@ -78,7 +78,7 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
       ? { 
           ...rider, 
           contractStart: rider.contractStart ? (typeof rider.contractStart === 'string' ? parseISO(rider.contractStart) : (rider.contractStart as any).toDate?.() || new Date()) : new Date(),
-          vehicleType: rider.vehicleType || 'Boda Boda',
+          vehicleType: 'Bajaji',
           paymentFrequency: rider.paymentFrequency || 'Daily',
           contractTermMonths: rider.contractTermMonths || 18,
           chassisNumber: rider.chassisNumber || "",
@@ -94,14 +94,14 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
           name: initialName || "",
           email: initialEmail || "",
           phone: "",
-          vehicleType: "Boda Boda",
+          vehicleType: "Bajaji",
           plateNumber: "",
           chassisNumber: "",
           engineNumber: "",
           engineCapacity: "",
           modelNumber: "",
           shahidiNumber: "",
-          dailyFee: 10000,
+          dailyFee: 25000,
           paymentFrequency: 'Daily',
           contractStart: new Date(),
           contractTermMonths: 18,
@@ -146,7 +146,7 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
                 <User size={14} className="mr-2" /> Basic
             </TabsTrigger>
             <TabsTrigger value="vehicle" className="data-[state=active]:bg-accent data-[state=active]:text-white">
-                <Bike size={14} className="mr-2" /> Vehicle
+                <CarFront size={14} className="mr-2" /> Bajaji
             </TabsTrigger>
             <TabsTrigger value="legal" className="data-[state=active]:bg-accent data-[state=active]:text-white">
                 <Shield size={14} className="mr-2" /> Legal
@@ -226,7 +226,6 @@ export function RiderForm({ rider, initialEmail, initialName, bikes, onSubmit, o
                           </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                          <SelectItem value="Boda Boda">Boda Boda</SelectItem>
                           <SelectItem value="Bajaji">Bajaji</SelectItem>
                           </SelectContent>
                       </Select>

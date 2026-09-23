@@ -55,7 +55,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     try {
       const result = await loginWithGoogle();
       if (result.success) {
-        toast({ title: "Welcome to BodaEmpire!" });
+        toast({ title: "Karibu King Bariki!" });
       } else {
         toast({ 
           variant: "destructive", 

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Boda Empire</string>
-    <string name="title_activity_main">Boda Empire</string>
-    <string name="package_name">com.bodaempire.app</string>
-    <string name="custom_url_scheme">com.bodaempire.app</string>
+    <string name="app_name">King Bariki</string>
+    <string name="title_activity_main">King Bariki</string>
+    <string name="package_name">com.kingbariki.app</string>
+    <string name="custom_url_scheme">com.kingbariki.app</string>
 </resources>

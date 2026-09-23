@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.bodaempire.app',
-  appName: 'Boda Empire',
+  appId: 'com.kingbariki.app',
+  appName: 'King Bariki',
   webDir: 'www',
   server: {
     url: 'https://mogo-lovat.vercel.app',

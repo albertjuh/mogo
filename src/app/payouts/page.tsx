@@ -11,8 +11,10 @@ import { useUser } from "@/firebase/auth/use-user";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, orderBy, query } from "firebase/firestore";
 import { format, parseISO } from "date-fns";
-import { getPayoutFee, initiatePayout } from "@/app/actions/payouts";
-import { Loader2, Send, Banknote, ReceiptText } from "lucide-react";
+import { lookupRecipient, initiatePayout } from "@/app/actions/payouts";
+import { MOBILE_PROVIDERS, detectProvider, providerLabel, type MobileProvider } from "@/lib/payment-providers";
+import { cn } from "@/lib/utils";
+import { Loader2, Send, Banknote, ReceiptText, BadgeCheck } from "lucide-react";
 
 export default function PayoutsPage() {
   const { user, firebaseUser } = useUser();
@@ -23,8 +25,9 @@ export default function PayoutsPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [narration, setNarration] = useState("");
-  const [fee, setFee] = useState<{ feeAmount: number; totalAmount: number } | null>(null);
-  const [isCheckingFee, setIsCheckingFee] = useState(false);
+  const [provider, setProvider] = useState<MobileProvider | null>(null);
+  const [verifiedName, setVerifiedName] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
   const payoutsQuery = useMemoFirebase(() => {
@@ -33,36 +36,48 @@ export default function PayoutsPage() {
   }, [db, user]);
   const { data: payouts } = useCollection(payoutsQuery);
 
-  const handleCheckFee = async () => {
+  const handlePhoneChange = (value: string) => {
+    setPhoneNumber(value);
+    setVerifiedName(null);
+    const detected = detectProvider(value);
+    if (detected) setProvider(detected);
+  };
+
+  const handleVerify = async () => {
     const amountNum = Number(amount);
     if (!firebaseUser || !amount || isNaN(amountNum) || amountNum < 5000) {
       toast({ variant: "destructive", title: "Invalid amount", description: "Minimum payout is TZS 5,000." });
       return;
     }
+    if (!provider) {
+      toast({ variant: "destructive", title: "Choose a network", description: "Select the recipient's mobile money network." });
+      return;
+    }
 
-    setIsCheckingFee(true);
-    setFee(null);
+    setIsVerifying(true);
+    setVerifiedName(null);
     try {
       const idToken = await firebaseUser.getIdToken();
-      const result = await getPayoutFee(idToken, amountNum);
-      if (result.success && result.feeAmount !== undefined && result.totalAmount !== undefined) {
-        setFee({ feeAmount: result.feeAmount, totalAmount: result.totalAmount });
+      const result = await lookupRecipient(idToken, phoneNumber, provider);
+      if (result.success && result.name) {
+        setVerifiedName(result.name);
+        if (!recipientName) setRecipientName(result.name);
       } else {
-        toast({ variant: "destructive", title: "Could not calculate fee", description: result.error });
+        toast({ variant: "destructive", title: "Could not verify number", description: result.error });
       }
     } finally {
-      setIsCheckingFee(false);
+      setIsVerifying(false);
     }
   };
 
   const handleSend = async () => {
-    if (!firebaseUser) return;
+    if (!firebaseUser || !provider) return;
     const amountNum = Number(amount);
 
     setIsSending(true);
     try {
       const idToken = await firebaseUser.getIdToken();
-      const result = await initiatePayout(idToken, amountNum, phoneNumber, recipientName, narration || undefined);
+      const result = await initiatePayout(idToken, amountNum, phoneNumber, provider, recipientName, narration || undefined);
 
       if (result.success) {
         toast({ title: "Payout Sent", description: `Ref: ${result.reference}` });
@@ -70,7 +85,8 @@ export default function PayoutsPage() {
         setPhoneNumber("");
         setRecipientName("");
         setNarration("");
-        setFee(null);
+        setProvider(null);
+        setVerifiedName(null);
       } else {
         toast({ variant: "destructive", title: "Payout Failed", description: result.error });
       }
@@ -87,7 +103,7 @@ export default function PayoutsPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-3xl font-black font-headline italic uppercase tracking-tighter">Withdraw Funds</h1>
-        <p className="text-muted-foreground">Send money from the Snippe balance to a mobile number.</p>
+        <p className="text-muted-foreground">Send money from the AzamPay balance to a mobile money wallet.</p>
       </header>
 
       <Card className="border-none shadow-xl">
@@ -111,10 +127,7 @@ export default function PayoutsPage() {
               id="amount"
               type="number"
               value={amount}
-              onChange={(e) => {
-                setAmount(e.target.value);
-                setFee(null);
-              }}
+              onChange={(e) => setAmount(e.target.value)}
               placeholder="50000"
               className="text-2xl font-black h-14 border-primary/20 focus:border-primary"
             />
@@ -127,9 +140,33 @@ export default function PayoutsPage() {
             <Input
               id="phoneNumber"
               value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
+              onChange={(e) => handlePhoneChange(e.target.value)}
               placeholder="0712345678"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground">
+              Recipient Network
+            </Label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {MOBILE_PROVIDERS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    setProvider(p.id);
+                    setVerifiedName(null);
+                  }}
+                  className={cn(
+                    "rounded-lg border-2 px-3 py-2 text-left text-sm font-bold transition-colors",
+                    provider === p.id ? "border-primary bg-primary/10" : "border-border hover:border-primary/40"
+                  )}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -156,19 +193,16 @@ export default function PayoutsPage() {
             />
           </div>
 
-          {fee && (
+          {verifiedName && (
             <div className="bg-secondary/30 p-4 rounded-xl border border-dashed space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Amount</span>
-                <span className="font-bold">TZS {Number(amount).toLocaleString()}</span>
+              <div className="flex items-center gap-2 font-bold text-primary">
+                <BadgeCheck className="h-4 w-4" /> Registered to {verifiedName}
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Fee</span>
-                <span className="font-bold">TZS {fee.feeAmount.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between border-t pt-1 mt-1">
-                <span className="font-bold">Total Deducted</span>
-                <span className="font-black text-primary">TZS {fee.totalAmount.toLocaleString()}</span>
+                <span className="text-muted-foreground">Sending</span>
+                <span className="font-black">
+                  TZS {Number(amount).toLocaleString()} via {providerLabel(provider ?? undefined)}
+                </span>
               </div>
             </div>
           )}
@@ -176,15 +210,15 @@ export default function PayoutsPage() {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={handleCheckFee}
-              disabled={isCheckingFee || isSending}
+              onClick={handleVerify}
+              disabled={isVerifying || isSending || !phoneNumber}
               className="flex-1 h-12 font-bold"
             >
-              {isCheckingFee ? <Loader2 className="animate-spin" /> : "Preview Fee"}
+              {isVerifying ? <Loader2 className="animate-spin" /> : "Verify Name"}
             </Button>
             <Button
               onClick={handleSend}
-              disabled={isSending || !fee || !phoneNumber || !recipientName}
+              disabled={isSending || !verifiedName || !provider || !recipientName}
               className="flex-1 h-12 font-bold shadow-lg shadow-primary/20"
             >
               {isSending ? <Loader2 className="animate-spin mr-2" /> : <Send className="mr-2 h-4 w-4" />}
@@ -202,7 +236,7 @@ export default function PayoutsPage() {
               <div>
                 <p className="font-bold text-sm">{payout.recipientName}</p>
                 <p className="text-[0.65rem] text-muted-foreground font-bold tracking-widest uppercase">
-                  {payout.phoneNumber} • {format(parseISO(payout.recordedAt), "dd MMM, HH:mm")}
+                  {payout.phoneNumber}{payout.provider ? ` • ${providerLabel(payout.provider)}` : ""} • {format(parseISO(payout.recordedAt), "dd MMM, HH:mm")}
                 </p>
               </div>
               <div className="text-right flex flex-col items-end gap-1">

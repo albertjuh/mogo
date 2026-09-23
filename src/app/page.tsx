@@ -11,6 +11,7 @@ import { format, parseISO, isSameDay, subDays, isAfter, startOfDay, differenceIn
 import { useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { computeRiderBalance, periodDays } from "@/lib/balance";
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -55,7 +56,8 @@ export default function DashboardPage() {
     // Daily Stats
     const todayPayments = allPayments.filter(p => isSameDay(parseISO(p.recordedAt || p.date), today));
     const collectedToday = todayPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-    const dailyTarget = activeRidersCount * 10000;
+    // Prorate each rider's contracted fee to a daily-equivalent rate (handles Weekly/10-Day terms).
+    const dailyTarget = activeRidersList.reduce((sum, r) => sum + (r.dailyFee || 0) / periodDays(r.paymentFrequency), 0);
     
     // Weekly Stats
     const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 });
@@ -71,16 +73,33 @@ export default function DashboardPage() {
     const sevenDaysAgo = subDays(today, 7);
     const recruitedThisWeek = riders.filter(r => isAfter(parseISO(r.createdAt), sevenDaysAgo)).length;
 
-    return { 
-        collectedToday, 
-        dailyTarget, 
-        activeRiders: activeRidersCount, 
-        collectedThisWeek, 
-        weeklyTarget, 
-        weeklyProgress, 
+    // Fleet-wide debt/overdraft: how much riders owe vs. how much they've paid ahead.
+    const paymentsByRider = new Map<string, typeof allPayments>();
+    allPayments.forEach(p => {
+      const list = paymentsByRider.get(p.riderId) || [];
+      list.push(p);
+      paymentsByRider.set(p.riderId, list);
+    });
+    let totalDebt = 0;
+    let totalCredit = 0;
+    activeRidersList.forEach(r => {
+      const { balance } = computeRiderBalance(r, paymentsByRider.get(r.id) || []);
+      if (balance < 0) totalDebt += -balance;
+      else totalCredit += balance;
+    });
+
+    return {
+        collectedToday,
+        dailyTarget,
+        activeRiders: activeRidersCount,
+        collectedThisWeek,
+        weeklyTarget,
+        weeklyProgress,
         arrearsCount,
         totalCollected,
-        recruitedThisWeek
+        recruitedThisWeek,
+        totalDebt,
+        totalCredit
     };
   }, [allPayments, riders, user]);
 
@@ -92,7 +111,7 @@ export default function DashboardPage() {
           <div className="space-y-6">
             <header className="space-y-1">
                 <h1 className="text-3xl font-black tracking-tight font-headline italic uppercase">Recruitment Center</h1>
-                <p className="text-muted-foreground">Growing the Mogo fleet, one driver at a time.</p>
+                <p className="text-muted-foreground">Growing the King Bariki Bajaji fleet, one driver at a time.</p>
             </header>
 
             <div className="grid grid-cols-1 gap-4">
@@ -105,7 +124,7 @@ export default function DashboardPage() {
                         <div className="text-4xl font-black italic">{stats?.recruitedThisWeek || 0} New Drivers</div>
                     </CardHeader>
                     <CardContent>
-                         <p className="text-sm font-medium opacity-90">Great job! You are expanding the Mogo empire.</p>
+                         <p className="text-sm font-medium opacity-90">Great job! You are expanding the King Bariki fleet.</p>
                     </CardContent>
                 </Card>
             </div>
@@ -130,7 +149,7 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <header className="space-y-1">
           <h1 className="text-3xl font-black tracking-tight font-headline">Habari, {user.name || user.email.split('@')[0]}!</h1>
-          <p className="text-muted-foreground">Muhtasari wa Mkopo wako wa Mogo</p>
+          <p className="text-muted-foreground">Muhtasari wa Mkopo wako wa Bajaji</p>
         </header>
 
         <Card className="bg-primary text-primary-foreground border-none shadow-xl overflow-hidden relative">
@@ -148,7 +167,7 @@ export default function DashboardPage() {
 
         <Button asChild className="w-full h-14 text-lg font-bold shadow-lg" size="lg">
           <Link href="/lipa" className="flex items-center justify-center gap-2">
-              Lipa Sasa na M-Pesa <ArrowUpRight />
+              Lipa Sasa kwa Simu <ArrowUpRight />
           </Link>
         </Button>
 
@@ -240,6 +259,22 @@ export default function DashboardPage() {
           </Card>
         )}
       </div>
+
+      {(stats?.totalDebt ?? 0) > 0 && (
+        <Card className="border-none shadow-md bg-orange-50 ring-1 ring-orange-200">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="font-bold text-orange-900">TZS {(stats?.totalDebt ?? 0).toLocaleString()} in Fleet Debt</p>
+              <p className="text-xs text-orange-700/80">Total owed across all active riders vs. their contracts.</p>
+            </div>
+            <Button asChild variant="ghost" size="sm" className="text-orange-600 hover:bg-orange-100 hover:text-orange-700 font-bold uppercase text-[0.65rem] tracking-widest">
+              <Link href="/fleet" className="flex items-center gap-1">
+                View Fleet <ArrowUpRight size={14} />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {(stats?.arrearsCount ?? 0) > 0 && (
         <Card className="border-none shadow-md bg-red-50 ring-1 ring-red-200">

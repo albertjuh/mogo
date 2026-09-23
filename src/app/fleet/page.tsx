@@ -9,6 +9,7 @@ import { updateDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlo
 
 import type { Rider, Bike } from "@/lib/types";
 import { initialBikes } from "@/lib/data";
+import { computeRiderBalance } from "@/lib/balance";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -56,6 +57,22 @@ export default function FleetPage() {
     return collection(db, "riders");
   }, [db, user, isManager]);
   const { data: riders, isLoading } = useCollection(ridersQuery);
+
+  const paymentsQuery = useMemoFirebase(() => {
+    if (!user || !isManager) return null;
+    return collection(db, "payments");
+  }, [db, user, isManager]);
+  const { data: allPayments } = useCollection(paymentsQuery);
+
+  const paymentsByRider = useMemo(() => {
+    const map = new Map<string, typeof allPayments>();
+    (allPayments || []).forEach((p) => {
+      const list = map.get(p.riderId) || [];
+      list.push(p);
+      map.set(p.riderId, list);
+    });
+    return map;
+  }, [allPayments]);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isContractOpen, setIsContractOpen] = useState(false);
@@ -137,7 +154,7 @@ export default function FleetPage() {
     <div className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
-            <h1 className="text-3xl font-black font-headline italic uppercase tracking-tighter text-accent">Boda Fleet</h1>
+            <h1 className="text-3xl font-black font-headline italic uppercase tracking-tighter text-accent">Bajaji Fleet</h1>
             <p className="text-muted-foreground font-medium">Manage riders and hire-purchase contracts.</p>
         </div>
         <Button size="icon" className="rounded-full shadow-lg h-12 w-12" onClick={() => { setSelectedRider(null); setIsFormOpen(true); }}>
@@ -162,6 +179,7 @@ export default function FleetPage() {
       ) : (
         <div className="space-y-4">
           {riders?.map((rider) => {
+            const balance = computeRiderBalance(rider, paymentsByRider.get(rider.id) || []);
             return (
               <Card key={rider.id} className="border-none shadow-md hover:shadow-lg transition-all bg-white overflow-hidden">
                 <CardHeader className="flex flex-row items-start justify-between p-4 pb-2">
@@ -205,6 +223,23 @@ export default function FleetPage() {
                     </div>
                   </div>
                   
+                  {rider.active && (
+                    <div className={`flex items-center justify-between p-2 rounded-lg text-xs font-black ${
+                        balance.status === 'debt' ? 'bg-red-50 text-red-700' :
+                        balance.status === 'credit' ? 'bg-green-50 text-green-700' :
+                        'bg-secondary/30 text-muted-foreground'
+                    }`}>
+                        <span className="uppercase tracking-wider">
+                            {balance.status === 'debt' ? 'Deni (Debt)' : balance.status === 'credit' ? 'Overdraft/Credit' : 'Current'}
+                        </span>
+                        <span>
+                            {balance.status === 'debt' && `- TZS ${Math.abs(balance.balance).toLocaleString()}`}
+                            {balance.status === 'credit' && `+ TZS ${balance.balance.toLocaleString()}`}
+                            {balance.status === 'current' && 'TZS 0'}
+                        </span>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between text-[0.6rem] font-bold uppercase tracking-widest text-muted-foreground pt-1 border-t border-muted/50">
                     <span>Guarantor: {rider.guarantorName || 'N/A'}</span>
                     <Button variant="link" size="sm" className="h-auto p-0 text-[0.6rem] text-primary" onClick={() => handleViewContract(rider)}>
@@ -257,10 +292,10 @@ export default function FleetPage() {
             </div>
             <ScrollArea className="flex-1 p-8 font-serif text-[0.8rem] leading-relaxed bg-white">
                 <div className="max-w-2xl mx-auto space-y-6 text-justify">
-                    <div className="text-center font-black underline text-lg uppercase">MKATABA WA MAKABIDHIANO YA {selectedRider?.vehicleType === 'Bajaji' ? 'BAJAJI' : 'PIKIPIKI [BODABODA]'}</div>
+                    <div className="text-center font-black underline text-lg uppercase">MKATABA WA MAKABIDHIANO YA BAJAJI</div>
                     
                     <div className="grid grid-cols-1 gap-1 text-xs">
-                        <p><strong>JINA LA MMILIKI:</strong> BODA EMPIRE / MOGO CONNECT</p>
+                        <p><strong>JINA LA MMILIKI:</strong> KING BARIKI</p>
                         <p><strong>JINA LA ANAEKABIDHIWA:</strong> {selectedRider?.name}</p>
                         <p><strong>NAMBA YA USAJILI:</strong> {selectedRider?.plateNumber}</p>
                         <p><strong>AINA YA CHOMBO:</strong> {selectedRider?.vehicleType}</p>
@@ -271,9 +306,9 @@ export default function FleetPage() {
                     </div>
 
                     <div className="space-y-4">
-                        <p><strong>MMILIKI WA PIKIPIKI:</strong> Mimi Boda Empire tarehe {safeFormatDate(selectedRider?.contractStart)} nimemkabidhi ndugu {selectedRider?.name} Mali iliyotajwa hapo juu kwa hiari yangu mwenyewe nikiwa na akili zangu timamu bila kushauriwa na mtu yeyote, na tumekubaliana atulipe kiasi cha shilingi 10,000 kwa siku [utaratibu wa malipo ni Tsh 100,000 kila siku ya 10] kwa mda wa miezi {selectedRider?.contractTermMonths || 18}. Mkataba huu ni kuanzia tarehe {safeFormatDate(selectedRider?.contractStart)} hadi tarehe {safeFormatDate(selectedRider?.contractEnd)} Itakuwa mwisho wa mkataba huu na pikipiki itakuwa ni mali yake na atakabidhiwa kadi ya pikipiki.</p>
+                        <p><strong>MMILIKI WA BAJAJI:</strong> Mimi King Bariki tarehe {safeFormatDate(selectedRider?.contractStart)} nimemkabidhi ndugu {selectedRider?.name} Mali iliyotajwa hapo juu kwa hiari yangu mwenyewe nikiwa na akili zangu timamu bila kushauriwa na mtu yeyote, na tumekubaliana atulipe kiasi cha shilingi 10,000 kwa siku [utaratibu wa malipo ni Tsh 100,000 kila siku ya 10] kwa mda wa miezi {selectedRider?.contractTermMonths || 18}. Mkataba huu ni kuanzia tarehe {safeFormatDate(selectedRider?.contractStart)} hadi tarehe {safeFormatDate(selectedRider?.contractEnd)} Itakuwa mwisho wa mkataba huu na bajaji itakuwa ni mali yake na atakabidhiwa kadi ya bajaji.</p>
                         
-                        <p><strong>ANAEKABIDHIWA PIKIPIKI:</strong> Mimi {selectedRider?.name} nikiwa na akili zangu timamu na kwa hiari yangu mwenyewe bila kulazimishwa na mtu yeyote wala kushawishiwa nimekubali kupokea pikipiki tajwa hapo juu kutoka kwa ndugu Boda Empire leo tarehe {safeFormatDate(selectedRider?.contractStart)} hadi tarehe {safeFormatDate(selectedRider?.contractEnd)}. Na ninaambatanisha nakala ya kitambulisho changu cha mpiga kura/kitambulisho cha taifa/picha ya passport.</p>
+                        <p><strong>ANAEKABIDHIWA BAJAJI:</strong> Mimi {selectedRider?.name} nikiwa na akili zangu timamu na kwa hiari yangu mwenyewe bila kulazimishwa na mtu yeyote wala kushawishiwa nimekubali kupokea bajaji tajwa hapo juu kutoka kwa King Bariki leo tarehe {safeFormatDate(selectedRider?.contractStart)} hadi tarehe {safeFormatDate(selectedRider?.contractEnd)}. Na ninaambatanisha nakala ya kitambulisho changu cha mpiga kura/kitambulisho cha taifa/picha ya passport.</p>
 
                         <p><strong>MASHARTI YA MKATABA:</strong></p>
                         <ol className="list-decimal pl-5 space-y-2">
@@ -294,11 +329,11 @@ export default function FleetPage() {
 
                     <div className="grid grid-cols-2 gap-8 pt-8 text-[0.6rem] border-t border-black/10">
                         <div className="space-y-4">
-                            <p><strong>Mmiliki wa pikipiki</strong> <br/> Jina: BODA EMPIRE / MOGO <br/> Sahihi: …………………………………</p>
+                            <p><strong>Mmiliki wa bajaji</strong> <br/> Jina: KING BARIKI <br/> Sahihi: …………………………………</p>
                             <p><strong>Shahidi wa mmiliki</strong> <br/> Jina: ………………………………… <br/> Sahihi: …………………………………</p>
                         </div>
                         <div className="space-y-4">
-                            <p><strong>Aliekabidhiwa pikipiki</strong> <br/> Jina: {selectedRider?.name} <br/> Sahihi: …………………………………</p>
+                            <p><strong>Aliekabidhiwa bajaji</strong> <br/> Jina: {selectedRider?.name} <br/> Sahihi: …………………………………</p>
                             <p><strong>Mdhamini</strong> <br/> Jina: {selectedRider?.guarantorName} <br/> Sahihi: …………………………………</p>
                         </div>
                     </div>

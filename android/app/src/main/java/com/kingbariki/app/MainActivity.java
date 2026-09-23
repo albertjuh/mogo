@@ -1,4 +1,4 @@
-package com.bodaempire.app;
+package com.kingbariki.app;
 
 import com.getcapacitor.BridgeActivity;
 

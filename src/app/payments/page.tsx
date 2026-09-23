@@ -13,6 +13,7 @@ import { AlertCircle, Download, Ghost, Flame, ReceiptText, CheckCircle2, Refresh
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { providerLabel } from "@/lib/payment-providers";
 
 export default function PaymentsPage() {
   const { user, firebaseUser } = useUser();
@@ -43,7 +44,7 @@ export default function PaymentsPage() {
     if (!firebaseUser) return;
 
     toast({
-      title: "Re-syncing with Snippe...",
+      title: "Re-syncing with AzamPay...",
       description: `Checking status for Ref: ${gatewayRef}`,
     });
 
@@ -75,7 +76,7 @@ export default function PaymentsPage() {
       <header className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-black font-headline uppercase italic tracking-tighter">Payments Ledger</h1>
-          <p className="text-muted-foreground font-medium">Verified Snippe audit trail.</p>
+          <p className="text-muted-foreground font-medium">Verified AzamPay audit trail.</p>
         </div>
       </header>
 
@@ -101,7 +102,7 @@ export default function PaymentsPage() {
                     </Badge>
                   </div>
                   <p className="text-[0.6rem] text-muted-foreground font-bold tracking-widest uppercase mt-0.5">
-                    Ref: {payment.gatewayRef} • {format(parseISO(payment.recordedAt), "dd MMM, HH:mm")}
+                    {payment.provider ? `${providerLabel(payment.provider)} • ` : ""}Ref: {payment.gatewayRef} • {format(parseISO(payment.recordedAt), "dd MMM, HH:mm")}
                   </p>
                 </div>
 
@@ -117,7 +118,7 @@ export default function PaymentsPage() {
                       variant="ghost" 
                       size="icon" 
                       className="h-8 w-8 text-muted-foreground hover:text-primary"
-                      onClick={() => handleReSync(payment.selcomRef)}
+                      onClick={() => handleReSync(payment.gatewayRef)}
                     >
                       <RefreshCcw size={16} />
                     </Button>

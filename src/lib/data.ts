@@ -11,7 +11,7 @@ export const initialRiders: Rider[] = [
     phone: "0712345678",
     email: "juma.hassan@example.com",
     plateNumber: "T 123 BCD",
-    vehicleType: "Boda Boda",
+    vehicleType: "Bajaji",
     chassisNumber: "MC-123456789-Z",
     engineNumber: "ENG-998877-X",
     shahidiNumber: "SH-9988", 
@@ -34,7 +34,7 @@ export const initialRiders: Rider[] = [
     phone: "0788112233",
     email: "ally.ramadhan@example.com",
     plateNumber: "T 445 DEF",
-    vehicleType: "Boda Boda",
+    vehicleType: "Bajaji",
     chassisNumber: "MC-445566778-Y",
     engineNumber: "ENG-112233-W",
     shahidiNumber: "SH-1122", 
@@ -55,7 +55,7 @@ export const initialRiders: Rider[] = [
     phone: "0655443322",
     email: "sofia.said@example.com",
     plateNumber: "T 789 GHI",
-    vehicleType: "Boda Boda",
+    vehicleType: "Bajaji",
     chassisNumber: "MC-789012345-V",
     engineNumber: "ENG-334455-S",
     shahidiNumber: "SH-4455", 
@@ -76,7 +76,7 @@ export const initialRiders: Rider[] = [
     phone: "0711998877",
     email: "baraka.mwangi@example.com",
     plateNumber: "T 119 HJL",
-    vehicleType: "Boda Boda",
+    vehicleType: "Bajaji",
     chassisNumber: "MC-119228833-U",
     engineNumber: "ENG-776655-T",
     shahidiNumber: "SH-7766", 
@@ -97,7 +97,7 @@ export const initialRiders: Rider[] = [
     phone: "0622334455",
     email: "amina.saleh@example.com",
     plateNumber: "T 042 GFK",
-    vehicleType: "Boda Boda",
+    vehicleType: "Bajaji",
     chassisNumber: "MC-042339944-R",
     engineNumber: "ENG-990011-Q",
     shahidiNumber: "SH-3344", 
@@ -115,10 +115,10 @@ export const initialRiders: Rider[] = [
 ];
 
 export const initialBikes: Bike[] = [
-  { id: "bike-1", plateNumber: "T 123 BCD", model: "Boxer 150", ownerId: "admin" },
-  { id: "bike-2", plateNumber: "T 445 DEF", model: "TVS HLX", ownerId: "admin" },
-  { id: "bike-3", plateNumber: "T 789 GHI", model: "Boxer 150", ownerId: "admin" },
-  { id: "bike-4", plateNumber: "T 119 HJL", model: "TVS HLX", ownerId: "admin" },
+  { id: "bike-1", plateNumber: "T 123 BCD", model: "Bajaj RE", ownerId: "admin" },
+  { id: "bike-2", plateNumber: "T 445 DEF", model: "TVS King", ownerId: "admin" },
+  { id: "bike-3", plateNumber: "T 789 GHI", model: "Bajaj RE", ownerId: "admin" },
+  { id: "bike-4", plateNumber: "T 119 HJL", model: "TVS King", ownerId: "admin" },
   { id: "bike-5", plateNumber: "T 042 GFK", model: "Bajaj RE", ownerId: "admin" }
 ];
 
@@ -132,7 +132,7 @@ export const initialLoans: Loan[] = [
   {
     id: "loan-1",
     clientId: "rider-1",
-    loanType: "Boda Boda",
+    loanType: "Bajaji",
     principalAmount: 2500000,
     outstandingBalance: 2470000,
     interestRate: 0.15,
@@ -148,7 +148,7 @@ export const initialLoans: Loan[] = [
   {
     id: "loan-2",
     clientId: "rider-2",
-    loanType: "Boda Boda",
+    loanType: "Bajaji",
     principalAmount: 2500000,
     outstandingBalance: 2450000,
     interestRate: 0.15,
@@ -164,7 +164,7 @@ export const initialLoans: Loan[] = [
   {
     id: "loan-3",
     clientId: "rider-3",
-    loanType: "Boda Boda",
+    loanType: "Bajaji",
     principalAmount: 2500000,
     outstandingBalance: 2480000,
     interestRate: 0.15,
@@ -180,7 +180,7 @@ export const initialLoans: Loan[] = [
   {
     id: "loan-4",
     clientId: "rider-4",
-    loanType: "Boda Boda",
+    loanType: "Bajaji",
     principalAmount: 2500000,
     outstandingBalance: 2490000,
     interestRate: 0.15,
@@ -196,7 +196,7 @@ export const initialLoans: Loan[] = [
   {
     id: "loan-5",
     clientId: "rider-5",
-    loanType: "Boda Boda",
+    loanType: "Bajaji",
     principalAmount: 2500000,
     outstandingBalance: 2495000,
     interestRate: 0.15,
@@ -213,7 +213,7 @@ export const initialLoans: Loan[] = [
 
 export const initialSavings: SavingInsight = {
   id: "save-1",
-  mogoInterestRate: 0.15,
+  ourInterestRate: 0.15,
   competitorInterestRate: 0.22,
   monthlySavings: 35000,
   totalSavingsToDate: 140000,

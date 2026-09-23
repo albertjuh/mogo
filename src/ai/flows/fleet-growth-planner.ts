@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A Genkit flow for generating a strategic fleet growth plan for BodaEmpire owners.
+ * @fileOverview A Genkit flow for generating a strategic fleet growth plan for King Bariki fleet owners.
  *
  * - fleetGrowthPlanner - A function that handles the fleet growth planning process.
  * - FleetGrowthPlannerInput - The input type for the fleetGrowthPlanner function.
@@ -15,12 +15,12 @@ const FleetGrowthPlannerInputSchema = z.object({
     .number()
     .int()
     .positive()
-    .describe('The current number of bodas (motorcycle taxis) in the fleet.'),
+    .describe('The current number of bajajis (three-wheel tuk-tuks) in the fleet.'),
   desiredFleetSize: z
     .number()
     .int()
     .positive()
-    .describe('The target number of bodas the owner wishes to achieve.'),
+    .describe('The target number of bajajis the owner wishes to achieve.'),
   availableSavings: z
     .number()
     .positive()
@@ -40,7 +40,7 @@ const FleetGrowthPlannerOutputSchema = z.object({
     .describe('Total estimated investment (in TZS) required to reach the desired fleet size.'),
   optimalSuggestions: z
     .array(z.string())
-    .describe('Optimal suggestions and strategies for adding bodas over time.'),
+    .describe('Optimal suggestions and strategies for adding bajajis over time.'),
   growthTips: z.array(z.string()).describe('Personalized tips for improving overall fleet growth and operational efficiency.'),
 });
 export type FleetGrowthPlannerOutput = z.infer<typeof FleetGrowthPlannerOutputSchema>;
@@ -55,21 +55,21 @@ const fleetGrowthPlannerPrompt = ai.definePrompt({
   name: 'fleetGrowthPlannerPrompt',
   input: { schema: FleetGrowthPlannerInputSchema },
   output: { schema: FleetGrowthPlannerOutputSchema },
-  prompt: `You are a strategic business advisor and financial planner for BodaEmpire, a motorcycle taxi business.
-Your goal is to help a BodaEmpire owner plan for fleet growth by analyzing their current situation and providing actionable advice.
+  prompt: `You are a strategic business advisor and financial planner for King Bariki, a bajaji (three-wheel tuk-tuk) hire-purchase fleet business in Tanzania.
+Your goal is to help a King Bariki owner plan for fleet growth by analyzing their current situation and providing actionable advice.
 
-Here are the current metrics for the BodaEmpire owner:
-- Current Fleet Size: {{{currentFleetSize}}} bodas
-- Desired Fleet Size: {{{desiredFleetSize}}} bodas
+Here are the current metrics for the King Bariki owner:
+- Current Fleet Size: {{{currentFleetSize}}} bajajis
+- Desired Fleet Size: {{{desiredFleetSize}}} bajajis
 - Available Savings for Investment: {{{availableSavings}}} TZS
 
 Based on these inputs, generate a strategic plan that includes:
 1.  An estimated time in months to achieve the desired fleet size.
 2.  The total estimated investment needed (in TZS) to reach the desired fleet size.
-3.  Optimal suggestions for adding bodas over time, considering the available savings and the goal.
+3.  Optimal suggestions for adding bajajis over time, considering the available savings and the goal.
 4.  Personalized tips for improving overall fleet growth, efficiency, and sustainability.
 
-Assume that each additional boda requires an average investment of approximately 2000 TZS (including purchase and initial setup costs) and generates a net profit that can contribute to further growth. Be realistic in your estimations and suggestions.
+Assume that each additional bajaji requires an average investment of approximately 10,000,000 TZS (including purchase and initial setup costs) and generates a net profit that can contribute to further growth. Be realistic in your estimations and suggestions.
 
 Provide the output in a structured JSON format matching the defined output schema.`,
 });

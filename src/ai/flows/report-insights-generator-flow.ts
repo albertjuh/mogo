@@ -49,7 +49,7 @@ const prompt = ai.definePrompt({
   name: 'reportInsightsGeneratorPrompt',
   input: {schema: ReportInsightsGeneratorInputSchema},
   output: {schema: ReportInsightsGeneratorOutputSchema},
-  prompt: `You are an expert business analyst specializing in micro-transportation businesses like BodaEmpire. Your task is to analyze the provided financial and operational reports. Generate a concise summary, identify key insights, and provide actionable recommendations to improve business performance and fleet growth.
+  prompt: `You are an expert business analyst specializing in micro-transportation businesses like King Bariki, a bajaji (tuk-tuk) fleet in Tanzania. Your task is to analyze the provided financial and operational reports. Generate a concise summary, identify key insights, and provide actionable recommendations to improve business performance and fleet growth.
 
 ---
 **Financial Report:**

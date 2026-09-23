@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Privacy Policy — Boda Empire",
+  title: "Privacy Policy — King Bariki",
 };
 
 export default function PrivacyPage() {
@@ -11,8 +11,8 @@ export default function PrivacyPage() {
       <p className="text-muted-foreground text-sm mb-8">Last updated: 11 July 2026</p>
 
       <p>
-        Boda Empire ("we", "us") provides fleet, payment and loan management tools for
-        motorcycle (boda boda) and bajaji operators. This policy explains what data we collect
+        King Bariki ("we", "us") provides fleet, payment and loan management tools for
+        bajaji (tuk-tuk) operators. This policy explains what data we collect
         through the app and how it is used.
       </p>
 

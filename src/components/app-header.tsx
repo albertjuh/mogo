@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUser } from '@/firebase/auth/use-user';
-import Image from 'next/image';
+import { BrandLogo } from '@/components/brand-logo';
 import Link from 'next/link';
 
 export function AppHeader() {
@@ -31,20 +31,11 @@ export function AppHeader() {
 
   const currentDateString = clientNow ? format(clientNow, 'dd MMM') : null;
 
-  const Logo = () => (
-    <Image 
-      src="/mogo-logo.png" 
-      alt="Mogo Logo" 
-      width={90} 
-      height={24} 
-      priority 
-      className="object-contain brightness-0 invert" // Keeps it white for the navy header
-    />
-  );
+  const Logo = () => <BrandLogo size={38} tone="light" showTagline={false} priority />;
 
   if (!user) {
     return (
-      <header className="md:hidden bg-accent text-white flex-shrink-0">
+      <header className="md:hidden bg-accent text-white flex-shrink-0 border-b-2 border-gold">
         <div className="mx-auto flex h-14 w-full items-center justify-center px-4">
           <Logo />
         </div>
@@ -53,7 +44,7 @@ export function AppHeader() {
   }
 
   return (
-    <header className="md:hidden bg-accent text-white flex-shrink-0">
+    <header className="md:hidden bg-accent text-white flex-shrink-0 border-b-2 border-gold">
       <div className="mx-auto flex h-14 w-full items-center justify-between px-4">
         <button onClick={handleSignOut} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
             <LogOut className="h-5 w-5" />

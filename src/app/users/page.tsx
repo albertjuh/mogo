@@ -224,7 +224,7 @@ export default function UserRegistryPage() {
              <div className="space-y-3">
                 <p className="font-bold uppercase text-primary border-b border-primary/20 pb-1">Contract Linking:</p>
                 <p>1. Identify the new Rider in the table above.</p>
-                <p>2. Click **"Onboard Profile"** to finalize their motorcycle details.</p>
+                <p>2. Click **"Onboard Profile"** to finalize their bajaji details.</p>
                 <p>3. This links their legal Mkataba to their secure digital account for payments.</p>
             </div>
         </div>

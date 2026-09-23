@@ -2,14 +2,14 @@
   "entities": {
     "Rider": {
       "title": "Rider",
-      "description": "Verified motorcycle driver profile linked to Auth identity.",
+      "description": "Verified bajaji driver profile linked to Auth identity.",
       "type": "object",
       "properties": {
         "name": { "type": "string" },
         "email": { "type": "string" },
         "phone": { "type": "string" },
         "plateNumber": { "type": "string" },
-        "vehicleType": { "enum": ["Boda Boda", "Bajaji"] },
+        "vehicleType": { "enum": ["Bajaji"] },
         "active": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
@@ -45,7 +45,7 @@
   "firestore": {
     "/riders/{riderId}": {
       "schema": { "$ref": "#/backend/entities/Rider" },
-      "description": "Profiles for boda drivers."
+      "description": "Profiles for bajaji drivers."
     },
     "/payments/{paymentId}": {
       "schema": { "$ref": "#/backend/entities/Payment" },

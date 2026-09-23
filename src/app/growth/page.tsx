@@ -22,7 +22,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const formSchema = z.object({
-  currentFleetSize: z.coerce.number().int().min(1, "Must have at least 1 boda."),
+  currentFleetSize: z.coerce.number().int().min(1, "Must have at least 1 bajaji."),
   desiredFleetSize: z.coerce.number().int().min(2, "Desired size must be greater than current."),
   availableSavings: z.coerce.number().min(0, "Savings cannot be negative."),
 }).refine(data => data.desiredFleetSize > data.currentFleetSize, {
@@ -71,7 +71,7 @@ export default function GrowthPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-3xl font-bold font-headline">Fleet Growth Planner</h1>
-        <p className="text-muted-foreground">Use AI to plan your BodaEmpire expansion.</p>
+        <p className="text-muted-foreground">Use AI to plan your King Bariki fleet expansion.</p>
       </header>
 
       <Card>
@@ -162,7 +162,7 @@ export default function GrowthPage() {
         <Card className="animate-in fade-in-50 duration-500">
             <CardHeader>
                 <CardTitle className="font-headline">Your AI-Generated Growth Plan</CardTitle>
-                <CardDescription>A strategic path to reach your goal of {currentValues.desiredFleetSize} bodas.</CardDescription>
+                <CardDescription>A strategic path to reach your goal of {currentValues.desiredFleetSize} bajajis.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="grid grid-cols-2 gap-4 text-center">

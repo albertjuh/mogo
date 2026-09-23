@@ -13,8 +13,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 3.9%;
 
-    /* Mogo Green: #76BC21 */
-    --primary: 88 69% 44%;
+    /* King Bariki Green: #339B46 */
+    --primary: 131 50% 40%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 0 0% 96.1%;
@@ -23,48 +23,55 @@
     --muted: 0 0% 96.1%;
     --muted-foreground: 0 0% 45.1%;
 
-    /* Mogo Navy Blue: #003366 */
-    --accent: 210 100% 20%;
+    /* King Bariki Royal Blue: #0C3F85 */
+    --accent: 215 83% 28%;
     --accent-foreground: 0 0% 100%;
+
+    /* King Bariki Crown Gold: #C7A95D */
+    --gold: 43 49% 57%;
+    --gold-foreground: 219 71% 15%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
-    --ring: 88 69% 44%;
+    --ring: 131 50% 40%;
 
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 210 100% 5%;
+    --background: 219 71% 8%;
     --foreground: 0 0% 98%;
 
-    --card: 210 100% 7%;
+    --card: 219 71% 11%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 210 100% 5%;
+    --popover: 219 71% 8%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 88 69% 44%;
+    --primary: 131 50% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 100% 15%;
+    --secondary: 219 60% 18%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 210 100% 15%;
+    --muted: 219 60% 18%;
     --muted-foreground: 0 0% 63.9%;
 
-    --accent: 88 69% 44%;
-    --accent-foreground: 210 100% 10%;
+    --accent: 131 50% 45%;
+    --accent-foreground: 219 71% 10%;
+
+    --gold: 43 55% 62%;
+    --gold-foreground: 219 71% 10%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 210 100% 15%;
-    --input: 210 100% 15%;
-    --ring: 88 69% 44%;
+    --border: 219 60% 18%;
+    --input: 219 60% 18%;
+    --ring: 131 50% 45%;
   }
 }
 

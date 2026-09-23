@@ -11,7 +11,7 @@ export default function SavingsPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-3xl font-black font-headline">Savings Tracker</h1>
-        <p className="text-muted-foreground">See how Mogo saves you money</p>
+        <p className="text-muted-foreground">See how King Bariki saves you money</p>
       </header>
 
       <Card className="bg-primary text-primary-foreground border-none shadow-2xl relative overflow-hidden">
@@ -23,18 +23,18 @@ export default function SavingsPage() {
             <div className="text-5xl font-black">TZS {savings.totalSavingsToDate.toLocaleString()}</div>
         </CardHeader>
         <CardContent>
-            <p className="text-sm font-medium">By choosing Mogo's competitive rates over market competitors.</p>
+            <p className="text-sm font-medium">By choosing King Bariki's competitive rates over market competitors.</p>
         </CardContent>
       </Card>
 
       <div className="space-y-4">
-        <h3 className="font-bold text-lg px-1">Mogo vs. Market</h3>
+        <h3 className="font-bold text-lg px-1">King Bariki vs. Market</h3>
         <Card className="border-none shadow-md">
             <CardContent className="p-6 space-y-6">
                 <div className="flex justify-between items-end">
                     <div className="space-y-1">
-                        <p className="text-xs font-bold uppercase text-muted-foreground">Mogo Rate</p>
-                        <p className="text-3xl font-black text-primary">{(savings.mogoInterestRate * 100).toFixed(0)}%</p>
+                        <p className="text-xs font-bold uppercase text-muted-foreground">King Bariki Rate</p>
+                        <p className="text-3xl font-black text-primary">{(savings.ourInterestRate * 100).toFixed(0)}%</p>
                     </div>
                     <div className="h-12 w-px bg-border"></div>
                     <div className="space-y-1 text-right">

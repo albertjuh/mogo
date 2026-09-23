@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { useUser } from "@/firebase/auth/use-user";
 import { Button } from "@/components/ui/button";
 import { useMemo } from "react";
-import Image from "next/image";
+import { BrandLogo } from "@/components/brand-logo";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -64,16 +64,9 @@ export function Sidebar() {
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-background border-r">
-        <div className="h-16 flex items-center px-6 border-b">
-            <Link href="/" className="flex items-center gap-2 font-semibold">
-                 <Image 
-                  src="/mogo-logo.png" 
-                  alt="Mogo Logo" 
-                  width={110} 
-                  height={30} 
-                  priority 
-                  className="object-contain"
-                />
+        <div className="h-20 flex items-center px-5 bg-accent border-b-2 border-gold">
+            <Link href="/" className="flex items-center">
+                <BrandLogo size={48} tone="light" priority />
             </Link>
         </div>
         <nav className="flex-1 p-4 space-y-1">

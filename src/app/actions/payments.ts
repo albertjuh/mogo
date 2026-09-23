@@ -1,8 +1,8 @@
 "use server";
 
-import { normalisePhone, SnippeError } from "@snippe/sdk";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
-import { getSnippeClient, mapGatewayStatus } from "@/lib/snippe";
+import { AzamPayError, getTransactionStatus, mapGatewayStatus, mnoCheckout, newReference } from "@/lib/azampay";
+import { isMobileProvider, normaliseTzPhone } from "@/lib/payment-providers";
 
 const MIN_AMOUNT_TZS = 500;
 
@@ -14,13 +14,22 @@ export interface InitiatePaymentResult {
 
 /**
  * Called by a signed-in rider to start a real mobile-money collection.
- * Runs server-side only: verifies the caller's Firebase ID token, looks up
- * their phone number, and calls Snippe. The resulting Firestore payment doc
- * is written with the Admin SDK, so it's never trusted from the client.
+ * Runs server-side only: verifies the caller's Firebase ID token and calls
+ * AzamPay's MNO checkout, which pushes a PIN prompt to the payer's phone.
+ * The resulting Firestore payment doc is written with the Admin SDK, so
+ * it's never trusted from the client.
  */
-export async function initiatePayment(idToken: string, amount: number): Promise<InitiatePaymentResult> {
+export async function initiatePayment(
+  idToken: string,
+  amount: number,
+  provider: string,
+  phone?: string
+): Promise<InitiatePaymentResult> {
   if (!Number.isFinite(amount) || amount < MIN_AMOUNT_TZS) {
     return { success: false, error: `Minimum payment amount is TZS ${MIN_AMOUNT_TZS}.` };
+  }
+  if (!isMobileProvider(provider)) {
+    return { success: false, error: "Please choose a mobile money network." };
   }
 
   let uid: string;
@@ -37,36 +46,32 @@ export async function initiatePayment(idToken: string, amount: number): Promise<
     return { success: false, error: "Rider profile not found." };
   }
   const rider = riderSnap.data()!;
-  if (!rider.phone) {
-    return { success: false, error: "No phone number on file for this account." };
+
+  const msisdn = normaliseTzPhone(phone || rider.phone || "");
+  if (!msisdn) {
+    return { success: false, error: "Enter a valid Tanzanian mobile number, e.g. 0754 123 456." };
   }
 
-  const [firstName, ...rest] = String(rider.name || "Boda Rider").trim().split(/\s+/);
+  const reference = newReference("KBP");
 
   try {
-    const payment = await getSnippeClient().payments.mobile.create({
-      amount,
-      phoneNumber: normalisePhone(rider.phone),
-      customer: {
-        firstName: firstName || "Boda",
-        lastName: rest.join(" ") || "Rider",
-        email: rider.email || `${uid}@bodaempire.app`,
-      },
-      webhookUrl: process.env.SNIPPE_WEBHOOK_URL,
-      metadata: { riderId: uid },
-    });
+    const checkout = await mnoCheckout({ accountNumber: msisdn, amount, externalId: reference, provider });
 
-    await db.collection("payments").doc(payment.reference).set({
+    await db.collection("payments").doc(reference).set({
       riderId: uid,
       amount,
-      gatewayRef: payment.reference,
-      status: mapGatewayStatus(payment.status),
+      gatewayRef: reference,
+      transactionId: checkout.transactionId ?? null,
+      provider,
+      msisdn,
+      status: "pending",
       recordedAt: new Date().toISOString(),
     });
 
-    return { success: true, gatewayRef: payment.reference };
+    return { success: true, gatewayRef: reference };
   } catch (e) {
-    const message = e instanceof SnippeError ? e.message : "Could not start the payment. Please try again.";
+    console.error("AzamPay checkout failed", e);
+    const message = e instanceof AzamPayError ? e.message : "Could not start the payment. Please try again.";
     return { success: false, error: message };
   }
 }
@@ -78,8 +83,8 @@ export interface CheckPaymentStatusResult {
 }
 
 /**
- * Called by a manager to re-poll Snippe for a pending payment's status,
- * for cases where the webhook hasn't landed yet.
+ * Called by a manager to re-poll AzamPay for a pending payment's status,
+ * for cases where the callback hasn't landed yet.
  */
 export async function checkPaymentStatus(idToken: string, gatewayRef: string): Promise<CheckPaymentStatusResult> {
   let uid: string;
@@ -101,15 +106,30 @@ export async function checkPaymentStatus(idToken: string, gatewayRef: string): P
     return { success: false, error: "Unauthorized." };
   }
 
-  try {
-    const payment = await getSnippeClient().payments.get(gatewayRef);
-    const status = mapGatewayStatus(payment.status);
+  const paymentRef = db.collection("payments").doc(gatewayRef);
+  const paymentSnap = await paymentRef.get();
+  const payment = paymentSnap.data();
+  if (!payment) {
+    return { success: false, error: "Payment not found." };
+  }
+  if (payment.status !== "pending") {
+    return { success: true, status: payment.status };
+  }
+  if (!payment.transactionId || !payment.provider) {
+    return { success: false, error: "This payment has no AzamPay transaction to check." };
+  }
 
-    await db.collection("payments").doc(gatewayRef).set({ status }, { merge: true });
+  try {
+    const result = await getTransactionStatus(payment.transactionId, payment.provider);
+    const status = mapGatewayStatus(result.data);
+
+    if (status !== "pending") {
+      await paymentRef.set({ status, verifiedBy: "azampay-status-check" }, { merge: true });
+    }
 
     return { success: true, status };
   } catch (e) {
-    const message = e instanceof SnippeError ? e.message : "Could not check payment status.";
+    const message = e instanceof AzamPayError ? e.message : "Could not check payment status.";
     return { success: false, error: message };
   }
 }

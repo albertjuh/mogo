@@ -12,7 +12,7 @@ export interface Rider {
   phone: string;
   email: string;
   plateNumber: string;
-  vehicleType: 'Boda Boda' | 'Bajaji';
+  vehicleType: 'Bajaji';
   chassisNumber?: string;
   engineNumber?: string;
   engineCapacity?: string; 
@@ -28,12 +28,13 @@ export interface Rider {
   witnessName?: string;
   witnessPhone?: string;
   active: boolean;
-  bikeId: string;
+  bikeId: string; // legacy field name: holds the assigned bajaji's id
   createdAt: string;
   notes?: string;
   location?: { lat: number; lng: number };
 }
 
+/** A bajaji in the fleet (interface name kept for existing Firestore data). */
 export interface Bike {
   id: string;
   plateNumber: string;
@@ -45,7 +46,10 @@ export interface Payment {
   id: string;
   riderId: string;
   amount: number;
-  gatewayRef: string;
+  gatewayRef: string; // our AzamPay externalId
+  transactionId?: string; // AzamPay's transaction id
+  provider?: string; // mobile money network, see payment-providers.ts
+  msisdn?: string;
   status: 'pending' | 'verified' | 'failed';
   recordedAt: string;
   verifiedBy?: string;
@@ -54,7 +58,7 @@ export interface Payment {
 export interface Loan {
   id: string;
   clientId: string;
-  loanType: 'Boda Boda' | 'Bajaji' | 'Car';
+  loanType: 'Bajaji';
   principalAmount: number;
   outstandingBalance: number;
   interestRate: number;
@@ -79,7 +83,7 @@ export interface Document {
 
 export interface SavingInsight {
   id: string;
-  mogoInterestRate: number;
+  ourInterestRate: number;
   competitorInterestRate: number;
   monthlySavings: number;
   totalSavingsToDate: number;
